@@ -6,7 +6,7 @@ import { AppError } from '../common/errors/app-error.js';
 import { CONFIG_KEYS } from '../config/app-config.provider.js';
 import { loadConfig } from '../config/configuration.js';
 import {
-  TENANT_MODELS,
+  isTenantModel,
   withTenantScope,
   type TenantModelName,
 } from './tenant-scope.extension.js';
@@ -17,11 +17,11 @@ import {
  * Prisma 7 tidak lagi membuat koneksi dari `schema.prisma`; client wajib
  * dikonstruksi dengan driver adapter. Di sini adapter-nya
  * `@prisma/adapter-mariadb`, dan connection string dibaca dari
- * `AppConfig.databaseUrl` — sumber yang sama dengan yang divalidasi
+ * `AppConfig.databaseUrl` - sumber yang sama dengan yang divalidasi
  * `loadConfig` saat start.
  *
  * Siklus hidup mengikuti module Nest: `$connect()` saat onModuleInit supaya
- * kegagalan koneksi Database muncul saat boot, bukan saat request pertama.
+ * kegagalan koneksi database muncul saat boot, bukan saat request pertama.
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -52,24 +52,31 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   /**
    * Delegate Prisma yang terkunci ke satu tenant.
    *
-   * Ini titik masuk WAJIB untuk setiap query terhadap data tenant
-   * (`stores`, `storeMembers`, `storeInvites`). Dipisah dari akses delegate
-   * biasa supaya isolamento tenant punya satu pintu yang bisa di-review,
-   * bukan sekadar sebuah helper yang diekspor lalu dipakai sesekali.
+   * Ini titik masuk WAJIB untuk setiap query terhadap data tenant, yaitu model
+   * yang terdaftar di `TENANT_MODELS`: `storeMembers` dan `storeInvites`.
+   * Delegate yang dikembalikan bersifat **default-deny**: operasi yang tidak
+   * dikenal ditolak, `create` memaksa `data.storeId`, dan `aggregate`/`groupBy`
+   * benar-benar ter-scope. `stores` TIDAK termasuk di sini karena tidak punya
+   * kolom `storeId`; toko diakses lewat `prisma.stores` biasa.
    *
    * ```ts
    * const members = await this.prisma.tenantModel('storeMembers', storeId).findMany({});
    * // otomatis jadi where: { storeId }
    * ```
    *
-   * Model di luar {@link TENANT_MODELS} ditolak, bukan diteruskan.
+   * STATUS: belum ada consumer produksi. Task 2 belum punya service sama
+   * sekali, jadi saat ini pemanggilnya hanya test integrasi. Wiring produksi
+   * resmi dilakukan di **Task 3**, saat service autentikasi pertama memakai
+   * helper ini. Jangan dianggap sudah selesai.
+   *
+   * Model di luar `TENANT_MODELS` ditolak, bukan diteruskan.
    */
   tenantModel<K extends TenantModelName>(model: K, storeId: string): PrismaClient[K] {
-    if (!(TENANT_MODELS as readonly string[]).includes(model)) {
+    if (!isTenantModel(model)) {
       throw new AppError(
         'NOT_TENANT_MODEL',
         500,
-        `Model "${model}" bukan model tenant. Perbarui TENANT_MODELS bila memang perlu.`,
+        `Model "${String(model)}" bukan model tenant. Perbarui TENANT_MODELS bila memang perlu.`,
       );
     }
     return withTenantScope(this[model], storeId) as PrismaClient[K];
