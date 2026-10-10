@@ -53,6 +53,7 @@
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",
+    "dotenv": "18.0.3",
     "oxlint": "^1.58.0",
     "oxlint-tsgolint": "^7.0.2001",
     "prettier": "^3.4.2",
@@ -64,6 +65,7 @@
     "vitest": "^4.1.2"
   },
   "//allowScripts": "CATATAN: kunci di bawah memakai versi persis. Kalau Prisma di-bump, kunci ini WAJIB di-re-key ke versi baru, kalau tidak install script-nya diblokir dan `prisma generate` gagal.",
+  "//dotenv": "Dipin 18.0.3 (versi yang sama dengan @nestjs/config) supaya `prisma.config.ts` bisa `import 'dotenv/config'` tanpa mengandalkan hoisting. CLI Prisma tidak memuat .env sendiri di Prisma 7.",
   "allowScripts": {
     "prisma@7.10.0": true,
     "@prisma/engines@7.10.0": true

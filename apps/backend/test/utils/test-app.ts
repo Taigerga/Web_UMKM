@@ -13,6 +13,7 @@ import { configureApp } from '../../src/bootstrap.js';
 import { AppError } from '../../src/common/errors/app-error.js';
 import { APP_CONFIG } from '../../src/config/configuration.js';
 import type { AppConfig } from '../../src/config/configuration.js';
+import { PrismaService } from '../../src/database/prisma.service.js';
 
 /**
  * Route dummy KHUSUS TEST untuk memverifikasi ValidationPipe + global filter.
@@ -31,8 +32,44 @@ class EchoTestDto {
   age!: number;
 }
 
+/**
+ * Route yang memancing error Prisma sungguhan (GATE-T2-A).
+ *
+ * Body sengaja TIDAK memakai DTO: `ValidationPipe` tidak intervened saat
+ * metatype bukan kelas, supaya test ini benar-benar menguji pemetaan error
+ * dan bukan validasi input.
+ */
 @Controller('echo')
 class EchoTestController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Post('prisma-duplicate')
+  async prismaDuplicate(@Body() body: { email: string }): Promise<{ id: string }> {
+    const user = await this.prisma.users.create({
+      data: { email: body.email, name: 'Dupe', passwordHash: 'x' },
+    });
+    return { id: user.id };
+  }
+
+  @Post('prisma-missing')
+  async prismaMissing(@Body() body: { id: string }): Promise<{ name: string }> {
+    const user = await this.prisma.users.update({
+      where: { id: body.id },
+      data: { name: 'Diperbarui' },
+    });
+    return { name: user.name };
+  }
+
+  @Post('prisma-fk')
+  async prismaFk(@Body() body: { storeId: string; userId: string }): Promise<{ ok: true }> {
+    // Delegate mentah, bukan `tenantModel`: route ini memang sengaja
+    // melanggar FK dan `create` tidak ada dalam operasi yang di-scope.
+    await this.prisma.storeMembers.create({
+      data: { storeId: body.storeId, userId: body.userId, role: 'STAFF' },
+    });
+    return { ok: true };
+  }
+
   @Post()
   echo(@Body() body: EchoTestDto): { data: EchoTestDto } {
     return { data: body };

@@ -1,0 +1,148 @@
+// Skema fondasi BisnisInsight - Prisma 7.
+//
+// Di Prisma 7 `datasource` TIDAK punya `url`; koneksi CLI lewat
+// `prisma.config.ts`, dan koneksi runtime lewat driver adapter di
+// `src/database/prisma.service.ts`.
+//
+// Penamaan: nama MODEL (dipakai sebagai nama delegate di Prisma Client,
+// mis. `prisma.storeMembers`) memakai camelCase, sedangkan nama TABEL di
+// MySQL tetap snake_case lewat `@@map`. Daftar ini adalah konsekuensi langsung
+// dari `TENANT_MODELS` di `src/database/tenant-scope.extension.ts`.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+/// Peran platform: siapa orangnya di dalam sistem.
+enum Role {
+  ADMIN
+  OWNER
+  STAFF
+}
+
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// Peran orang di dalam satu toko. Sengaja terpisah dari `Role` supaya satu
+/// orang bisa OWNER di toko A dan STAFF di toko B.
+enum StoreMemberRole {
+  OWNER
+  STAFF
+}
+
+/// Akun orang.
+model users {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String    @db.VarChar(191)
+  passwordHash     String    @db.VarChar(191)
+  role             Role      @default(OWNER)
+  isActive         Boolean   @default(true)
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  storesCreated stores[]         @relation("StoreCreator")
+  memberships  storeMembers[]
+  invitesSent  storeInvites[]   @relation("InviteSender")
+  sessions     refreshTokens[]
+  auditLogs    auditLogs[]
+
+  @@map("users")
+}
+
+model stores {
+  id          String      @id @default(uuid())
+  name        String      @db.VarChar(191)
+  city        String?
+  timezone    String      @default("Asia/Jakarta")
+  status      StoreStatus @default(ACTIVE)
+  createdById String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  createdBy users          @relation("StoreCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  members   storeMembers[]
+  invites   storeInvites[]
+
+  @@map("stores")
+}
+
+/// Membership = satu orang dalam satu toko.
+model storeMembers {
+  storeId  String
+  userId   String
+  role     StoreMemberRole @default(STAFF)
+  joinedAt DateTime        @default(now())
+
+  store stores @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  users  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([storeId, userId])
+  @@index([userId])
+  @@map("store_members")
+}
+
+model storeInvites {
+  id          String          @id @default(uuid())
+  storeId     String
+  email       String          @db.VarChar(191)
+  tokenHash   String          @unique @db.VarChar(64)
+  role        StoreMemberRole
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String
+  createdAt   DateTime        @default(now())
+
+  store     stores @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  invitedBy users  @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([storeId, email])
+  @@map("store_invites")
+}
+
+model refreshTokens {
+  id           String    @id @default(uuid())
+  userId       String
+  tokenHash    String    @unique @db.VarChar(64)
+  familyId     String    @db.VarChar(36)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdAt    DateTime  @default(now())
+
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+/// Jejak audit. `storeId` sengaja TANPA foreign key: log harus tetap terbaca
+/// setelah tokonya dihapus. `meta Json?` untuk detail terstruktur.
+model auditLogs {
+  id        String   @id @default(uuid())
+  actorId   String?
+  storeId   String?
+  action    String   @db.VarChar(64)
+  entity    String   @db.VarChar(64)
+  entityId  String?
+  ip        String   @db.VarChar(45)
+  userAgent String   @db.VarChar(255)
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  actor users? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
+}

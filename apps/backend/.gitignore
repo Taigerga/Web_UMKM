@@ -51,6 +51,15 @@ lerna-debug.log*
 .temp
 .tmp
 
+# ---- Prisma 7 ----
+# Client di-generate dari prisma/schema.prisma lewat `prisma generate`.
+# Hasilnya artefak build, tidak pernah di-commit (path ini bisa berubah
+# kalau blok `generator` di schema diubah).
+src/generated/
+
+# File database lokal untuk provider yang berbasis file.
+prisma/*.db
+
 # Runtime data
 pids
 *.pid

@@ -8,6 +8,9 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['**/*.spec.ts'],
+    // Unit test saja. File e2e butuh MySQL yang hidup, jadi punya config
+    // sendiri (`vitest.config.e2e.ts`) agar `npm test` tetap bisa jalan di
+    // lingkungan tanpa database.
+    include: ['src/**/*.spec.ts'],
   },
 });

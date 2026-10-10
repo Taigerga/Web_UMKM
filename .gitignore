@@ -16,6 +16,12 @@ build/
 out/
 *.tsbuildinfo
 
+# ---- Prisma 7 ----
+# Client hasil `prisma generate` adalah artefak build, bukan sumber.
+apps/backend/src/generated/
+# Shadow database yang dibuat `prisma migrate dev` saat gestalt.
+prisma_migrate_shadow_db_*
+
 # ---- Test & coverage ----
 coverage/
 .nyc_output/

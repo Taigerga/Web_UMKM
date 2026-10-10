@@ -6,6 +6,11 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['**/*.e2e.spec.ts', '**/*.e2e-spec.ts'],
+    // Hanya e2e. Butuh MySQL hidup (Laravel/Laragon) di 127.0.0.1:3306 dan
+    // memakai database `bisnis_insight_test`.
+    include: ['test/**/*.e2e.spec.ts'],
+    // Test e2e berbagi satu database; jalan berbarengan bisa saling menimpa
+    // data sehingga flaky.
+    fileParallelism: false,
   },
 });

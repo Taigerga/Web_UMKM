@@ -1,21 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module.js';
-import { APP_CONFIG, loadConfig } from './config/configuration.js';
-
-/** Kunci env yang dibaca `loadConfig`, urut agar deterministik. */
-const CONFIG_KEYS = [
-  'NODE_ENV',
-  'PORT',
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'ACCESS_TOKEN_TTL',
-  'REFRESH_TOKEN_TTL_DAYS',
-  'REFRESH_COOKIE_NAME',
-  'ACCESS_COOKIE_NAME',
-  'CORS_ORIGINS',
-] as const;
+import { APP_CONFIG } from './config/configuration.js';
+import { appConfigProvider } from './config/app-config.provider.js';
+import { PrismaModule } from './database/prisma.module.js';
 
 /**
  * Default rate limit global. Endpoint auth akan menimpanya dengan nilai yang
@@ -29,24 +18,10 @@ export const DEFAULT_THROTTLE_OPTIONS = [
   imports: [
     ConfigModule.forRoot({ isGlobal: true, cache: true }),
     ThrottlerModule.forRoot(DEFAULT_THROTTLE_OPTIONS),
+    PrismaModule,
     HealthModule,
   ],
-  providers: [
-    {
-      // `loadConfig` melempar saat nilai wajib hilang atau JWT_SECRET terlalu
-      // pendek, sehingga proses berhenti saat start, bukan saat request pertama.
-      provide: APP_CONFIG,
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const raw: Record<string, unknown> = {};
-        for (const key of CONFIG_KEYS) {
-          const value = configService.get<string>(key);
-          if (value !== undefined) raw[key] = value;
-        }
-        return loadConfig(raw);
-      },
-    },
-  ],
+  providers: [appConfigProvider],
   exports: [APP_CONFIG],
 })
 export class AppModule {}
