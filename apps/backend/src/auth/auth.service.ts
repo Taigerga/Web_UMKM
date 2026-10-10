@@ -7,6 +7,7 @@ import { RefreshTokenService } from './refresh-token.service.js';
 import type { RegisterDto } from './dto/register.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { normalizeEmail } from './email.util.js';
 import { Role } from '../common/types/prisma-enums.js';
 import type {
   Role as RoleType,
@@ -165,23 +166,56 @@ export class AuthService {
     });
   }
 
-  /** Tukar refresh token dengan access + refresh token baru. */
+  /**
+   * Tukar refresh token dengan access + refresh token baru.
+   *
+   * Refresh HARUS memeriksa ulang status akun, tidak bisa hanya memercayai
+   * token. Tanpa pemeriksaan ini, endpoint admin yang akan datang di Task 6
+   * (`PATCH /admin/users/:userId/status`) tidak akan berarti apa-apa untuk
+   * sesi yang sudah ada: akun yang dinonaktifkan masih bisa menukar refresh
+   * tokennya berulang kali dan mencetak access token baru tanpa henti,
+   * selama token-nya belum kedaluwarsa (7 hari).
+   *
+   * `JwtStrategy.validate` sengaja tidak cek database - itu wajar, access token
+   * berumur 15 menit sehingga batasnya sudah mengikat. Yang tidak punya batas
+   * adalah refresh, jadi di sinilah pemeriksaan tempatnya. Query user sudah
+   * dilakukan di sini untuk membaca email/name/role, jadi menambah dua kolom
+   * tidak menambah query.
+   */
   async refresh(presented: string): Promise<AuthSession> {
     const rotated = await this.refreshTokenService.rotate(presented);
 
     const user = await this.prisma.users.findUnique({
       where: { id: rotated.userId },
-      select: { id: true, email: true, name: true, role: true, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        lockedUntil: true,
+      },
     });
 
-    // Row token masih ada tapi user-nya sudah hilang atau dinonaktifkan di
-    // antara issue dan refresh: cabut semua token miliknya supaya tidak
-    // tertinggal akses yang masih dianggap sah.
+    // Baris token masih ada tapi pemiliknya sudah tidak bisa masuk lagi. Cabut
+    // semua token miliknya supaya tidak tertinggal akses yang masih dianggap
+    // sah - termasuk token BARU yang baru saja dibuat rotasi di atas.
     if (!user || !user.isActive) {
       await this.refreshTokenService.revokeAllForUser(rotated.userId);
       throw AppError.unauthorized(
         'Sesi tidak valid. Silakan masuk kembali.',
         'SESSION_INVALID',
+      );
+    }
+
+    // Akun terkunci karena gagal login berulang: sesi yang sudah ada ikut
+    // ditutup. Kalau dibiarkan, lockout hanya menahan login baru sementara
+    // penyerang yang sudah memegang refresh token tetap bisa masuk.
+    if (user.lockedUntil !== null && user.lockedUntil.getTime() > Date.now()) {
+      await this.refreshTokenService.revokeAllForUser(rotated.userId);
+      throw AppError.forbidden(
+        'Akun terkunci sementara karena terlalu banyak percobaan login gagal.',
+        'ACCOUNT_LOCKED',
       );
     }
 
@@ -332,10 +366,7 @@ export class AuthService {
   }
 }
 
-/** Email dinormalisasi agar `Budi@Contoh.ID` dan `budi@contoh.id` satu akun. */
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
+/** Email dinormalisasi lewat util bersama; lihat `email.util.ts`. */
 
 /**
  * Hash argon2id dari password acak, hanya supaya `verify` tetap berjalan dengan

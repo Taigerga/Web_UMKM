@@ -98,21 +98,29 @@ class EchoTestController {
 
 @Module({ controllers: [EchoTestController] })
 class EchoTestModule {}
-
 /**
  * Build instance Nest untuk e2e test dengan pipeline identik dengan produksi.
  *
  * - `logger: false` supaya output test bersih.
- * - Throttler di-override longgar (limit 10000 / ttl 60s) supaya rate limit
- *   tidak membuat test flaky (spec §11 risiko 1-3).
- * - Tidak ada APP_GUARD: guard global dipasang di task autentikasi.
+ * - Throttler di-override dengan limit tinggi supaya rate limit tidak membuat
+ *   test flaky di spec 11 risiko 1-3.
+ * - `throttlerOptions` tersedia untuk test yang memang MEMBUTUHKAN
+ *   limit aktif (test rate limit). Default-nya longgar; passing `null`
+ *   memakai konfigurasi produksi apa adanya.
  */
-export async function buildTestApp(): Promise<INestApplication> {
+export async function buildTestApp(
+  options: { throttlerOptions?: unknown[] | null } = {},
+): Promise<INestApplication> {
+  const throttlerOptions =
+    options.throttlerOptions === undefined || options.throttlerOptions === null
+      ? [{ name: 'default', ttl: 60_000, limit: 10_000 }]
+      : options.throttlerOptions;
+
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule, EchoTestModule],
   })
     .overrideProvider(getOptionsToken())
-    .useValue([{ name: 'default', ttl: 60_000, limit: 10_000 }])
+    .useValue(throttlerOptions)
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });

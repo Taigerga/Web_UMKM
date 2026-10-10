@@ -4,9 +4,7 @@ import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { PrismaService } from '../src/database/prisma.service.js';
-import {
-  MAX_FAILED_LOGIN_ATTEMPTS,
-} from '../src/auth/auth.service.js';
+import { MAX_FAILED_LOGIN_ATTEMPTS } from '../src/auth/auth.service.js';
 import { hashRefreshToken } from '../src/auth/refresh-token.service.js';
 import { buildTestApp } from './utils/test-app.js';
 
@@ -854,5 +852,284 @@ describe('POST /users/me/password', () => {
       .expect(400);
 
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+});
+
+/**
+ * Rate limit login per IP+email (spec 6.3).
+ *
+ * Test ini memakai instance aplikasi sendiri dengan konfigurasi throttler yang
+ * DIPAKAI (`buildTestApp({ throttlerOptions: [...] })`), bukan default longgar
+ * milik suite utama. Tanpa itu, limit 5/menit akan membuat test lain flaky -
+ * dan test ini sendiri tidak akan bisa membuktikan apa pun.
+ *
+ * Yang dibuktikan di sini: penghitungnya benar-benar DIPAKAI pada route login,
+ * dan yang memicu adalah email. IP tidak bisa divariasikan lewat supertest
+ * (semua request dari loopback), jadi pemisahan komponen IP-vs-email diuji
+ * langsung di `src/auth/login-throttle.tracker.spec.ts`.
+ */
+describe('rate limit login (limit aktif)', () => {
+  let limited: INestApplication;
+  let limitedPrisma: PrismaService;
+
+  beforeAll(async () => {
+    limited = await buildTestApp({
+      throttlerOptions: [{ name: 'auth', ttl: 60_000, limit: 5 }],
+    });
+    limitedPrisma = limited.get(PrismaService);
+  });
+
+  afterAll(async () => {
+    await limited.close();
+  });
+
+  beforeEach(async () => {
+    await limitedPrisma.auditLogs.deleteMany({});
+    await limitedPrisma.refreshTokens.deleteMany({});
+    await limitedPrisma.storeInvites.deleteMany({});
+    await limitedPrisma.storeMembers.deleteMany({});
+    await limitedPrisma.stores.deleteMany({});
+    await limitedPrisma.users.deleteMany({});
+  });
+
+  const attemptLogin = (email: string) =>
+    request(limited.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email, password: 'password-yang-salah' });
+
+  it('login berulang ke SATU email dibatasi setelah 5 percobaan', async () => {
+    const email = uniqueEmail('ratelimit');
+
+    // 5 percobaan pertama lolos ke service (dan gagal karena password salah).
+    for (let i = 0; i < 5; i += 1) {
+      const res = await attemptLogin(email);
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+    }
+
+    // Yang ke-6 kena limit.
+    const blocked = await attemptLogin(email);
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error.code).toBe('THROTTLED');
+  });
+
+  it('email BERBEDA tidak mewarisi penghitung email lain', async () => {
+    const first = uniqueEmail('ratelimit-a');
+    const second = uniqueEmail('ratelimit-b');
+
+    // Habiskan jatah `first`.
+    for (let i = 0; i < 5; i += 1) {
+      await attemptLogin(first).expect(401);
+    }
+    await attemptLogin(first).expect(429);
+
+    // `second` harus masih bisa dicoba: kalau kunci hanya per-IP, `second`
+    // ikut kena 429 dan limit tidak melindungi akun yang sebenarnya diserang.
+    const res = await attemptLogin(second);
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('email dengan kapitalisasi berbeda TERKUNCI pada penghitung yang sama', async () => {
+    // `AuthService.login` menormalisasi email, jadi `Victim@Contoh.ID` dan
+    // `victim@contoh.id` adalah akun yang sama. Kalau tracker tidak ikut
+    // menormalisasi, penyerang cukup memutar kapitalisasi untuk lolos limit.
+    const canonical = uniqueEmail('kasus');
+    const mangled = canonical.toUpperCase();
+
+    for (let i = 0; i < 5; i += 1) {
+      await attemptLogin(canonical).expect(401);
+    }
+
+    // Variasi kapitalisasi ikut terkunci.
+    await attemptLogin(mangled).expect(429);
+  });
+
+  it('request tanpa email terbaca memakai satu penghitung bersama', async () => {
+    // Semua request "garbage" dari IP yang sama harus berbagi satu jatah.
+    // Kalau tiap payload dapat slot sendiri, bypass "kirim email acak tiap
+    // request" akan berhasil.
+    const server = limited.getHttpServer();
+    const garbage: unknown[] = [
+      {},
+      { email: '' },
+      { email: '   ' },
+      { email: 12345 },
+      { email: { nested: 'object' } },
+      { unrelated: 'field' },
+    ];
+
+    const statuses: number[] = [];
+    for (let i = 0; i < 5; i += 1) {
+      const res = await request(server)
+        .post('/api/v1/auth/login')
+        .send(garbage[i]!);
+      statuses.push(res.status);
+    }
+
+    // 5 pertama memakai jatah (dan ditolak validasi, bukan throttle).
+    expect(statuses).not.toContain(429);
+
+    // Yang ke-6 - payload garbage lain - kena 429.
+    const blocked = await request(server)
+      .post('/api/v1/auth/login')
+      .send(garbage[0]!);
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error.code).toBe('THROTTLED');
+  });
+});
+
+/**
+ * Refresh WAJIB memeriksa ulang status akun.
+ *
+ * Tanpa pemeriksaan ini, `PATCH /admin/users/:userId/status` yang akan
+ * datang di Task 6 tidak akan berarti apa-apa untuk sesi yang sudah ada:
+ * akun yang dinonaktifkan masih bisa menukar refresh tokennya berulang kali
+ * dan mencetak access token baru tanpa henti selama token tidak kedaluwarsa
+ * (7 hari). `JwtStrategy` memang tidak cek database, tapi access tokennya
+ * hanya berumur 15 menit - refresh tidak punya batas seperti itu, jadi di
+ * sinilah pemeriksaan tempatnya.
+ *
+ * Setiap test di sini juga memeriksa bahwa TIDAK ada token baru yang
+ * diterbitkan, dan refresh yang sah tetap berhasil memastikan pemeriksaan ini
+ * tidak bisa "selalu menolak" lalu lolos tanpa terdeteksi.
+ */
+describe('refresh memverifikasi status akun', () => {
+  /** Login dan kembalikan cookie refresh + userId. */
+  async function sessionFor(email: string, password = VALID_PASSWORD) {
+    const login = await loginAs(email, password);
+    return {
+      refreshToken: cookieValue(login, REFRESH_COOKIE),
+      userId: (await prisma.users.findUniqueOrThrow({ where: { email } })).id,
+    };
+  }
+
+  it('refresh yang sah tetap berhasil (langkah pembanding)', async () => {
+    const { email, password } = await registerUser();
+    const { refreshToken } = await sessionFor(email, password);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', `${REFRESH_COOKIE}=${refreshToken}`)
+      .expect(201);
+
+    // Token benar-benar berganti dan bisa dipakai lagi.
+    expect(typeof res.body.data.accessToken).toBe('string');
+    const next = cookieValue(res, REFRESH_COOKIE);
+    expect(next).not.toBe(refreshToken);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', `${REFRESH_COOKIE}=${next}`)
+      .expect(201);
+  });
+
+  it('refresh ditolak kalau akun dinonaktifkan (isActive = false)', async () => {
+    const { email, password } = await registerUser();
+    const { refreshToken, userId } = await sessionFor(email, password);
+
+    // Simulasi `PATCH /admin/users/:userId/status` dari Task 6.
+    await prisma.users.update({ where: { id: userId }, data: { isActive: false } });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', `${REFRESH_COOKIE}=${refreshToken}`)
+      .expect(401);
+
+    expect(res.body.error.code).toBe('SESSION_INVALID');
+    // Tidak ada access token yang bocor di body error.
+    expect(res.body).not.toHaveProperty('data');
+
+    // Dan tidak ada token baru yang diterbitkan.
+    const tokens = await prisma.refreshTokens.findMany({ where: { userId } });
+    expect(tokens.every((t) => t.revokedAt !== null)).toBe(true);
+  });
+
+  it('refresh ditolak kalau akun terkunci (lockedUntil di masa depan)', async () => {
+    const { email, password } = await registerUser();
+    const { refreshToken, userId } = await sessionFor(email, password);
+
+    // Akun terkunci karena gagal login berulang. Sesi yang sudah ada harus
+    // ikut tertutup - kalau dibiarkan, lockout hanya menahan login baru
+    // sementara penyerang yang sudah memegang refresh token tetap bisa masuk.
+    await prisma.users.update({
+      where: { id: userId },
+      data: { lockedUntil: new Date(Date.now() + 15 * 60 * 1000) },
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', `${REFRESH_COOKIE}=${refreshToken}`)
+      .expect(403);
+
+    expect(res.body.error.code).toBe('ACCOUNT_LOCKED');
+
+    const tokens = await prisma.refreshTokens.findMany({ where: { userId } });
+    expect(tokens.every((t) => t.revokedAt !== null)).toBe(true);
+  });
+
+  it('refresh tetap jalan kalau lockedUntil sudah lewat (lock kedaluwarsa)', async () => {
+    const { email, password } = await registerUser();
+    const { refreshToken, userId } = await sessionFor(email, password);
+
+    // Lock yang sudah kedaluwarsa tidak boleh memblokir: user yang menunggu
+    // 15 menit harus bisa masuk lagi.
+    await prisma.users.update({
+      where: { id: userId },
+      data: { lockedUntil: new Date(Date.now() - 1000) },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', `${REFRESH_COOKIE}=${refreshToken}`)
+      .expect(201);
+  });
+
+  it('refresh ditolak kalau user-nya sudah dihapus', async () => {
+    const { email, password } = await registerUser();
+    const { refreshToken, userId } = await sessionFor(email, password);
+
+    // Hapus akun. `refresh_tokens` punya FK `onDelete: Cascade` ke `users`,
+    // jadi baris token ikut terhapus dan `rotate` menolak lebih dulu di
+    // `INVALID_REFRESH_TOKEN` - bukan di cek `!user` di AuthService.
+    // Kedua-duanya menutup akses; test ini mengunci perilaku yang terlihat
+    // dari luar, bukan cabang internal yang dipilih.
+    await prisma.users.delete({ where: { id: userId } });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', `${REFRESH_COOKIE}=${refreshToken}`)
+      .expect(401);
+
+    expect(res.body.error.code).toBe('INVALID_REFRESH_TOKEN');
+    expect(res.body).not.toHaveProperty('data');
+    expect(await prisma.refreshTokens.count({ where: { userId } })).toBe(0);
+  });
+
+  it('refresh ditolak kalau user dinonaktifkan SEJAK refresh token diterbitkan', async () => {
+    // Menutup celah urutan waktu: admin menonaktifkan akun di antara login
+    // dan refresh. Sesi lama ikut mati.
+    const { email, password } = await registerUser();
+    const { refreshToken, userId } = await sessionFor(email, password);
+
+    await prisma.users.update({ where: { id: userId }, data: { isActive: false } });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', `${REFRESH_COOKIE}=${refreshToken}`)
+      .expect(401);
+  });
+
+  it('akun nonaktif tidak bisa login ulang dengan password benar', async () => {
+    // Pelengkap: refresh sudah tertutup (test di atas), tapi jalur login juga
+    // harus menolak - kalau tidak, nonaktifkan akun hanya bisa dilewati dengan
+    // logout lalu login.
+    const { email, password } = await registerUser();
+    const { userId } = await sessionFor(email, password);
+
+    await prisma.users.update({ where: { id: userId }, data: { isActive: false } });
+
+    const res = await loginAs(email, password, 403);
+    expect(res.body.error.code).toBe('ACCOUNT_DISABLED');
   });
 });

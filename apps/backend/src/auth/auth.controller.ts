@@ -17,6 +17,7 @@ import { AppError } from '../common/errors/app-error.js';
 import { AuthService } from './auth.service.js';
 import type { AuthProfile, AuthSession, PublicUser } from './auth.service.js';
 import { AuthCookieService } from './auth-cookie.service.js';
+import { loginThrottleTracker } from './login-throttle.tracker.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { Public } from '../common/decorators/public.decorator.js';
@@ -69,7 +70,7 @@ export class AuthController {
 
   @Post('login')
   @Public()
-  @Throttle({ auth: { limit: 5, ttl: 60_000 } })
+  @Throttle({ auth: { limit: 5, ttl: 60_000, getTracker: loginThrottleTracker } })
   @ApiOperation({ summary: 'Masuk dan terima access + refresh token' })
   async login(
     @Body() dto: LoginDto,

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module.js';
 import { AppConfigModule } from './config/config.module.js';
 import { PrismaModule } from './database/prisma.module.js';
@@ -35,6 +36,13 @@ export const AUTH_THROTTLE_OPTIONS = [
     HealthModule,
     AuthModule,
     UsersModule,
+  ],
+  providers: [
+    // Tanpa provider ini, `@Throttle()` hanya metadata yang TIDAK dibaca
+    // siapa pun: tidak ada guard yang memeriksa, jadi tidak ada rate limit
+    // sama sekali. `ThrottlerGuard` harus jadi `APP_GUARD` supaya setiap
+    // request melewati semua throttler yang terdaftar.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
   // `APP_CONFIG` sekarang disediakan oleh `AppConfigModule` (global).
   // Modul ikut di-export supaya tokennya bisa diambil lewat `app.get()` dari
