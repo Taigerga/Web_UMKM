@@ -1,8 +1,12 @@
 /**
  * Error domain-level yang dipetakan global oleh `AllExceptionsFilter`.
  *
- * Pesan yang dipakai untuk `status >= 500` akan diganti filter menjadi teks
- * generik agar detail internal tidak bocor ke client.
+ * Untuk `status < 500`, `code` dan `message` dikirim apa adanya ke client.
+ * Untuk `status >= 500`, `AllExceptionsFilter` mengkolapsnya menjadi
+ * `INTERNAL_ERROR` + pesan generik; `code`, `message`, dan `details` asli
+ * hanya masuk ke log internal. Jadi jangan pernah menaruh host, port, kredensial,
+ * atau nomor error database di dalam `message` 5xx dengan harapan sampai ke log
+ * yang lebih berguna — log tetap menerimanya, tapi respons client tidak.
  */
 export class AppError extends Error {
   readonly code: string;

@@ -102,9 +102,20 @@ function mapPrismaKnownError(code: string): MappedError {
   }
 }
 
-function extractHttpExceptionPayload(
-  response: unknown,
-): { code?: string; message?: string; details?: unknown[] } {
+/**
+ * Bentuk payload `HttpException`.
+ *
+ * `ValidationPipe` mengembalikan `message` sebagai array of string (satu entry
+ * per aturan yang gagal). Array itu tidak boleh jadi `message` top-level, tapi
+ * juga tidak boleh dibuang — frontend butuh detail per-field untuk merender
+ * pesan form. Jadi array dipetakan ke `details`, sementara `message`
+ * top-level dibiarkan generik oleh pemanggil.
+ */
+function extractHttpExceptionPayload(response: unknown): {
+  code?: string;
+  message?: string;
+  details?: unknown[];
+} {
   if (typeof response === 'string') {
     return { message: response };
   }
@@ -117,6 +128,14 @@ function extractHttpExceptionPayload(
     error?: unknown;
   };
   const code = typeof payload.code === 'string' ? payload.code : undefined;
+
+  if (Array.isArray(payload.message)) {
+    const details = payload.message.filter(
+      (item): item is string => typeof item === 'string',
+    );
+    return { code, details: details.length > 0 ? details : undefined };
+  }
+
   const message =
     typeof payload.message === 'string'
       ? payload.message
@@ -148,7 +167,7 @@ function mapException(exception: unknown): MappedError {
     const message = payload.code
       ? (payload.message ?? DEFAULT_MESSAGES[status] ?? 'Permintaan gagal.')
       : (DEFAULT_MESSAGES[status] ?? 'Permintaan gagal.');
-    return { status, code, message };
+    return { status, code, message, details: payload.details };
   }
 
   return {
@@ -159,10 +178,30 @@ function mapException(exception: unknown): MappedError {
 }
 
 /**
+ * Kolaps semua error 5xx menjadi kontrak yang sama: `INTERNAL_ERROR` + pesan
+ * generik.
+ *
+ * Ini satu-satunya choke point untuk 5xx, sehingga cabang mana pun yang
+ * memetakan 5xx — `AppError`, `HttpException`, Prisma, atau exception tak
+ * dikenal — tidak bisa mengirim kode dan pesan aslinya ke client.
+ */
+function toClientSafeError(mapped: MappedError): MappedError {
+  if (mapped.status < HttpStatus.INTERNAL_SERVER_ERROR) {
+    return mapped;
+  }
+  return {
+    status: mapped.status,
+    code: 'INTERNAL_ERROR',
+    message: GENERIC_INTERNAL_MESSAGE,
+  };
+}
+
+/**
  * Filter global: semua exception dipetakan ke envelope
  * `{ error: { code, message, details? } }`.
  *
- * Stack trace dan nomor error Prisma hanya ditulis ke log internal.
+ * Stack trace, nomor error Prisma, dan detail internal 5xx hanya ditulis ke log
+ * internal — tidak pernah masuk response.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -176,23 +215,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const mapped = mapException(exception);
 
     // Detail internal hanya boleh masuk ke log, tidak pernah ke response.
+    // Dicatat dengan kode & pesan ASLI, sebelum dikolaps untuk client.
     if (mapped.status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        `${request.method} ${request.url} -> ${mapped.status} ${mapped.code}`,
+        `${request.method} ${request.url} -> ${mapped.status} ${mapped.code}: ${mapped.message}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }
 
+    const safe = toClientSafeError(mapped);
     const body: ApiErrorBody = {
       error: {
-        code: mapped.code,
-        message: mapped.message,
-        ...(mapped.details && mapped.details.length > 0
-          ? { details: mapped.details }
+        code: safe.code,
+        message: safe.message,
+        ...(safe.details && safe.details.length > 0
+          ? { details: safe.details }
           : {}),
       },
     };
 
-    response.status(mapped.status).json(body);
+    response.status(safe.status).json(body);
   }
 }
