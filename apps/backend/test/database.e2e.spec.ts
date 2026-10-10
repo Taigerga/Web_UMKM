@@ -98,9 +98,15 @@ beforeEach(async () => {
 });
 
 describe('PrismaService', () => {
-  it('bisa query ke database', async () => {
+  it('baca query ke database', async () => {
     const n = await prisma.users.count();
     expect(typeof n).toBe('number');
+  });
+
+  it('connect dan disconnect sesuai lifecycle module', async () => {
+    // `app.close()` di afterAll memanggil onModuleDestroy -> $disconnect.
+    // Kalau wiring-nya salah, test suite ini gagal saat teardown.
+    expect(await prisma.$queryRawUnsafe('SELECT 1')).toBeDefined();
   });
 });
 
@@ -147,6 +153,68 @@ describe('withTenantScope', () => {
  * R-2 / Critical 1: setiap anggota `TENANT_MODELS` harus benar-benar punya
  * kolom `storeId`. `stores` pernah salah masuk daftar dan gagal saat runtime.
  */
+describe('groupBy bentuk by', () => {
+  it('by berupa string tetap ter-scope dan memuat storeId di grup', async () => {
+    const { storeAId, storeBId } = await seedTwoStoresWithMembers(prisma);
+
+    const groups = (await prisma
+      .tenantModel('storeMembers', storeAId)
+      .groupBy({ by: ['role'], _count: { _all: true } })) as unknown as Array<{
+      role: string;
+      storeId: string;
+      _count: { _all: number };
+    }>;
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.storeId).toBe(storeAId);
+    expect(groups.some((g) => g.storeId === storeBId)).toBe(false);
+  });
+
+  it('by berupa objek tidak berubah jadi array campuran', async () => {
+    const { storeAId } = await seedTwoStoresWithMembers(prisma);
+
+    // CATATAN: Prisma 7.10 menolak bentuk objek pada `by` untuk groupBy
+    // (`by: StoreMembersScalarFieldEnum[] | StoreMembersScalarFieldEnum`,
+    // yaitu string saja) - termasuk TANPA proxy. Lihat laporan Task 2 fix
+    // round 2. Jadi yang diuji di sini adalah bentuk yang di-proxy, yaitu
+    // proxy tidak boleh mengubahnya jadi campuran string+objek.
+    const delegate = prisma.tenantModel('storeMembers', storeAId) as unknown as {
+      groupBy: (args: Record<string, unknown>) => Promise<unknown>;
+    };
+
+    const unscopedThrew = await delegate
+      .groupBy({ by: [{ role: { sort: 'desc' } }], _count: { _all: true } })
+      .then(() => false)
+      .catch(() => true);
+    // Delegan mentah (tanpa proxy), bentuk by yang sama.
+    const raw = prisma.storeMembers as unknown as {
+      groupBy: (args: Record<string, unknown>) => Promise<unknown>;
+    };
+    const rawThrew = await raw
+      .groupBy({ by: [{ role: { sort: 'desc' } }], _count: { _all: true } })
+      .then(() => false)
+      .catch(() => true);
+
+    // Dua-duanya ditolak oleh Prisma: bentuk objek tidak didukung.
+    expect(rawThrew).toBe(true);
+    expect(unscopedThrew).toBe(true);
+  });
+
+  it('entri by berupa string dan orderBy terpisah tetap bekerja', async () => {
+    const { storeAId } = await seedTwoStoresWithMembers(prisma);
+
+    const groups = (await prisma
+      .tenantModel('storeMembers', storeAId)
+      .groupBy({ by: ['role'], orderBy: { role: 'desc' }, _count: { _all: true } })) as unknown as Array<{
+      role: string;
+      storeId: string;
+    }>;
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.storeId).toBe(storeAId);
+  });
+});
+
 describe('TENANT_MODELS benar-benar punya kolom storeId', () => {
   it('setiap model bisa di-scope dan mengembalikan baris yang/storeId-nya', async () => {
     const { storeAId } = await seedTwoStoresWithMembers(prisma);
@@ -334,6 +402,62 @@ describe('default-deny: tidak ada operasi yang menembus antar tenant', () => {
 
     expect(updated.role).toBe('STAFF');
     expect(updated.storeId).toBe(storeAId);
+  });
+
+  it('update tidak bisa memindahkan baris ke toko lain lewat data.storeId', async () => {
+    const { userAId, storeAId, storeBId } = await seedTwoStoresWithMembers(prisma);
+
+    const updated = await prisma
+      .tenantModel('storeMembers', storeAId)
+      .update({
+        where: { storeId_userId: { storeId: storeAId, userId: userAId } },
+        data: { storeId: storeBId, role: 'STAFF' },
+      });
+
+    // Scope menang atas storeId dari pemanggil: baris tetap di toko A.
+    expect(updated.storeId).toBe(storeAId);
+    expect(updated.storeId).not.toBe(storeBId);
+
+    // Dan keanggotaan di toko B tidak bertambah.
+    expect(await prisma.storeMembers.count({ where: { storeId: storeBId } })).toBe(1);
+    const stillInA = await prisma.storeMembers.findUniqueOrThrow({
+      where: { storeId_userId: { storeId: storeAId, userId: userAId } },
+    });
+    expect(stillInA.storeId).toBe(storeAId);
+  });
+
+  it('updateMany tidak bisa memindahkan baris ke toko lain', async () => {
+    const { storeAId, storeBId } = await seedTwoStoresWithMembers(prisma);
+
+    const result = await prisma
+      .tenantModel('storeMembers', storeAId)
+      .updateMany({ data: { storeId: storeBId, role: 'STAFF' } });
+
+    expect(result.count).toBe(1);
+    expect(await prisma.storeMembers.count({ where: { storeId: storeBId } })).toBe(1);
+    expect(await prisma.storeMembers.count({ where: { storeId: storeAId } })).toBe(1);
+
+    const survivor = await prisma.storeMembers.findMany({ where: { storeId: storeBId } });
+    expect(survivor[0]?.role).toBe('STAFF');
+  });
+
+  it('upsert.update tidak bisa memindahkan baris ke toko lain', async () => {
+    const { userAId, storeAId, storeBId } = await seedTwoStoresWithMembers(prisma);
+
+    // Baris (storeA, userA) sudah ada, jadi upsert masuk ke cabang `update`.
+    const upserted = await prisma
+      .tenantModel('storeMembers', storeAId)
+      .upsert({
+        where: { storeId_userId: { storeId: storeAId, userId: userAId } },
+        create: { storeId: storeAId, userId: userAId, role: 'OWNER' },
+        update: { storeId: storeBId, role: 'STAFF' },
+      });
+
+    expect(upserted.storeId).toBe(storeAId);
+    expect(upserted.storeId).not.toBe(storeBId);
+    expect(upserted.role).toBe('STAFF');
+    expect(await prisma.storeMembers.count({ where: { storeId: storeBId } })).toBe(1);
+    expect(await prisma.storeMembers.count({ where: { storeId: storeAId } })).toBe(1);
   });
 
   it('create memaksa data.storeId dan tidak bisa menulis ke tenant lain', async () => {

@@ -24,6 +24,8 @@ interface SpyDelegate {
   aggregate(args?: Record<string, unknown>): Promise<unknown>;
   updateMany(args?: Record<string, unknown>): Promise<unknown>;
   deleteMany(args?: Record<string, unknown>): Promise<unknown>;
+  update(args?: Record<string, unknown>): Promise<unknown>;
+  upsert(args?: Record<string, unknown>): Promise<unknown>;
   groupBy(args?: Record<string, unknown>): Promise<unknown>;
   create(args?: Record<string, unknown>): Promise<unknown>;
   findUnique(args?: Record<string, unknown>): Promise<unknown>;
@@ -53,6 +55,8 @@ function createSpyDelegate(captured: Captured[]): SpyDelegate {
     aggregate: record('aggregate'),
     updateMany: record('updateMany'),
     deleteMany: record('deleteMany'),
+    update: record('update'),
+    upsert: record('upsert'),
     groupBy: record('groupBy'),
     create: record('create'),
     findUnique: record('findUnique'),
@@ -258,5 +262,106 @@ describe('withTenantScope', () => {
     await scoped.findMany(args);
 
     expect(args).toEqual({ where: { role: 'STAFF' } });
+  });
+
+  // -------------------------------------------------------------------------
+  // Round 2: update.data dan upsert.update tidak boleh memindahkan baris.
+  // -------------------------------------------------------------------------
+
+  it('update memaksa data.storeId dan mengabaikan storeId dari pemanggil', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+
+    await scoped.update({
+      where: { storeId_userId: { storeId: STORE_ID, userId: 'u1' } },
+      data: { storeId: 'store-orang-lain', role: 'STAFF' },
+    });
+
+    expect(captured[0]?.args['data']).toEqual({ storeId: STORE_ID, role: 'STAFF' });
+  });
+
+  it('updateMany memaksa data.storeId', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+
+    await scoped.updateMany({ data: { storeId: 'store-orang-lain' } });
+
+    expect(captured[0]?.args['data']).toEqual({ storeId: STORE_ID });
+  });
+
+  it('upsert memaksa create.storeId dan update.storeId', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+
+    await scoped.upsert({
+      where: { storeId_userId: { storeId: STORE_ID, userId: 'u1' } },
+      create: { storeId: 'store-orang-lain', userId: 'u1', role: 'STAFF' },
+      update: { storeId: 'store-orang-lain', role: 'OWNER' },
+    });
+
+    expect(captured[0]?.args['create']).toEqual({
+      storeId: STORE_ID,
+      userId: 'u1',
+      role: 'STAFF',
+    });
+    expect(captured[0]?.args['update']).toEqual({ storeId: STORE_ID, role: 'OWNER' });
+  });
+
+  it('update tanpa payload data tetap diteruskan apa adanya', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+
+    // Operasi unique-input seperti delete tidak punya `data`.
+    await scoped.update({
+      where: { storeId_userId: { storeId: STORE_ID, userId: 'u1' } },
+    });
+
+    expect(captured[0]?.args['data']).toBeUndefined();
+    expect(captured[0]?.args['where']).toEqual({
+      storeId_userId: { storeId: STORE_ID, userId: 'u1' },
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Round 2: groupBy object-form tidak boleh jadi array campuran.
+  // -------------------------------------------------------------------------
+
+  it('groupBy mempertahankan entri by berbentuk objek', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+
+    await scoped.groupBy({ by: [{ role: { sort: 'desc' } }] });
+
+    // Entri objek tidak boleh dicampur string di array yang sama: Prisma
+    // menolak `[{...}, 'storeId']` dengan PrismaClientValidationError.
+    expect(captured[0]?.args['by']).toEqual([{ role: { sort: 'desc' } }, { storeId: 'asc' }]);
+  });
+
+  it('groupBy entri objek tidak diubah di tempat', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+    const by = [{ role: { sort: 'desc' } }];
+
+    await scoped.groupBy({ by });
+
+    expect(by).toEqual([{ role: { sort: 'desc' } }]);
+  });
+
+  it('groupBy tetap menyuntik string storeId pada by berupa string', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+
+    await scoped.groupBy({ by: ['role'] });
+
+    expect(captured[0]?.args['by']).toEqual(['role', 'storeId']);
+  });
+
+  it('groupBy tidak menambahkan storeId dua kali pada entri objek', async () => {
+    const captured: Captured[] = [];
+    const scoped = withTenantScope(createSpyDelegate(captured), STORE_ID);
+
+    await scoped.groupBy({ by: [{ role: 'desc' }, { storeId: 'asc' }] });
+
+    expect(captured[0]?.args['by']).toEqual([{ role: 'desc' }, { storeId: 'asc' }]);
   });
 });

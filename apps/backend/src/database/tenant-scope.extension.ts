@@ -32,6 +32,10 @@ export type TenantModelName = (typeof TENANT_MODELS)[number];
  *
  * `findFirstOrThrow` masuk daftar ini karena `where`-nya filter biasa.
  * `aggregate` juga: tanpa `where.storeId` ia menjumlahkan SELURUH tenant.
+ *
+ * `updateMany` dan `updateManyAndReturn` ikut karena `where`-nya juga filter.
+ * Keduanya sekaligus punya payload `data`, dan `data.storeId`-nya ikut dipaksa
+ * oleh proxy.
  */
 export const TENANT_SCOPED_OPERATIONS = [
   'findMany',
@@ -104,16 +108,36 @@ function unsupported(operation: string, reason: string): AppError {
   );
 }
 
-/** `by` groupBy wajib memuat `storeId`, jika tidak grup bisa lintas tenant. */
-function withStoreIdInBy(by: unknown): string[] {
+/**
+ * Menyisipkan `storeId` ke `by` groupBy supaya grup tidak bisa lintas tenant.
+ *
+ * Entri yang sudah berbentuk OBJEK dipertahankan utuh. `storeId` hanya
+ * disisipkan ke dalam daftar entri string, karena mencampur string dengan
+ * objek (`[{ role: ... }, 'storeId']`) ditolak Prisma dengan
+ * `PrismaClientValidationError`.
+ *
+ * Kalau seluruh entri berupa objek, `storeId` ikut disisipkan dalam bentuk
+ * objek supaya array tetap homogen.
+ */
+function withStoreIdInBy(by: unknown): unknown[] {
   const entries = by === undefined || by === null ? [] : Array.isArray(by) ? [...by] : [by];
   const alreadyScoped = entries.some(
     (entry) => entry === 'storeId' || (isPlainObject(entry) && 'storeId' in entry),
   );
-  return alreadyScoped ? (entries as string[]) : [...(entries as string[]), 'storeId'];
+  if (alreadyScoped) return entries;
+
+  const hasStringEntry = entries.some((entry) => typeof entry === 'string');
+  return hasStringEntry ? [...entries, 'storeId'] : [...entries, { storeId: 'asc' }];
 }
 
-/** `data` untuk create/createMany wajib bisa dipaksa `storeId`-nya. */
+/**
+ * `data` untuk operasi tulis wajib bisa dipaksa `storeId`-nya.
+ *
+ * Berlaku untuk `create`/`createMany`/`createManyAndReturn` maupun untuk
+ * `update`/`updateMany`/`updateManyAndReturn` dan cabang `create`/`update`
+ * milik `upsert`: tanpa ini, `update.data.storeId` bisa memindahkan baris ke
+ * toko lain meski `where`-nya sudah ter-scope.
+ */
 function withStoreIdInData(data: unknown, scope: string, operation: string): unknown {
   if (Array.isArray(data)) {
     return data.map((row) => {
@@ -127,6 +151,16 @@ function withStoreIdInData(data: unknown, scope: string, operation: string): unk
     throw unsupported(operation, '`data` harus berupa objek atau array objek.');
   }
   return { ...data, storeId: scope };
+}
+
+/** Memaksa `storeId` pada `data` bila operasi memang punya payload tulis. */
+function withScopedWriteData(
+  args: Record<string, unknown>,
+  scope: string,
+  operation: string,
+): Record<string, unknown> {
+  if (args['data'] === undefined) return args;
+  return { ...args, data: withStoreIdInData(args['data'], scope, operation) };
 }
 
 function scopedWhere(
@@ -207,14 +241,21 @@ function assertCallerScope(
  * Perlakuan per operasi:
  * - filter (`findMany`, `findFirst`, `findFirstOrThrow`, `count`, `aggregate`,
  *   `updateMany`, `updateManyAndReturn`, `deleteMany`): `where.storeId` disuntik.
- * - tulis (`create`, `createMany`, `createManyAndReturn`): `data.storeId` dipaksa.
  * - `groupBy`: `where.storeId` disuntik **dan** `storeId` ditambahkan ke `by`,
- *   karena tanpa itu grup bisa menjangkau lebih dari satu tenant.
+ *   karena tanpa itu grup bisa menjangkau lebih dari satu tenant. Entri `by`
+ *   berbentuk objek dipertahankan utuh; `storeId` hanya disisipkan ke entri
+ *   string.
+ * - SETIAP payload tulis dipaksa `storeId` ke scope: `create`, `createMany`,
+ *   `createManyAndReturn`, `update.data`, `updateMany.data`,
+ *   `updateManyAndReturn.data`, serta `upsert.create` **dan** `upsert.update`.
  * - unique-input (`findUnique`, `findUniqueOrThrow`, `update`, `delete`,
  *   `upsert`): `where.storeId` wajib disebut pemanggil dan harus sama dengan
- *   scope; kalau tidak, lempar. `upsert` juga memaksa `create.storeId`.
+ *   scope; kalau tidak, lempar.
  * - raw query (`$queryRaw*`, `$executeRaw*`): selalu ditolak.
  * - apa pun selain itu: ditolak, dengan nama operasi disebut di pesan error.
+ *
+ * Memindahkan baris antar tenant lewat `data.storeId` pun tidak mungkin:
+ * `storeId` selalu ditimpa dengan nilai scope, bukan dipercaya ke pemanggil.
  *
  * `storeId` yang kosong melempar {@link AppError.forbidden} alih-alih
  * menghasilkan query tanpa filter, karena `where: {}` berarti "semua tenant".
@@ -272,7 +313,11 @@ export function withTenantScope<T extends object>(client: T, storeId: string): T
 
       const build = (): ScopedCall => {
         if (WHERE_INJECTED.has(property)) {
-          return (args = {}) => original.call(target, { ...args, where: scopedWhere(args, scope) });
+          return (args = {}) =>
+            original.call(
+              target,
+              withScopedWriteData({ ...args, where: scopedWhere(args, scope) }, scope, property),
+            );
         }
 
         if (GROUP_BY.has(property)) {
@@ -297,13 +342,15 @@ export function withTenantScope<T extends object>(client: T, storeId: string): T
         if (UNIQUE_INPUT.has(property)) {
           return (args = {}) => {
             assertCallerScope(args, scope, property);
+            // `update` punya payload `data`, dan `upsert` punya dua payload
+            // (`create` dan `update`). Semuanya dipaksa ke scope, kalau tidak
+            // `data.storeId` bisa memindahkan baris ke toko lain.
+            const next = withScopedWriteData(args, scope, property);
             if (property === 'upsert') {
-              return original.call(target, {
-                ...args,
-                create: withStoreIdInData(args['create'], scope, property),
-              });
+              next['create'] = withStoreIdInData(args['create'], scope, property);
+              next['update'] = withStoreIdInData(args['update'], scope, property);
             }
-            return original.call(target, args);
+            return original.call(target, next);
           };
         }
 
