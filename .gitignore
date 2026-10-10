@@ -60,3 +60,5 @@ Thumbs.db
 logs/
 *.log
 npm-debug.log*
+# ---- SDD workspace (scratch, ledger & review packages) ----
+.superpowers/
