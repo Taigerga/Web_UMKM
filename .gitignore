@@ -1,0 +1,62 @@
+# ---- Dependencies ----
+node_modules/
+.pnpm-store/
+
+# ---- Secrets & environment ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- Build output ----
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# ---- Test & coverage ----
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+.vitest/
+
+# ---- Dataset mentah (82 MB, sintetis, lisensi eksternal) ----
+# Struktur folder tetap ada, isinya tidak di-commit.
+# Akses lewat prompt: lihat docs/dataset-analysis.md
+data/raw/*
+!data/raw/.gitkeep
+
+# ---- Storage runtime (upload user, laporan, sementara) ----
+storage/uploads/*
+storage/reports/*
+storage/temporary/*
+!storage/**/.gitkeep
+
+# ---- Model artifacts (bisa besar, diregenerasi oleh training) ----
+services/ml/artifacts/**/*
+!services/ml/artifacts/**/.gitkeep
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# ---- Editor / OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Logs ----
+logs/
+*.log
+npm-debug.log*
