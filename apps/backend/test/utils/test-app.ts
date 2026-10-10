@@ -14,6 +14,7 @@ import { AppError } from '../../src/common/errors/app-error.js';
 import { APP_CONFIG } from '../../src/config/configuration.js';
 import type { AppConfig } from '../../src/config/configuration.js';
 import { PrismaService } from '../../src/database/prisma.service.js';
+import { Public } from '../../src/common/decorators/public.decorator.js';
 
 /**
  * Route dummy KHUSUS TEST untuk memverifikasi ValidationPipe + global filter.
@@ -40,6 +41,7 @@ class EchoTestDto {
  * dan bukan validasi input.
  */
 @Controller('echo')
+@Public()
 class EchoTestController {
   constructor(private readonly prisma: PrismaService) {}
 

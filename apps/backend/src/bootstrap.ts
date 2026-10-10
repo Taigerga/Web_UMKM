@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import type { AppConfig } from './config/configuration.js';
@@ -13,9 +14,13 @@ export function configureApp(app: INestApplication, config: AppConfig): void {
   app.use(helmet());
   app.enableCors({
     origin: config.corsOrigins,
-    // Dibutuhkan untuk refresh token HttpOnly di task autentikasi.
+    //Dibutuhkan untuk refresh token HttpOnly di task autentikasi.
     credentials: true,
   });
+  // WAJIB untuk endpoint refresh/logout: keduanya membaca refresh token dari
+  // cookie. Tanpa ini `req.cookies` undefined dan logout tidak pernah mencabut
+  // apa pun.
+  app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
