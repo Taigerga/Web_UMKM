@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Patch,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from '../database/prisma.service.js';
 import { AppError } from '../common/errors/app-error.js';
@@ -48,6 +39,27 @@ interface StoreView {
  * `@StoreAccess()`. Daftar yang dikembalikan berasal dari
  * `StoreAccessService.listAccessible(userId)` - keanggotaan milik user itu
  * sendiri, bukan dari parameter apa pun yang dikirim klien.
+ *
+ * ## Kenapa tidak ada `DELETE /stores/:storeId`
+ *
+ * Controller ini pernah punya route itu dan route-nya DIHAPUS pada review.
+ * Alasannya bukan bug dan bukan lubang: route itu memang tidak punya pemilik
+ * di spec maupun di plan. `stores` tidak punya `deletedAt`, jadi penghapusan
+ * adalah `DELETE` keras dengan `onDelete: Cascade` ke `store_members` dan
+ * `store_invites` - dan jejak auditnya baru akan ada di Task 6. Endpoint yang
+ * bisa menghapus seluruh riwayat anggota sebuah UMKM tanpa jejak adalah
+ * kapabilitas yang harus diminta dengan sadar, bukan yang muncul karena
+ * seseorang butuh satu route untuk menguji IDOR.
+ *
+ * Konsekuensi untuk test: "OWNER toko A tidak bisa DELETE toko B" sekarang
+ * diuji lewat route test-only `DELETE /echo/store-ops/:storeId`, sama seperti
+ * invite dan ubah-peran. Yang diuji memang guard-nya, bukan
+ * kapabilitas produk. Penghapusan TOKO, kalau memang dibutuhkan, adalah
+ * proposal untuk Task 6 - di sana soft-delete dan audit sudah ada.
+ *
+ * Endpoint yang memang ada di spec dan tetap hidup di sini: `DELETE
+ * /stores/:storeId/members/:userId` (Task 5), yaitu hapus ANGGOTA, bukan
+ * hapus toko.
  */
 @ApiBearerAuth('bearer')
 @ApiTags('stores')
@@ -95,18 +107,6 @@ export class StoresController {
 
     const { id, name, city, timezone, status } = store;
     return { data: { id, name, city, timezone, status } };
-  }
-
-  @Delete(':storeId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @StoreAccess(StoreMemberRole.OWNER)
-  @ApiOperation({ summary: 'Hapus toko (OWNER toko tersebut)' })
-  async remove(@Param('storeId') storeId: string): Promise<void> {
-    // `stores` bukan model tenant (primary key-nya `id`, tidak punya kolom
-    // `storeId`), jadi tidak bisa lewat `tenantModel`. Yang menggantikannya
-    // adalah `@StoreAccess('OWNER')`: keanggotaan sudah diverifikasi guard
-    // sebelum baris ini dieksekusi.
-    await this.prisma.stores.delete({ where: { id: storeId } });
   }
 
   /**

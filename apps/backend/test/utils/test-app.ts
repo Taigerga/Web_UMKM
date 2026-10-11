@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 // mengevaluasi `ConfigModule.forRoot()` dan memuat `.env` lokal developer.
 import './test-env.js';
 
-import { Body, Controller, Get, Module, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Module, Param, Patch, Post } from '@nestjs/common';
 import { InternalServerErrorException } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -178,6 +178,36 @@ class StoreOpsTestController {
         data: { role: body.role },
       });
     return { userId: updated.userId, role: updated.role };
+  }
+
+  /**
+   * Route test-only untuk menguji gerbang OWNER-only pada operasi yang
+   * MENGHAPUS.
+   *
+   * Penghapusan TOKO tidak ada di `src/` dan tidak akan ada di task ini: tidak
+   * ada di spec, tidak ada di plan, `stores` tidak punya kolom soft-delete, dan
+   * `store_members`/`store_invites` punya `onDelete: Cascade`. Endpoint produksi
+   * yang bisa menghapus seluruh riwayat anggota sebuah UMKM tanpa jejak audit
+   * (audit baru ada di Task 6) adalah kapabilitas yang harus diminta secara
+   * eksplisit, bukan efek samping dari butuh satu route untuk test IDOR.
+   *
+   * Yang diuji di sini HANYA gerbangnya: `@StoreAccess('OWNER')` pada verb
+   * `DELETE` menolak pemanggil yang bukan owner toko itu. Untuk itu route ini
+   * memproses akses OWNER-only yang nyata dan bisa diamati (menghapus
+   * keanggotaan, bukan tokonya) supaya positive control benar-benar membuktikan
+   * route bisa dipakai OWNER. penghapusan anggota yang sebenarnya adalah
+   * Task 5, lewat `DELETE /stores/:storeId/members/:userId`.
+   */
+  @Delete(':storeId/members/:userId')
+  @StoreAccess(StoreMemberRole.OWNER)
+  async removeMember(
+    @Param('storeId') storeId: string,
+    @Param('userId') userId: string,
+  ): Promise<{ removed: boolean }> {
+    const result = await this.prisma
+      .tenantModel('storeMembers', storeId)
+      .delete({ where: { storeId_userId: { storeId, userId } } });
+    return { removed: result.userId === userId };
   }
 }
 

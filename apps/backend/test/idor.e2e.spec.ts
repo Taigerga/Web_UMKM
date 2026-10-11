@@ -198,27 +198,96 @@ describe('IDOR', () => {
     expect(ok.body.data.name).toBe('Toko Milik B Diubah');
   });
 
-  it('OWNER toko A tidak bisa DELETE toko B', async () => {
+  it('OWNER toko A tidak bisa DELETE anggota toko B', async () => {
+    // Diuji lewat route test-only, bukan `DELETE /stores/:storeId` yang dulu
+    // ada di `src/`. Penghapusan TOKO tidak punya pemilik di spec/plan dan
+    // sudah dihapus pada review; yang diuji di sini tetap Review Focus yang
+    // sama - sebuah OWNER tidak bisa menjalankan operasi OWNER-only pada toko
+    // orang lain - hanya lewat endpoint yang memang ada di Fase 1.
     const ownerA = await createUser('OWNER');
     const ownerB = await createUser('OWNER');
+    const memberB = await createUser('STAFF');
     const storeB = await createStore(ownerB.id);
+    await prisma.storeMembers.create({
+      data: { storeId: storeB.id, userId: memberB.id, role: 'STAFF' },
+    });
 
     const res = await request(app.getHttpServer())
-      .delete(`/api/v1/stores/${storeB.id}`)
+      .delete(`/api/v1/echo/store-ops/${storeB.id}/members/${memberB.id}`)
       .set(...auth(ownerA.token))
       .expect(403);
     expect(res.body.error.code).toBe('STORE_FORBIDDEN');
 
-    // Toko B masih ada - guard menahan sebelum delete, bukan sesudahnya.
-    expect(await prisma.stores.count({ where: { id: storeB.id } })).toBe(1);
-    expect(await prisma.storeMembers.count({ where: { storeId: storeB.id } })).toBe(1);
+    // Keanggotaan member B harus utuh - guard menahan sebelum delete, bukan
+    // sesudahnya.
+    const survivor = await prisma.storeMembers.findUniqueOrThrow({
+      where: { storeId_userId: { storeId: storeB.id, userId: memberB.id } },
+    });
+    expect(survivor.role).toBe('STAFF');
+    expect(await prisma.storeMembers.count({ where: { storeId: storeB.id } })).toBe(2);
 
-    // Positive control: OWNER B boleh menghapus tokonya sendiri.
-    await request(app.getHttpServer())
-      .delete(`/api/v1/stores/${storeB.id}`)
+    // Positive control: OWNER B boleh menghapus anggota tokonya sendiri.
+    const ok = await request(app.getHttpServer())
+      .delete(`/api/v1/echo/store-ops/${storeB.id}/members/${memberB.id}`)
       .set(...auth(ownerB.token))
-      .expect(204);
-    expect(await prisma.stores.count({ where: { id: storeB.id } })).toBe(0);
+      .expect(200);
+    expect(ok.body.removed).toBe(true);
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: storeB.id } }),
+    ).toBe(1);
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: storeB.id, userId: memberB.id } }),
+    ).toBe(0);
+  });
+
+  it('ADMIN bukan member toko tidak bisa DELETE anggota toko itu', async () => {
+    // Jalur DELETE diuji untuk R-18 juga: ADMIN platform tidak boleh bisa
+    // menghapus anggota toko yang bukan miliknya.
+    const admin = await createUser('ADMIN');
+    const owner = await createUser('OWNER');
+    const staff = await createUser('STAFF');
+    const store = await createStore(owner.id);
+    await prisma.storeMembers.create({
+      data: { storeId: store.id, userId: staff.id, role: 'STAFF' },
+    });
+
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/echo/store-ops/${store.id}/members/${staff.id}`)
+      .set(...auth(admin.token))
+      .expect(403);
+    expect(res.body.error.code).toBe('STORE_FORBIDDEN');
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: store.id, userId: staff.id } }),
+    ).toBe(1);
+  });
+
+  it('tidak ada endpoint produksi untuk menghapus toko', async () => {
+    // Penghapusan TOKO adalah authority overrun: tidak ada di spec §6.5, tidak
+    // ada di kontrak `StoresService` di plan, `stores` tidak punya soft-delete,
+    // dan cascade ke `store_members`/`store_invites` tidak meninggalkan jejak
+    // audit sampai Task 6. Test ini mengunci ketiadaannya supaya route itu tidak
+    // ditambahkan lagi tanpa keputusan produk.
+    const owner = await createUser('OWNER');
+    const store = await createStore(owner.id);
+
+    // 404, bukan 403: rutenya memang tidak terdaftar sama sekali, jadi tidak
+    // ada filter yang sedang menolak.
+    await request(app.getHttpServer())
+      .delete(`/api/v1/stores/${store.id}`)
+      .set(...auth(owner.token))
+      .expect(404);
+
+    // Dan Positive control: endpoint toko yang ADA tetap berfungsi untuk OWNER,
+    // jadi 404 di atas bukan efek samping dari controller yang rusak.
+    await request(app.getHttpServer())
+      .patch(`/api/v1/stores/${store.id}`)
+      .set(...auth(owner.token))
+      .send({ name: 'Masih Bisa Diubah' })
+      .expect(200);
+
+    // Toko dan keanggotaannya utuh setelah percobaan hapus.
+    expect(await prisma.stores.count({ where: { id: store.id } })).toBe(1);
+    expect(await prisma.storeMembers.count({ where: { storeId: store.id } })).toBe(1);
   });
 
   it('OWNER toko A tidak bisa melihat member toko B', async () => {
@@ -358,10 +427,9 @@ describe('IDOR', () => {
       .send({ name: 'Direbut Admin' })
       .expect(403);
 
-    await request(app.getHttpServer())
-      .delete(`/api/v1/stores/${store.id}`)
-      .set(...auth(admin.token))
-      .expect(403);
+    // Jalur DELETE diuji terpisah di "ADMIN bukan member toko tidak bisa DELETE
+    // anggota toko itu", lewat route test-only - `DELETE /stores/:storeId`
+    // sudah tidak ada di `src/`.
 
     await request(app.getHttpServer())
       .get(`/api/v1/stores/${store.id}/members`)
@@ -500,35 +568,36 @@ describe('assertAccess: status toko dan hierarki peran', () => {
 
   it('R-17: guard peran dijalankan SEBELUM guard toko', async () => {
     // Rute `GET /echo/guard-order/:storeId` memakai `@Roles('ADMIN')` DAN
-    // `@StoreAccess()` sekaligus - satu-satunya cara watching urutan rantai
-    // dari luar. Kalau urutannya terbalik, kode error yang sampai ke client
-    // berubah, dan itulah yang diukur di sini.
-    const owner = await createUser('OWNER');
+    // `@StoreAccess()` sekaligus - satu-satunya cara mengukur urutan rantai
+    // dari luar.
+    //
+    // CARA PENGUKURANNYA: pemanggil harus GAGAL pada KEDUA pemeriksaan. Kalau
+    // hanya gagal satu, guard yang menang selalu sama walau urutannya dibalik,
+    // dan tesnya jadi buta urutan - persis kelemahan yang ditemukan di review.
+    // Jadi sub-kasus (a) memakai user yang bukan ADMIN (gagal `RolesGuard`) DAN
+    // bukan member toko target (gagal `StoreScopeGuard`) pada saat bersamaan.
+    // Kode error yang sampai ke client menjadi:
+    //   - `FORBIDDEN_ROLE`    -> `RolesGuard` berjalan lebih dulu (urutan R-17)
+    //   - `STORE_FORBIDDEN`   -> `StoreScopeGuard` berjalan lebih dulu (terbalik)
+    const ownerOfA = await createUser('OWNER');
+    const stranger = await createUser('OWNER');
     const admin = await createUser('ADMIN');
-    const store = await createStore(owner.id);
+    const store = await createStore(ownerOfA.id);
 
-    // (a) OWNER adalah MEMBER toko ini, jadi `StoreScopeGuard` pasti akan
-    //     mengizinkannya. Yang menolak harus `RolesGuard`.
-    //     `FORBIDDEN_ROLE` = peran gagal lebih dulu.
-    //     `STORE_FORBIDDEN`/`STORE_SUSPENDED` = urutan terbalik.
-    //     200 = `RolesGuard` tidak jalan sama sekali.
+    // `stranger` tidak punya membership apa pun terhadap `store`.
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: store.id, userId: stranger.id } }),
+    ).toBe(0);
+
     const denied = await request(app.getHttpServer())
       .get(`/api/v1/echo/guard-order/${store.id}`)
-      .set(...auth(owner.token))
+      .set(...auth(stranger.token))
       .expect(403);
     expect(denied.body.error.code).toBe('FORBIDDEN_ROLE');
 
-    // (b) ADMIN lulus `RolesGuard`, jadi di titik ini `StoreScopeGuard` yang
-    //     harus menahan karena admin bukan member toko ini.
-    const notMember = await request(app.getHttpServer())
-      .get(`/api/v1/echo/guard-order/${store.id}`)
-      .set(...auth(admin.token))
-      .expect(403);
-    expect(notMember.body.error.code).toBe('STORE_FORBIDDEN');
-
-    // (c) Positive control: ADMIN yang memang jadi anggota lolos KEDUA guard.
-    //     Tanpa ini, 403 di (a) dan (b) bisa juga terjadi karena route-nya
-    //     rusak.
+    // Positive control: pemanggil yang memenuhi KEDUA syarat - ADMIN yang juga
+    // member toko target - harus benar-benar lolos. Tanpa ini, `403` di atas
+    // bisa juga terjadi karena route-nya rusak, bukan karena urutannya.
     await prisma.storeMembers.create({
       data: { storeId: store.id, userId: admin.id, role: 'STAFF' },
     });
@@ -538,6 +607,30 @@ describe('assertAccess: status toko dan hierarki peran', () => {
       .expect(200);
     expect(allowed.body.storeId).toBe(store.id);
     expect(allowed.body.userId).toBe(admin.id);
+  });
+
+  it('R-17: kedua guard terdaftar dan sama-sama efektif (bukan pengukur urutan)', async () => {
+    // Dipisah dari tes di atas dengan sengaja. Tes ini TIDAK bisa membedakan
+    // urutan: (a) hanya gagal satu guard, (b) hanya gagal guard yang lain.
+    // Yang diukurnya adalah hal yang lebih lemah tapi benar: kedua guard
+    // terdaftar sebagai `APP_GUARD` dan masing-masing benar-benar menolak.
+    const owner = await createUser('OWNER');
+    const admin = await createUser('ADMIN');
+    const store = await createStore(owner.id);
+
+    // (a) OWNER yang jadi member: lolos `StoreScopeGuard`, ditolak `RolesGuard`.
+    const byRole = await request(app.getHttpServer())
+      .get(`/api/v1/echo/guard-order/${store.id}`)
+      .set(...auth(owner.token))
+      .expect(403);
+    expect(byRole.body.error.code).toBe('FORBIDDEN_ROLE');
+
+    // (b) ADMIN yang BUKAN member: lolos `RolesGuard`, ditolak `StoreScopeGuard`.
+    const byScope = await request(app.getHttpServer())
+      .get(`/api/v1/echo/guard-order/${store.id}`)
+      .set(...auth(admin.token))
+      .expect(403);
+    expect(byScope.body.error.code).toBe('STORE_FORBIDDEN');
   });
 
   it('hasAtLeast: OWNER >= STAFF, dan minimum kosong berarti bebas', () => {
