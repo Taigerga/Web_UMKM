@@ -1,0 +1,221 @@
+import { Injectable } from '@nestjs/common';
+import { AppError } from '../common/errors/app-error.js';
+import { StoreStatus } from '../common/types/prisma-enums.js';
+import type { StoreMemberRole as StoreMemberRoleType } from '../common/types/prisma-enums.js';
+import { PrismaService } from '../database/prisma.service.js';
+import { normalizeEmail } from '../auth/email.util.js';
+import { hashInviteToken } from './invite-token.util.js';
+
+/**
+ * Isi preview undangan yang boleh keluar ke client.
+ *
+ * Sengaja tidak memuat `id`, `storeId`, `tokenHash`, `acceptedAt`, atau
+ * `invitedById`. Preview adalah halaman publik yang dibuka siapa pun yang
+ * memegang token, jadi isinya dibuat seminimal mungkin: email tujuan, nama
+ * toko, peran yang ditawarkan, dan kapan kedaluwarsa.
+ */
+export interface InvitationPreview {
+  email: string;
+  storeName: string;
+  role: StoreMemberRoleType;
+  expiresAt: string;
+}
+
+/** Hasil menerima undangan: toko mana, dan peran yang didapat. */
+export interface AcceptedInvitation {
+  storeId: string;
+  storeName: string;
+  role: StoreMemberRoleType;
+}
+
+/**
+ * Alur undangan: lihat ringkasan, lalu terima.
+ *
+ * ## Dua pintu, dua tingkat autentikasi
+ *
+ * `preview` dipanggil `@Public()` di controller: penerima undangan belum tentu
+ * punya akun, dan justru itulah gunanya halaman itu. `accept` selalu butuh JWT
+ * karena keanggotaan hanya bisa dibuat untuk user yang sudah ada - tidak ada
+ * jalur "terima undangan" yang membuat akun diam-diam.
+ *
+ * ## Toko dicari lewat token, bukan lewat tenant
+ *
+ * `storeInvites` adalah model tenant, jadi idealnya dibaca lewat
+ * `tenantModel('storeInvites', storeId)`. Di sini `storeId` justru sedang
+ * dicari: token menunjuk barisnya. Query penemuan itu -
+ * `findUnique({ where: { tokenHash } })` pada delegate mentah - adalah satu-
+ * satunya cara, persis seperti `AuthService.loadProfile` mencari kandidat
+ * `storeId` sebelum punya tenant aktif.
+ *
+ * Yang tidak dipercaya adalah hasil penemuan itu. Begitu `storeId` diketahui,
+ * setiap operasi berikutnya - membaca toko, membuat keanggotaan, menandai
+ * undangan terpakai - sudah memakai `tenantModel` dengan tenant itu. Dan token
+ * yang dicari adalah 256 bit acak: bukan kunci yang bisa dijelajahi, jadi
+ * kebocoran daftar baris lewat sini tidak realistis.
+ */
+@Injectable()
+export class InvitationsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Lihat ringkasan undangan tanpa menerimanya.
+   *
+   * Urutan pemeriksaan menentukan apa yang boleh diceritakan ke pemanggil token
+   * yang sudah tidak berlaku:
+   * 1. token tidak dikenal -> `INVITE_NOT_FOUND` (404)
+   * 2. sudah pernah diterima -> `INVITE_ALREADY_ACCEPTED` (409)
+   * 3. kedaluwarsa -> `INVITE_EXPIRED` (400)
+   * 4. toko dinonaktifkan -> `STORE_SUSPENDED` (403)
+   *
+   * Langkah 4 memakai pemeriksaan status yang sama dengan `assertAccess`, tapi
+   * lewat `prisma.stores` biasa: pemanggil belum jadi anggota, jadi
+   * `assertAccess` - yang butuh baris keanggotaan - tidak bisa dipakai di sini.
+   * Yang dijaga tetap sama: toko suspended tidak boleh jadi pintu masuk baru.
+   */
+  async preview(token: string): Promise<InvitationPreview> {
+    const invite = await this.findInviteByToken(token);
+    this.assertUsable(invite);
+
+    const store = await this.prisma.stores.findUnique({
+      where: { id: invite.storeId },
+      select: { name: true, status: true },
+    });
+
+    if (!store) {
+      throw AppError.notFound('Toko tidak ditemukan.', 'STORE_NOT_FOUND');
+    }
+
+    if (store.status === StoreStatus.SUSPENDED) {
+      throw AppError.forbidden('Toko ini sedang dinonaktifkan.', 'STORE_SUSPENDED');
+    }
+
+    return {
+      email: invite.email,
+      storeName: store.name,
+      role: invite.role,
+      expiresAt: invite.expiresAt.toISOString(),
+    };
+  }
+
+  /**
+   * Terima undangan: jadikan anggota toko dengan peran yang diundang.
+   *
+   * Urutan operasi, dan kenapa:
+   *
+   * 1. Validasi token (lihat `preview`).
+   * 2. Klaim undangan secara atomik lewat
+   *    `updateMany({ where: { acceptedAt: null } })`. Kalau jumlah baris yang
+   *    terpengaruh 0, ada permintaan lain yang menang lebih dulu, dan pemanggil
+   *    mendapat `INVITE_ALREADY_ACCEPTED` (RF-4) tanpa keanggotaan terbentuk.
+   *    Aturan "cek dulu baru tulis" tidak bisa menahan dua permintaan yang tiba
+   *    bersamaan; `UPDATE ... WHERE accepted_at IS NULL` bisa.
+   * 3. Email akun harus cocok dengan email undangan. Tanpa ini, siapa pun yang
+   *    memegang token - termasuk orang yang meneruskannya - bisa masuk ke toko
+   *    dengan akunnya sendiri. Menolak di sini juga membiarkan undangan tetap
+   *    utuh untuk penerima yang sebenarnya.
+   * 4. Keanggotaan dibuat dengan `upsert` yang TIDAK mengubah peran kalau sudah
+   *    ada. Undangan adalah pintu masuk, bukan jalur ubah peran: kalau ia bisa
+   *    menurunkan peran, aturan owner terakhir (R-21) punya bypass.
+   */
+  async accept(token: string, userId: string): Promise<AcceptedInvitation> {
+    const invite = await this.findInviteByToken(token);
+    this.assertUsable(invite);
+
+    const store = await this.prisma.stores.findUnique({
+      where: { id: invite.storeId },
+      select: { id: true, name: true, status: true },
+    });
+
+    if (!store) {
+      throw AppError.notFound('Toko tidak ditemukan.', 'STORE_NOT_FOUND');
+    }
+
+    if (store.status === StoreStatus.SUSPENDED) {
+      throw AppError.forbidden('Toko ini sedang dinonaktifkan.', 'STORE_SUSPENDED');
+    }
+
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw AppError.notFound('Pengguna tidak ditemukan.', 'USER_NOT_FOUND');
+    }
+
+    if (normalizeEmail(user.email) !== invite.email) {
+      throw AppError.forbidden(
+        'Undangan ini ditujukan untuk email lain. Masuk memakai akun yang emailnya sama.',
+        'INVITE_EMAIL_MISMATCH',
+      );
+    }
+
+    // Klaim atomik: `acceptedAt: null` di `where` membuat undangan ini terpakai
+    // hanya sekali, bahkan kalau dua permintaan datang bersamaan.
+    const claimed = await this.prisma
+      .tenantModel('storeInvites', invite.storeId)
+      .updateMany({
+        where: { id: invite.id, acceptedAt: null },
+        data: { acceptedAt: new Date() },
+      });
+
+    if (claimed.count === 0) {
+      throw AppError.conflict(
+        'INVITE_ALREADY_ACCEPTED',
+        'Undangan ini sudah pernah dipakai.',
+      );
+    }
+
+    // `update: {}` sengaja kosong. Kalau keanggotaan sudah ada, peran yang
+    // sudah dimiliki tidak ditimpa; lihat catatan langkah 4 di atas.
+    await this.prisma.tenantModel('storeMembers', invite.storeId).upsert({
+      where: { storeId_userId: { storeId: invite.storeId, userId } },
+      create: { storeId: invite.storeId, userId, role: invite.role },
+      update: {},
+    });
+
+    return { storeId: store.id, storeName: store.name, role: invite.role };
+  }
+
+  /**
+   * Cari baris undangan dari token mentah.
+   *
+   * `hashInviteToken` dihitung di sini persis seperti saat pembuatan, jadi tidak
+   * ada jalur yang membandingkan token mentah dengan isi kolom.
+   */
+  private async findInviteByToken(token: string) {
+    const invite = await this.prisma.storeInvites.findUnique({
+      where: { tokenHash: hashInviteToken(token) },
+    });
+
+    if (!invite) {
+      throw AppError.notFound('Undangan tidak ditemukan.', 'INVITE_NOT_FOUND');
+    }
+
+    return invite;
+  }
+
+  /**
+   * Undangan hanya boleh dipakai sekali dan hanya sebelum kedaluwarsa (RF-4).
+   *
+   * Pemanggil sudah memegang barisnya, jadi pesan errornya jujur: kalau baris
+   * tidak ada sama sekali, itu `findInviteByToken` yang tahu. Untuk token yang
+   * dikenal, membocorkan bahwa undangan itu sudah dipakai hanya memberikan
+   * informasi yang pemanggil sudah punya - dialah yang memakainya.
+   */
+  private assertUsable(invite: { acceptedAt: Date | null; expiresAt: Date }): void {
+    if (invite.acceptedAt !== null) {
+      throw AppError.conflict(
+        'INVITE_ALREADY_ACCEPTED',
+        'Undangan ini sudah pernah dipakai.',
+      );
+    }
+
+    if (invite.expiresAt.getTime() <= Date.now()) {
+      throw AppError.badRequest(
+        'INVITE_EXPIRED',
+        'Undangan ini sudah kedaluwarsa. Minta undangan baru ke pemilik toko.',
+      );
+    }
+  }
+}

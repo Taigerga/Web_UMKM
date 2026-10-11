@@ -8,6 +8,7 @@ import { PrismaModule } from './database/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { StoresModule } from './stores/stores.module.js';
+import { InvitationsModule } from './invitations/invitations.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -42,6 +43,7 @@ export const AUTH_THROTTLE_OPTIONS = [
     AuthModule,
     UsersModule,
     StoresModule,
+    InvitationsModule,
     AdminModule,
   ],
   providers: [

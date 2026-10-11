@@ -12,18 +12,22 @@ import { buildTestApp } from './utils/test-app.js';
  * Setiap test di sini bertanya hal yang sama dalam bentuk berbeda: "apakah
  * pemanggil hanya bisa menyentuh tokonya sendiri?". Yang diuji adalah MEKANISME
  * - `RolesGuard`, `StoreScopeGuard`, `StoreAccessService.assertAccess`, dan
- * `PrismaService.tenantModel` - bukan logika bisnis endpoint, yang sebagian
- * masih datang di Task 5.
+ * `PrismaService.tenantModel` - bukan logika bisnis endpoint.
  *
- * ## Test-only: kenapa ada `/echo/store-ops/*`
+ * ## Catatan Task 5
  *
- * "STAFF tidak bisa mengundang" dan "STAFF tidak bisa escalate role" adalah
- * sifat dari GERBANG OWNER-only, bukan dari logika invite/ubah-role (itu Task
- * 5). Jadi endpoint-nya dibuat di `test/utils/test-app.ts` - tidak pernah di
- * `src/` - dengan dekorator produksi yang persis sama (`@StoreAccess('OWNER')`).
- * Yang sedang diuji adalah guard-nya; test positive-control di bawah
- * membuktikan route itu benar-benar berhasil bagi OWNER, sehingga 403-nya
- * bukan artefak "route selalu menolak".
+ * Dulunya test "STAFF tidak bisa mengundang", "STAFF tidak bisa escalate
+ * role", dan "OWNER A tidak bisa DELETE anggota B" memakai route test-only
+ * `/echo/store-ops/*`. Route itu adalah stand-in sementara karena endpoint
+ * produksinya belum ada. Sekarang semuanya ada di `src/`, jadi test di sini
+ * memanggil endpoint NYATA:
+ *
+ * - `POST /stores/:storeId/invitations`
+ * - `PATCH /stores/:storeId/members/:userId`
+ * - `DELETE /stores/:storeId/members/:userId`
+ *
+ * Yang diuji tetap sama - keputusan "hanya OWNER toko itu yang boleh lewat" -
+ * dan sekarang route yang diuji adalah route yang benar-benar dipakai user.
  */
 let app: INestApplication;
 let prisma: PrismaService;
@@ -199,11 +203,11 @@ describe('IDOR', () => {
   });
 
   it('OWNER toko A tidak bisa DELETE anggota toko B', async () => {
-    // Diuji lewat route test-only, bukan `DELETE /stores/:storeId` yang dulu
-    // ada di `src/`. Penghapusan TOKO tidak punya pemilik di spec/plan dan
-    // sudah dihapus pada review; yang diuji di sini tetap Review Focus yang
-    // sama - sebuah OWNER tidak bisa menjalankan operasi OWNER-only pada toko
-    // orang lain - hanya lewat endpoint yang memang ada di Fase 1.
+    // Diuji lewat endpoint produksi `DELETE /stores/:storeId/members/:userId`.
+    // Penghapusan TOKO (`DELETE /stores/:storeId`) tidak punya pemilik di spec/
+    // plan dan sudah dihapus pada review; yang diuji di sini tetap Review Focus
+    // yang sama - sebuah OWNER tidak bisa menjalankan operasi OWNER-only pada
+    // toko orang lain - hanya lewat endpoint yang memang ada di Fase 1.
     const ownerA = await createUser('OWNER');
     const ownerB = await createUser('OWNER');
     const memberB = await createUser('STAFF');
@@ -213,7 +217,7 @@ describe('IDOR', () => {
     });
 
     const res = await request(app.getHttpServer())
-      .delete(`/api/v1/echo/store-ops/${storeB.id}/members/${memberB.id}`)
+      .delete(`/api/v1/stores/${storeB.id}/members/${memberB.id}`)
       .set(...auth(ownerA.token))
       .expect(403);
     expect(res.body.error.code).toBe('STORE_FORBIDDEN');
@@ -227,11 +231,10 @@ describe('IDOR', () => {
     expect(await prisma.storeMembers.count({ where: { storeId: storeB.id } })).toBe(2);
 
     // Positive control: OWNER B boleh menghapus anggota tokonya sendiri.
-    const ok = await request(app.getHttpServer())
-      .delete(`/api/v1/echo/store-ops/${storeB.id}/members/${memberB.id}`)
+    await request(app.getHttpServer())
+      .delete(`/api/v1/stores/${storeB.id}/members/${memberB.id}`)
       .set(...auth(ownerB.token))
-      .expect(200);
-    expect(ok.body.removed).toBe(true);
+      .expect(204);
     expect(
       await prisma.storeMembers.count({ where: { storeId: storeB.id } }),
     ).toBe(1);
@@ -252,7 +255,7 @@ describe('IDOR', () => {
     });
 
     const res = await request(app.getHttpServer())
-      .delete(`/api/v1/echo/store-ops/${store.id}/members/${staff.id}`)
+      .delete(`/api/v1/stores/${store.id}/members/${staff.id}`)
       .set(...auth(admin.token))
       .expect(403);
     expect(res.body.error.code).toBe('STORE_FORBIDDEN');
@@ -336,7 +339,7 @@ describe('IDOR', () => {
     });
 
     const res = await request(app.getHttpServer())
-      .post(`/api/v1/echo/store-ops/${store.id}/invites`)
+      .post(`/api/v1/stores/${store.id}/invitations`)
       .set(...auth(staff.token))
       .send({ email: uniqueEmail('undang'), role: 'STAFF' })
       .expect(403);
@@ -348,7 +351,7 @@ describe('IDOR', () => {
     // Positive control: OWNER boleh mengundang, jadi 403 di atas datang dari
     // peran, bukan dari route yang selalu menolak.
     await request(app.getHttpServer())
-      .post(`/api/v1/echo/store-ops/${store.id}/invites`)
+      .post(`/api/v1/stores/${store.id}/invitations`)
       .set(...auth(owner.token))
       .send({ email: uniqueEmail('undang'), role: 'STAFF' })
       .expect(201);
@@ -364,7 +367,7 @@ describe('IDOR', () => {
     });
 
     const res = await request(app.getHttpServer())
-      .patch(`/api/v1/echo/store-ops/${store.id}/members/${staff.id}`)
+      .patch(`/api/v1/stores/${store.id}/members/${staff.id}`)
       .set(...auth(staff.token))
       .send({ role: 'OWNER' })
       .expect(403);
@@ -376,9 +379,11 @@ describe('IDOR', () => {
     });
     expect(still.role).toBe('STAFF');
 
-    // Positive control: OWNER boleh mengubah peran.
+    // Positive control: OWNER boleh mengubah peran. Toko ini punya DUA owner
+    // setelah promosi, jadi aturan owner terakhir tidak ikut menyala di sini -
+    // yang diuji adalah gerbang `@StoreAccess(OWNER)`.
     await request(app.getHttpServer())
-      .patch(`/api/v1/echo/store-ops/${store.id}/members/${staff.id}`)
+      .patch(`/api/v1/stores/${store.id}/members/${staff.id}`)
       .set(...auth(owner.token))
       .send({ role: 'OWNER' })
       .expect(200);
@@ -427,9 +432,9 @@ describe('IDOR', () => {
       .send({ name: 'Direbut Admin' })
       .expect(403);
 
-    // Jalur DELETE diuji terpisah di "ADMIN bukan member toko tidak bisa DELETE
-    // anggota toko itu", lewat route test-only - `DELETE /stores/:storeId`
-    // sudah tidak ada di `src/`.
+    // Jalur DELETE diuji terpisah di "ADMIN bukan member toko tidak bisa
+    // DELETE anggota toko itu", lewat `DELETE /stores/:storeId/members/:userId`
+    // - `DELETE /stores/:storeId` sendiri memang tidak ada di `src/`.
 
     await request(app.getHttpServer())
       .get(`/api/v1/stores/${store.id}/members`)
@@ -520,7 +525,7 @@ describe('IDOR', () => {
     // (4) Route tanpa `:storeId` tapi dengan body `storeId` juga tidak
     // melewati apa pun - minuskul tidak punya handler, jadi 404.
     await request(app.getHttpServer())
-      .post(`/api/v1/echo/store-ops/${storeA.id}/invites?storeId=${storeB.id}`)
+      .post(`/api/v1/stores/${storeA.id}/invitations?storeId=${storeB.id}`)
       .set(...auth(ownerB.token))
       .send({ email: uniqueEmail('x'), role: 'STAFF' })
       .expect(403);

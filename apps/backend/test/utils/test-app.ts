@@ -1,14 +1,13 @@
-import { randomUUID } from 'node:crypto';
 // WAJIB import pertama: menyetel process.env sebelum `app.module.js`
 // mengevaluasi `ConfigModule.forRoot()` dan memuat `.env` lokal developer.
 import './test-env.js';
 
-import { Body, Controller, Delete, Get, Module, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Module, Param, Post } from '@nestjs/common';
 import { InternalServerErrorException } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getOptionsToken } from '@nestjs/throttler';
-import { IsEmail, IsEnum, IsInt, IsString, Min, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsString, Min, MinLength } from 'class-validator';
 import { AppModule } from '../../src/app.module.js';
 import { configureApp } from '../../src/bootstrap.js';
 import { AppError } from '../../src/common/errors/app-error.js';
@@ -20,7 +19,6 @@ import { StoreAccess } from '../../src/common/decorators/store-access.decorator.
 import { Roles } from '../../src/common/decorators/roles.decorator.js';
 import { CurrentUser } from '../../src/common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../../src/common/types/auth-user.js';
-import { StoreMemberRole } from '../../src/common/types/prisma-enums.js';
 
 /**
  * Route dummy KHUSUS TEST untuk memverifikasi ValidationPipe + global filter.
@@ -106,115 +104,6 @@ class EchoTestController {
 class EchoTestModule {}
 
 /**
- * Route OWNER-only KHUSUS TEST untuk menguji gerbang `@StoreAccess('OWNER')`.
- *
- * Kenapa di file test dan bukan di `src/`: undangan anggota, pengubahan peran,
- * dan penghapusan anggota adalah endpoint NYATA yang tiba di Task 5, dan
- * membangunnya di sini berarti mendahului tugas itu dan menghasilkan endpoint
- * yang profesinya belum dipakai siapa pun.
- *
- * Yang sedang diuji TIDAK logika undangan/peran - melainkan keputusan
- * "hanya OWNER yang boleh lewat". Jadi route ini sengaja memakai dekorator
- * produksi yang sama persis. Kalau `@StoreAccess` tidak bekerja, test IDOR
- * gagal; kalau route-nya sendiri yang rusak, test positive-control (OWNER
- * berhasil) juga gagal.
- *
- * Sengaja TIDAK diberi `@Public()`: kalau iya, guard dilewati dan test
- * membuktikan apa yang tidak ada.
- */
-class TestInviteDto {
-  @IsEmail()
-  email!: string;
-
-  @IsEnum(StoreMemberRole)
-  role!: StoreMemberRole;
-}
-
-class TestRoleChangeDto {
-  @IsEnum(StoreMemberRole)
-  role!: StoreMemberRole;
-}
-
-@Controller('echo/store-ops')
-class StoreOpsTestController {
-  constructor(private readonly prisma: PrismaService) {}
-
-  /** Bentuk upcoming `POST /stores/:storeId/invites` (Task 5). */
-  @Post(':storeId/invites')
-  @StoreAccess(StoreMemberRole.OWNER)
-  async invite(
-    @CurrentUser() user: AuthUser,
-    @Param('storeId') storeId: string,
-    @Body() body: TestInviteDto,
-  ): Promise<{ id: string }> {
-    const invite = await this.prisma.tenantModel('storeInvites', storeId).create({
-      data: {
-        // Tipe Prisma tetap menuntut `storeId` walau proxy memaksanya ke
-        // scope. Nilainya di sini sengaja `storeId` yang sama supaya jelas
-        // bahwa proxy-lah yang menjadi penjamin, bukan pemanggil.
-        storeId,
-        email: body.email,
-        role: body.role,
-        tokenHash: randomUUID(),
-        expiresAt: new Date(Date.now() + 86_400_000),
-        invitedById: user.userId,
-      },
-    });
-    return { id: invite.id };
-  }
-
-  /** Bentuk upcoming `PATCH /stores/:storeId/members/:userId` (Task 5). */
-  @Patch(':storeId/members/:userId')
-  @StoreAccess(StoreMemberRole.OWNER)
-  async changeRole(
-    @Param('storeId') storeId: string,
-    @Param('userId') userId: string,
-    @Body() body: TestRoleChangeDto,
-  ): Promise<{ userId: string; role: StoreMemberRole }> {
-    const updated = await this.prisma
-      .tenantModel('storeMembers', storeId)
-      .update({
-        where: { storeId_userId: { storeId, userId } },
-        data: { role: body.role },
-      });
-    return { userId: updated.userId, role: updated.role };
-  }
-
-  /**
-   * Route test-only untuk menguji gerbang OWNER-only pada operasi yang
-   * MENGHAPUS.
-   *
-   * Penghapusan TOKO tidak ada di `src/` dan tidak akan ada di task ini: tidak
-   * ada di spec, tidak ada di plan, `stores` tidak punya kolom soft-delete, dan
-   * `store_members`/`store_invites` punya `onDelete: Cascade`. Endpoint produksi
-   * yang bisa menghapus seluruh riwayat anggota sebuah UMKM tanpa jejak audit
-   * (audit baru ada di Task 6) adalah kapabilitas yang harus diminta secara
-   * eksplisit, bukan efek samping dari butuh satu route untuk test IDOR.
-   *
-   * Yang diuji di sini HANYA gerbangnya: `@StoreAccess('OWNER')` pada verb
-   * `DELETE` menolak pemanggil yang bukan owner toko itu. Untuk itu route ini
-   * memproses akses OWNER-only yang nyata dan bisa diamati (menghapus
-   * keanggotaan, bukan tokonya) supaya positive control benar-benar membuktikan
-   * route bisa dipakai OWNER. penghapusan anggota yang sebenarnya adalah
-   * Task 5, lewat `DELETE /stores/:storeId/members/:userId`.
-   */
-  @Delete(':storeId/members/:userId')
-  @StoreAccess(StoreMemberRole.OWNER)
-  async removeMember(
-    @Param('storeId') storeId: string,
-    @Param('userId') userId: string,
-  ): Promise<{ removed: boolean }> {
-    const result = await this.prisma
-      .tenantModel('storeMembers', storeId)
-      .delete({ where: { storeId_userId: { storeId, userId } } });
-    return { removed: result.userId === userId };
-  }
-}
-
-@Module({ controllers: [StoreOpsTestController] })
-class StoreOpsTestModule {}
-
-/**
  * Route yang carries KEDUA dekorator otorisasi, untuk menguji URUTAN rantai
  * guard global (R-17).
  *
@@ -247,6 +136,17 @@ class GuardOrderTestModule {}
 /**
  * Build instance Nest untuk e2e test dengan pipeline identik dengan produksi.
  *
+ * `StoreOpsTestModule` yang dulu ada di sini sudah DIHAPUS pada Task 5: route
+ * test-only `/echo/store-ops/*` berdiri sebagai pengganti sementara untuk
+ * `POST /stores/:storeId/invitations`, `PATCH /stores/:storeId/members/:userId`,
+ * dan `DELETE /stores/:storeId/members/:userId`. Ketiganya sekarang ada di
+ * `src/` dengan dekorator yang sama, jadi menyimpan stand-in-nya hanya berarti
+ * menguji route yang tidak dipakai siapa pun.
+ *
+ * Yang TETAP ada di sini: `EchoTestModule` (ValidasiPipe + filter error) dan
+ * `GuardOrderTestModule` (urutan guard R-17). Keduanya masih menggantikan
+ * sesuatu yang belum ada di produksi.
+ *
  * - `logger: false` supaya output test bersih.
  * - Throttler di-override dengan limit tinggi supaya rate limit tidak membuat
  *   test flaky di spec 11 risiko 1-3.
@@ -263,7 +163,7 @@ export async function buildTestApp(
       : options.throttlerOptions;
 
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule, EchoTestModule, StoreOpsTestModule, GuardOrderTestModule],
+    imports: [AppModule, EchoTestModule, GuardOrderTestModule],
   })
     .overrideProvider(getOptionsToken())
     .useValue(throttlerOptions)
