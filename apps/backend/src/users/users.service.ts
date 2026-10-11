@@ -3,6 +3,7 @@ import { AppError } from '../common/errors/app-error.js';
 import { AuthService } from '../auth/auth.service.js';
 import type { AuthProfile } from '../auth/auth.service.js';
 import { PasswordService } from '../auth/password.service.js';
+import { normalizeEmail } from '../auth/email.util.js';
 import { RefreshTokenService } from '../auth/refresh-token.service.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -40,10 +41,15 @@ export class UsersService {
   /**
    * Ubah nama dan/atau email sendiri.
    *
-   * Email yang sudah dipakai user lain ditolak dengan `DUPLICATE` (409),
-   * sama seperti yang dilakukan filter global untuk `P2002` - tapi dicek lebih
-   * dulu di sini supaya pesannya menyebut field-nya dan tidak bergantung pada
-   * detail driver database. Balapan tetap ditangani filter global.
+   * Email yang sudah dipakai user lain ditolak dengan `EMAIL_TAK_TERSEDIA`
+   * (409). Dicek lebih dulu di sini supaya pesannya menyebut field-nya dan tidak
+   * bergantung pada detail driver database; balapan tetap ditangani filter
+   * global untuk `P2002`.
+   *
+   * Email dinormalisasi lewat `normalizeEmail` yang sama dengan `AuthService`.
+   * Kalau aturan ini ditulis ulang di sini, `Budi@Contoh.ID` bisa lolos
+   * pengecekan di satu jalur dan tidak di jalur lain - persis drift yang
+   * `email.util.ts` diekstrasi untuk cegah.
    */
   async updateMe(userId: string, dto: UpdateProfileDto): Promise<UserProfile> {
     const data: { name?: string; email?: string } = {};
@@ -61,7 +67,7 @@ export class UsersService {
     }
 
     if (dto.email !== undefined) {
-      const email = dto.email.trim().toLowerCase();
+      const email = normalizeEmail(dto.email);
       const owner = await this.prisma.users.findUnique({
         where: { email },
         select: { id: true },

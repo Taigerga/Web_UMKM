@@ -69,15 +69,31 @@ export class AuthCookieService {
    * untuk access token yang `path`-nya `/`. Kalau tidak, browser menganggap
    * itu cookie berbeda dan membiarkannya utuh - logout akan terlihat berhasil
    * di server tapi token masih terkirim pada request berikutnya.
+   *
+   * `httpOnly` juga disamakan dengan saat cookie di-set. Browser mencocokkan
+   * cookie untuk penghapusan hanya pada nama, domain, dan path, jadi
+   * `httpOnly` tidak memengaruhi apakah penghapusan berhasil. Tapi header yang
+   * tidak konsisten membuat cookie scanner menandainya, dan pembaca kode
+   * berikutnya bisa menyimpulkan atribut yang salah soal apa yang dihapus.
    */
   clearSessionCookies(response: Response): void {
-    const options = {
-      httpOnly: false,
+    const shared = {
       sameSite: 'lax' as const,
       secure: this.config.isProduction,
-      path: '/',
     };
-    response.clearCookie(this.config.accessCookieName, options);
-    response.clearCookie(this.config.refreshCookieName, { ...options, path: REFRESH_COOKIE_PATH });
+
+    // `bi_at` diset non-HttpOnly (middleware Next.js harus bisa membacanya).
+    response.clearCookie(this.config.accessCookieName, {
+      ...shared,
+      httpOnly: false,
+      path: '/',
+    });
+
+    // `bi_rt` diset HttpOnly, jadi penghapusannya juga HttpOnly.
+    response.clearCookie(this.config.refreshCookieName, {
+      ...shared,
+      httpOnly: true,
+      path: REFRESH_COOKIE_PATH,
+    });
   }
 }

@@ -52,22 +52,31 @@ function emailSlot(rawBody: unknown): string {
 }
 
 /**
- * Tracker throttler untuk endpoint login: kunci = IP + email.
+ * Tracker throttler untuk endpoint login: kunci = `<ip>|<email>`.
  *
- * ## Kenapa bukan per-IP saja
+ * ## Yang sebenarnya dilindungi (dan yang TIDAK)
  *
- * Spec 6.3 meminta "5 percobaan login / menit per IP+email", dan alasannya
- * nyata: dengan kunci per-IP saja, penyerang yang datang dari banyak IP bisa
- * menebak satu akun tanpa pernah menyentuh batas mana pun. Komponen email
- * itulah yang menutup lubang itu - satu akun punya SATU penghitung, berapa pun
- * jumlah IP yang mengirimnya.
+ * Kunci ini adalah GABUNGAN ip dan email, jadi satu pasangan (IP, email)
+ * punya satu penghitung. Konsekuensinya:
  *
- * ## Kenapa kunci tetap menyertakan IP
+ * - Penyerang dari SATU IP yang menebak SATU email: terbatas 5/menit. ✅
+ * - Penyerang dari SATU IP yang menyapu BANYAK email (credential stuffing):
+ *   kunci berbeda per email, jadi tidak dibatasi oleh throttle ketat ini; yang
+ *   menahan adalah batas per-IP pada throttler `default`.
+ * - Penyerang dari BANYAK IP yang menebak SATU email (distributed guessing):
+ *   **TIDAK dibatasi oleh tracker ini.** Tiap IP mendapat penghitungnya sendiri
+ *   karena IP adalah bagian dari kunci. Tracker ini tidak menutup serangan
+ *   seperti itu, dan tidak akan - mengubahnya berarti mengabaikan spec
+ *   "per IP+email" dan membiarkan satu penyerang mengunci seluruh akun.
  *
- * Komponen IP mencegah penyerang dari banyak IP menghajar BERBEDA email
- * sekaligus (credential stuffing / spraying). Tanpa IP, satu penyerang bisa
- * mengunci seluruh akun yang sedang tidak dipakai orang lain - itu jadi Denial
- * of Service, bukan rate limit.
+ * Yang benar-benar menutup distributed guessing adalah lockout akun:
+ * `MAX_FAILED_LOGIN_ATTEMPTS` kegagalan beruntun mengunci akun tersebut
+ * (`lockedUntil`), dan itu dihitung per AKUN di database - bukan per IP, jadi
+ * tidak bisa dipecah dengan menambah IP. Lihat `AuthService.registerFailedAttempt`.
+ *
+ * Kalau suatu saat produk memutuskan distributed guessing harus dibatasi juga,
+ * itu bukan perubahan sepele pada tracker ini: butuh penghitung per email
+ * TANPA IP (throttler kedua), kuota global, dan penanganan false positive.
  *
  * ## Request tanpa email yang bisa dibaca
  *
@@ -76,9 +85,13 @@ function emailSlot(rawBody: unknown): string {
  * yang sama. Ini menutup bypass "kirim email acak tiap request", sekaligus
  * menjaga tracker tidak melempar saat body tidak berbentuk JSON.
  *
- * Sengaja tidak melempar, bahkan untuk error tak terduga. Fungsi ini dipanggil
- * `ThrottlerGuard` di jalur request; snagainya membuat limit tidak berjalan
- * sekaligus mengubah setiap request login jadi 500.
+ * Slot konstan bukan berarti request tanpa email lolos begitu saja - keduanya
+ * tetap punya penghitung, cuma dihitung bersama per IP.
+
+ * ## Kenapa tracker tidak melempar
+ *
+ * Fungsi ini dipanggil `ThrottlerGuard` di jalur request; snagainya membuat
+ * limit tidak berjalan sekaligus mengubah setiap request login jadi 500.
  */
 export function loginThrottleTracker(
   request: Record<string, unknown>,

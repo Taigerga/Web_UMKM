@@ -64,10 +64,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    * // otomatis jadi where: { storeId }
    * ```
    *
-   * STATUS: belum ada consumer produksi. Task 2 belum punya service sama
-   * sekali, jadi saat ini pemanggilnya hanya test integrasi. Wiring produksi
-   * resmi dilakukan di **Task 3**, saat service autentikasi pertama memakai
-   * helper ini. Jangan dianggap sudah selesai.
+   * STATUS: punya consumer produksi sejak **Task 3**. Pemanggil pertamanya
+   * `AuthService.loadProfile` (`src/auth/auth.service.ts`), yang memverifikasi
+   * keanggotaan tiap user per toko lewat helper ini, bukan lewat
+   * `prisma.storeMembers` mentah.
+   *
+   * CATATAN jujur soal bukti: belum ada test e2e yang membuktikan
+   * `tenantModel` menghasilkan luaran BERBEDA dari delegate mentah di jalur
+   * itu. Query penemuan di `loadProfile` sudah memfilter `where: { userId }`
+   * lebih dulu, jadi membership milik user lain memang tidak akan muncul
+   * walau `tenantModel` dihapus. Yang terbukti saat ini adalah enforcement
+   * proxy itu sendiri (test di `test/database.e2e.spec.ts`), bukan perbedaan
+   * hasilnya. Detailnya ada di laporan Task 3.
    *
    * Model di luar `TENANT_MODELS` ditolak, bukan diteruskan.
    */

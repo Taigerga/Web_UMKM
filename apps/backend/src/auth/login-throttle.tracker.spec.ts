@@ -13,17 +13,30 @@ import { loginThrottleTracker } from './login-throttle.tracker.js';
  * dengan IP palsu - yang sah adalah menguji fungsi susun kuncinya langsung,
  * dengan input `req` yang dibuat sendiri sehingga IP benar-benar bisa varied.
  *
+ * ## Yang diproteksi test ini
+ *
  * Bentuk kuncinya adalah `${ip}|${email}`: satu penghitung per PASANGAN
- * (IP, email). Tiga hal yang dijaga test ini justru cara-cara yang
- * akan membuka bypass:
+ * (IP, email). Test di sini menjaga tiga hal:
  *
  * - email berbeda harus dapat kunci BERBEDA pada IP sama (kalau tidak,
  *   penyerang bisa mencoba semua akun tanpa pernah kena limit);
- * - email sama harus dapat slot email yang SAMA di IP berbeda (kalau tidak,
- *   komponen yang dikunci per email akan terpecah per IP dan brute force
- *   multi-IP tidak tertangkap);
+ * - email yang sama harus muncul utuh di bagian email kunci meski IP berbeda,
+ *   dan IP berbeda harus tetap menghasilkan kunci berbeda;
  * - request tanpa email yang terbaca harus dapat slot TETAP (kalau tidak,
  *   "kirim email acak tiap request" jadi bypass).
+ *
+ * ## Yang TIDAK diklaim file ini
+ *
+ * Tidak ada test di sini (atau di mana pun) yang membuktikan throttle ini
+ * membatasi distributed guessing ke satu akun. Kuncinya gabungan, jadi tiap
+ * IP punya penghitung sendiri. Property itu memang tidak dimiliki throttle
+ * ini, dan memang tidak dimiliki spec "per IP+email".
+ *
+ * Yang menutup distributed guessing adalah lockout akun per database
+ * (`MAX_FAILED_LOGIN_ATTEMPTS`), yang dihitung per akun sehingga tidak bisa
+ * dipecah dengan menambah IP. Kalau suatu saat spesifikasi berubah, property
+ * itu harus dibangun dan diuji terpisah - tidak boleh diasumsikan sudah ada
+ * di sini.
  */
 describe('loginThrottleTracker', () => {
   const req = (ip: string, body: unknown): Record<string, unknown> => ({
@@ -44,19 +57,22 @@ describe('loginThrottleTracker', () => {
     expect(emailSlotOf(b)).toBe('b@contoh.id');
   });
 
-  it('memakai slot email yang sama untuk email sama, dari IP berapa pun', () => {
-    // Bagian email inilah yang menutup brute force lintas IP terhadap satu
-    // akun: berapa pun jumlah IP yang mengirim, slot email-nya tetap satu,
-    // jadi agregatanya tidak bisa dipecah dengan pindah IP.
+  it('menyertakan email yang sama di kunci meski IP-nya berbeda', () => {
+    // CUMA itu yang diperiksa test ini: bagian email pada kunci tidak ikut
+    // berubah karena IP berubah.
+    //
+    // Test ini SENGAJA tidak mengklaim agregasi lintas IP. Kuncinya gabungan,
+    // jadi dua request dari IP berbeda BERBEDA kunci dan punya penghitung
+    // masing-masing - distributed guessing ke satu akun tidak dibatasi oleh
+    // throttle ini. Lihat komentar `loginThrottleTracker`.
     const fromA = loginThrottleTracker(req('10.0.0.1', { email: 'a@contoh.id' }));
     const fromB = loginThrottleTracker(req('10.0.0.2', { email: 'a@contoh.id' }));
-    const fromC = loginThrottleTracker(
-      req('203.0.113.7', { email: 'a@contoh.id' }),
-    );
 
     expect(emailSlotOf(fromA)).toBe('a@contoh.id');
     expect(emailSlotOf(fromB)).toBe('a@contoh.id');
-    expect(emailSlotOf(fromC)).toBe('a@contoh.id');
+
+    // Bagian IP tetap berbeda - inilah yang membuat penghitungnya terpisah.
+    expect(fromA).not.toBe(fromB);
   });
 
   it('mempertahankan komponen IP agar spraying ke banyak email tetap terbatas', () => {
