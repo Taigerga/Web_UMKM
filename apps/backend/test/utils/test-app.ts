@@ -133,6 +133,39 @@ class GuardOrderTestController {
 
 @Module({ controllers: [GuardOrderTestController] })
 class GuardOrderTestModule {}
+
+/**
+ * Route test-only yang melempar 5xx pada URL BERBENTUK token undangan.
+ *
+ * Alasan keberadaannya: `GET /invitations/:token` adalah route PUBLIK yang
+ *-success-nya bergantung pada database, jadi tidak ada cara memicu 5xx di
+ * request nyata tanpa merusak database test. Yang perlu diuji adalah perilaku
+ * `AllExceptionsFilter` terhadap URL - dan filter itu bekerja pada
+ * `request.url`, bukan pada controller tertentu.
+ *
+ * Path-nya sengaja `/echo/invitations/:token/boom`, yang menghasilkan
+ * `/api/v1/echo/invitations/<token>/boom`. Polanya `/invitations/<segmen>`
+ * sama persis dengan route produksi, jadi sensor token yang diuji di sini
+ * adalah sensor yang sama dengan yang dipakai filter.
+ *
+ * Yang TIDAK diuji di sini: apa pun soal logika undangan. Route ini melempar,
+ * selesai.
+ */
+@Controller('echo/invitations')
+class InvitationLogEchoController {
+  @Get(':token/boom')
+  @Public()
+  boom(): never {
+    throw new AppError(
+      'DB_DOWN',
+      500,
+      'mariadb connect refused to 127.0.0.1:3306 as root',
+    );
+  }
+}
+
+@Module({ controllers: [InvitationLogEchoController] })
+class InvitationLogEchoModule {}
 /**
  * Build instance Nest untuk e2e test dengan pipeline identik dengan produksi.
  *
@@ -163,7 +196,7 @@ export async function buildTestApp(
       : options.throttlerOptions;
 
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule, EchoTestModule, GuardOrderTestModule],
+    imports: [AppModule, EchoTestModule, GuardOrderTestModule, InvitationLogEchoModule],
   })
     .overrideProvider(getOptionsToken())
     .useValue(throttlerOptions)

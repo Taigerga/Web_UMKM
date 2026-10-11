@@ -2,10 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { AppError } from '../common/errors/app-error.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { StoreMemberRole, StoreStatus } from '../common/types/prisma-enums.js';
+import type { PrismaClient } from '../generated/prisma/client.js';
+import type { TenantModelName } from '../database/tenant-scope.extension.js';
 
 /**
- * Baris `store_members` yang sudah diverifikasi: user adalah anggota toko
- * itu, dengan peran tertentu.
+ * Pembaca yang bisa di-scope per tenant.
+ *
+ * `PrismaService` memenuhi bentuk ini apa adanya lewat `tenantModel`. Bentuk
+ * ini ada supaya `StoreAccessService` bisa menerima SEBUAH sumber baca lain -
+ * khusunya klien transaksi Prisma, yang tidak punya `tenantModel` sendiri -
+ * tanpa menulis ulang aturan scoping-nya. Tanpa bentuk ini, kode yang berjalan
+ * di dalam `$transaction` harus punya salinan `findMembership` sendiri, dan
+ * kedua salinan itu akan berbeda begitu aturan scoping berubah.
+ */
+export interface TenantScopedReader {
+  tenantModel<K extends TenantModelName>(model: K, storeId: string): PrismaClient[K];
+}
+
+/**
+ * Satu toko beserta peran user di dalamnya.
  *
  * Dikembalikan `assertAccess` supaya handler tidak perlu query keanggotaan
  * kedua kali.
@@ -195,9 +210,23 @@ export class StoreAccessService {
    * bukan "boleh akses". Toko yang `SUSPENDED` tetap punya owner, dan
    * pertanyaan ini harus tetap bisa dijawab untuk memagari pengangkatan owner
    * baru (Task 5) tanpa membuka jalan baca ke data toko.
+   *
+   * ## `reader` opsional (R-21)
+   *
+   * Argumen ketiga membuat pembacaan ini bisa dijalankan DI DALAM `$transaction`
+   * milik pemanggil, memakai scoping yang sama persis. Tanpa itu, aturan owner
+   * terakhir harus deciding "apakah target owner" DI LUAR transaksi - dan
+   * keputusan itu basi pada saat transaksi benar-benar berjalan: owner bisa
+   * sudah diturunkan atau dicabut oleh operasi lain di meantime. Bentuk
+   * `TenantScopedReader` membuat kedua jalur memakai kode yang sama, jadi tidak
+   * ada definisi "owner" kedua yang bisa berbeda.
    */
-  async isOwner(userId: string, storeId: string): Promise<boolean> {
-    const membership = await this.findMembership(userId, storeId);
+  async isOwner(
+    userId: string,
+    storeId: string,
+    reader: TenantScopedReader = this.prisma,
+  ): Promise<boolean> {
+    const membership = await this.findMembership(userId, storeId, reader);
     return membership?.role === StoreMemberRole.OWNER;
   }
 
@@ -210,8 +239,9 @@ export class StoreAccessService {
   private async findMembership(
     userId: string,
     storeId: string,
+    reader: TenantScopedReader = this.prisma,
   ): Promise<StoreMembership | undefined> {
-    return (await this.prisma
+    return (await reader
       .tenantModel('storeMembers', storeId)
       .findUnique({ where: { storeId_userId: { storeId, userId } } })) as
       | StoreMembership

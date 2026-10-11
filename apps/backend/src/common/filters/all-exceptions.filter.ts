@@ -42,6 +42,47 @@ const DEFAULT_CODES: Record<number, string> = {
 const GENERIC_INTERNAL_MESSAGE =
   'Terjadi kesalahan pada server. Silakan coba lagi.';
 
+/**
+ * Placeholder yang menggantikan segmen URL yang berisi rahasia.
+ *
+ * Cukup panjang untuk jelas bukan nilai asli, dan tidak memuat karakter yang
+ * bisa disamarkan sebagai ID.
+ */
+const REDACTED = '[REDACTED]';
+
+/**
+ * Sensor token undangan pada URL sebelum URL itu masuk ke log internal.
+ *
+ * ## Kenapa ini perlu
+ *
+ * Task 5 menaruh kredensial setara-bearer di dalam PATH URL, pada dua route:
+ * `GET /invitations/:token` (publik) dan `POST /invitations/:token/accept`.
+ * Tanpa sensor, setiap 5xx yang tidak terpetakan di salah satu route itu
+ * menulis token mentah ke log - dan log 5xx adalah tempat yang paling dibaca
+ * orang saat menelusuri insiden, yang justru observational paling mungkin
+ * disalin keluar.
+ *
+ * ## Cakupannya sempit, dan disengaja
+ *
+ * Hanya segmen yang menyusul `/invitations/`. Route lain tidak berubah sama
+ * sekali: baris log untuk `POST /auth/login` tetap memuat path lengkapnya,
+ * karena URL lain tidak memuat rahasia. Melemahkan seluruh baris log demi
+ * menyelesaikan satu masalah akan menghapus kemampuan menelusuri insiden di
+ * semua endpoint lain - harga yang jauh lebih besar dari yang dicegah.
+ *
+ * Query string ikut mengikuti segmen itu karena `request.url` tidak
+ * memisahkan keduanya.
+ *
+ * @param rawUrl `request.url` apa adanya
+ * @returns URL dengan segmen token undangan diganti `[REDACTED]`
+ */
+export function redactInvitationToken(rawUrl: string): string {
+  return rawUrl.replace(
+    /(\/invitations\/)([^/?#]+)/g,
+    (_match, prefix: string, _token: string) => `${prefix}${REDACTED}`,
+  );
+}
+
 interface MappedError {
   status: number;
   code: string;
@@ -217,8 +258,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Detail internal hanya boleh masuk ke log, tidak pernah ke response.
     // Dicatat dengan kode & pesan ASLI, sebelum dikolaps untuk client.
     if (mapped.status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      // URL disensor DULU: token undangan adalah kredensial setara-bearer dan
+      // tidak boleh muncul di log meski hanya untuk 5xx (lihat
+      // `redactInvitationToken`).
       this.logger.error(
-        `${request.method} ${request.url} -> ${mapped.status} ${mapped.code}: ${mapped.message}`,
+        `${request.method} ${redactInvitationToken(request.url)} -> ${mapped.status} ${mapped.code}: ${mapped.message}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }

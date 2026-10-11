@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Logger } from '@nestjs/common';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { PrismaService } from '../src/database/prisma.service.js';
 import { StoreAccessService } from '../src/stores/store-access.service.js';
@@ -592,7 +593,7 @@ describe('POST /invitations/:token/accept', () => {
     expect(res.body.error.code).toBe('UNAUTHORIZED');
   });
 
-  it('menerima undangan tidak pernah menurunkan peran yang sudah ada', async () => {
+it('menerima undangan tidak pernah menurunkan peran yang sudah ada', async () => {
     // Jalur ini BUKAN tempat ubah peran: owner terakhir dicabut/dinurunkan lewat
     // `DELETE`/`PATCH /members/:userId`. Undangan hanya membuka akses.
     const owner = await createUser('OWNER');
@@ -603,7 +604,7 @@ describe('POST /invitations/:token/accept', () => {
     });
 
     const issued = await invite(owner, store.id, invitee.email, 'STAFF');
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post(`/api/v1/invitations/${issued.token}/accept`)
       .set('Authorization', `Bearer ${invitee.token}`)
       .expect(201);
@@ -612,6 +613,42 @@ describe('POST /invitations/:token/accept', () => {
       where: { storeId_userId: { storeId: store.id, userId: invitee.id } },
     });
     expect(membership.role).toBe('OWNER');
+
+    // Respons harus melaporkan peran yang DIMILIKI, bukan yang diundang.
+    // Kalau respons bilang `STAFF` (peran undangan) padahal database menyimpan
+    // `OWNER`, frontend menyalakan kontrol yang salah arah; kalau ini
+    // membalikkan ke arah lain (`OWNER` padahal tersimpan `STAFF`), frontend
+    // menampilkan kontrol OWNER yang akan ditolak backend. Test di bawah
+    // menutup kedua arah.
+    expect(res.body.data.role).toBe('OWNER');
+  });
+
+  it('respons accept melaporkan peran lama, bukan peran yang diundang', async () => {
+    // Kasus kebalikannya: penerima sudah STAFF, undangan menawarkan OWNER.
+    // `update: {}` pada upsert mempertahankan STAFF, jadi itulah yang harus
+    // dikembalikan - bukan OWNER yang tertulis di undangan.
+    const owner = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    const invitee = await createUser('OWNER');
+    await prisma.storeMembers.create({
+      data: { storeId: store.id, userId: invitee.id, role: 'STAFF' },
+    });
+
+    const issued = await invite(owner, store.id, invitee.email, 'OWNER');
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/invitations/${issued.token}/accept`)
+      .set('Authorization', `Bearer ${invitee.token}`)
+      .expect(201);
+
+    // Database tetap STAFF...
+    const membership = await prisma.storeMembers.findUniqueOrThrow({
+      where: { storeId_userId: { storeId: store.id, userId: invitee.id } },
+    });
+    expect(membership.role).toBe('STAFF');
+
+    // ...dan respons mencerminkan keadaan sebenarnya, bukan ke undangan.
+    expect(res.body.data.role).toBe('STAFF');
+    expect(res.body.data.role).not.toBe(issued.role);
   });
 });
 
@@ -869,6 +906,292 @@ describe('toko SUSPENDED memblokir baca dan tulis di layer service', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// R-21 (lanjutan): serialisasi operasi owner lewat lock baris induk
+// ---------------------------------------------------------------------------
+
+/**
+ * Pegang lock baris induk `storeId` dari koneksi TRANSAKSI yang BERBEDA, sampai
+ * `release()` dipanggil.
+ *
+ * Dipakai untuk membuat balapan owner MUTLAK terjadi, bukan hoped-for: dengan
+ * lock ini tertahan, setiap operasi owner-changing yang mengambil lock yang
+ * sama DIJAMIN memblokir, jadi kita bisa mengamati apakah ia benar-benar
+ * mengambil lock itu.
+ *
+ * `prisma.$transaction` dengan callback memakai satu koneksi dari pool selama
+ * callback berjalan, jadi baris `SELECT ... FOR UPDATE` di dalamnya memang
+ * dipegang koneksi nyata sampai transaksi selesai.
+ */
+function holdStoreLock(client: PrismaService, storeId: string) {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  const held = client.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM stores WHERE id = ${storeId} FOR UPDATE`;
+    await released;
+  });
+
+  return {
+    /** Lepas lock dan tunggu transaksi benar-benar selesai. */
+    release: async () => {
+      release();
+      await held;
+    },
+  };
+}
+
+// Tambahkan owner kedua untuk toko yang sama.
+async function addOwner(user: TestUser, storeId: string): Promise<void> {
+  await prisma.storeMembers.create({
+    data: { storeId, userId: user.id, role: 'OWNER' },
+  });
+}
+
+describe('R-21: operasi owner diserialisasi lewat lock baris induk', () => {
+  it('removeMember memblokir sampai lock baris toko dilepas', async () => {
+    // Mengamati SERIALISASI secara deterministik: dengan lock ditahan,
+    // permintaan yang mengambil lock yang sama tidak bisa selesai. Kalau
+    // `lockStoreRow` dihapus, permintaan ini langsung selesai dan test gagal.
+    const owner = await createUser('OWNER');
+    const second = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await addOwner(second, store.id);
+
+    const holder = holdStoreLock(prisma, store.id);
+
+    let settled = false;
+    const pending = request(app.getHttpServer())
+      .delete(`/api/v1/stores/${store.id}/members/${second.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .then((res) => {
+        settled = true;
+        return res;
+      });
+
+    // Beri waktu yang jauh melebihi latency DB biasa. Kalau operasi tidak
+    // memblokir, `settled` sudah `true` pada titik ini.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(settled).toBe(false);
+
+    await holder.release();
+
+    // Setelah lock dilepas, operasi berjalan normal dan owner kedua boleh
+    // dicabut karena masih ada owner pertama.
+    const res = await pending;
+    expect(res.status).toBe(204);
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: store.id, role: 'OWNER' } }),
+    ).toBe(1);
+  });
+
+  it('updateMember memblokir sampai lock baris toko dilepas, termasuk jalur promosi', async () => {
+    const owner = await createUser('OWNER');
+    const staff = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await prisma.storeMembers.create({
+      data: { storeId: store.id, userId: staff.id, role: 'STAFF' },
+    });
+
+    // Jalur PROMOSI (STAFF -> OWNER). Kalau ini tidak mengambil lock, maka
+    // ada jalur owner-changing yang bisa menyelundup melewati penjaga.
+    const holder = holdStoreLock(prisma, store.id);
+
+    let settled = false;
+    const pending = request(app.getHttpServer())
+      .patch(`/api/v1/stores/${store.id}/members/${staff.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ role: 'OWNER' })
+      .then((res) => {
+        settled = true;
+        return res;
+      });
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(settled).toBe(false);
+
+    await holder.release();
+
+    const res = await pending;
+    expect(res.status).toBe(200);
+    expect(res.body.data.role).toBe('OWNER');
+  });
+
+  it('dua penghapusan owner bersamaan menyisakan tepat satu owner, satu dapat 409', async () => {
+    // Balapan NYATA lewat HTTP: dua request dikirim pada toko dengan dua
+    // owner. Tanpa lock, keduanya bisa membaca "ada 2 owner" lalu keduanya
+    // menghapus - dan toko kehilangan semua owner.
+    //
+    // CATATAN KEJUJURAN: test ini membuktikan HASIL yang benar terjadi. Dia
+    // tidak membuktikan bahwa kunciknya adalah lock - untuk itu ada dua test
+    // di atas yang mengamati blokirnya secara deterministik. Test ini
+    // tidak deterministik: tanpa lock, urutan dua request ini sering tetap
+    // aman, jadi kelulusannya sendiri bukan bukti.
+    const owner = await createUser('OWNER');
+    const second = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await addOwner(second, store.id);
+
+    const remove = (userId: string) =>
+      request(app.getHttpServer())
+        .delete(`/api/v1/stores/${store.id}/members/${userId}`)
+        .set('Authorization', `Bearer ${owner.token}`);
+
+    const [a, b] = await Promise.all([remove(owner.id), remove(second.id)]);
+
+    const statuses = [a.status, b.status].sort((x, y) => x - y);
+    expect(statuses).toEqual([204, 409]);
+
+    const denied = a.status === 409 ? a : b;
+    expect(denied.body.error.code).toBe('LAST_OWNER');
+
+    // Invariant yang dijaga R-21: masih ada owner.
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: store.id, role: 'OWNER' } }),
+    ).toBe(1);
+  });
+
+  it('dua penurunan owner bersamaan pada toko dua-owner menyisakan satu owner', async () => {
+    // Toko dengan DUA owner, keduanya diminta diturunkan bersamaan. Satu
+    // harus berhasil dan satu harus ditolak, karena kalau keduanya berhasil
+    // tokonya tidak punya owner sama sekali.
+    const owner = await createUser('OWNER');
+    const second = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await addOwner(second, store.id);
+
+    const demote = (userId: string) =>
+      request(app.getHttpServer())
+        .patch(`/api/v1/stores/${store.id}/members/${userId}`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({ role: 'STAFF' });
+
+    const [a, b] = await Promise.all([demote(second.id), demote(owner.id)]);
+
+    const statuses = [a.status, b.status].sort((x, y) => x - y);
+    expect(statuses).toEqual([200, 409]);
+
+    const denied = a.status === 409 ? a : b;
+    expect(denied.body.error.code).toBe('LAST_OWNER');
+
+    // Dari dua owner, hanya satu yang bisa diturunkan.
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: store.id, role: 'OWNER' } }),
+    ).toBe(1);
+  });
+
+  it('pencabutan owner yang sudah diturunkan operation lain tidak salah hitung', async () => {
+    // Kasus yang disebut pada temuan: keputusan "apakah target owner" harus
+    // diambil DI DALAM lock. Kalau diambil di luar, target yang perannya sudah
+    // berubah di antara dua pembacaan akan dihitung memakai keadaan basi.
+    //
+    // Di sini tidak ada balapan. Yang diuji adalah bahwa pembacaan terjadi
+    // setelah lock, dengan konsekuensi yang bisa diamati: operasi kedua
+    // melihat keadaan yang sudah ditulis oleh yang pertama.
+    const owner = await createUser('OWNER');
+    const second = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await addOwner(second, store.id);
+
+    // Turunkan dulu: sekarang `second` bukan owner dan hanya `owner` yang OWNER.
+    await request(app.getHttpServer())
+      .patch(`/api/v1/stores/${store.id}/members/${second.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ role: 'STAFF' })
+      .expect(200);
+
+    // Cabut keanggotaannya: karena bukan owner, aturan LAST_OWNER tidak
+    // menyala dan operasi berhasil - bukan salah menghitung bahwa target
+    // "adalah owner".
+    await request(app.getHttpServer())
+      .delete(`/api/v1/stores/${store.id}/members/${second.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204);
+
+    expect(
+      await prisma.storeMembers.count({ where: { storeId: store.id, role: 'OWNER' } }),
+    ).toBe(1);
+  });
+});
+// ---------------------------------------------------------------------------
+// Token undangan tidak boleh bocor ke log internal (5xx)
+// ---------------------------------------------------------------------------
+
+describe('token undangan tidak bocor ke log internal', () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  let logged: string[];
+
+  beforeEach(() => {
+    logged = [];
+    errorSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation((...args: unknown[]) => {
+        logged.push(args.map((a) => String(a)).join(' '));
+      });
+  });
+
+  afterEach(() => {
+    errorSpy.mockRestore();
+  });
+
+  it('5xx pada URL berbentuk token undangan tidak menulis token mentah ke log', async () => {
+    const token = randomUUID().replace(/-/g, '').repeat(2);
+
+    await request(app.getHttpServer()).get(`/api/v1/echo/invitations/${token}/boom`).expect(500);
+
+    // Log TETAP terjadi - yang diuji bukan "tidak ada log", tapi "lognya tidak
+    // memuat rahasia".
+    expect(logged.length).toBeGreaterThan(0);
+    const line = logged.join('\n');
+    expect(line).not.toContain(token);
+    expect(line).toContain('[REDACTED]');
+    // URL-nya sendiri masih terbaca, jadi kemampuan menelusuri insiden tidak
+    // hilang seluruhnya.
+    expect(line).toContain('/invitations/');
+  });
+
+  it('redaksi hanya menyentuh segmen token, bukan sisa URL', async () => {
+    const token = randomUUID();
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/echo/invitations/${token}/boom`)
+      .expect(500);
+
+    const line = logged.join('\n');
+    expect(line).toContain('/invitations/[REDACTED]/boom');
+    expect(line).toContain('GET ');
+    // Kode internal yang ASLI tetap ada di log - redaksi tidak boleh ikut
+    // mengikis informasi diagnostik, hanya segmen token.
+    expect(line).toContain('DB_DOWN');
+  });
+
+  it('URL tanpa segmen rahasia tetap apa adanya (tidak ada pelemahan umum)', async () => {
+    // Sensor harus sempit. Kalau `redactInvitationToken` ikut menyensor
+    // semua URL, test ini gagal dan kemampuan menelusuri insiden di
+    // endpoint lain ikut hilang.
+    const owner = await createUser('OWNER');
+    const store = await createStoreViaApi(owner, { name: 'Toko Untuk Log' });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/echo/prisma-missing`)
+      .query({ id: '00000000-0000-0000-0000-000000000000' })
+      .expect(404);
+
+    // 404 tidak dilog (hanya 5xx yang dilog), jadi pancing 5xx lewat route
+    // echo yang tidak berbentuk undangan.
+    await request(app.getHttpServer())
+      .get(`/api/v1/echo/boom-http`)
+      .expect(500);
+
+    const line = logged.join('\n');
+    expect(line).toContain('/api/v1/echo/boom-http');
+    expect(line).not.toContain('[REDACTED]');
+    // Toko yang tadi dibuat tidak seharusnya muncul di log route mana pun.
+    expect(line).not.toContain(store.id);
+  });
+});
 // ---------------------------------------------------------------------------
 // R-19: DELETE toko tetap tidak ada
 // ---------------------------------------------------------------------------

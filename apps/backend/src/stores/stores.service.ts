@@ -3,9 +3,16 @@ import { AppError } from '../common/errors/app-error.js';
 import { StoreMemberRole } from '../common/types/prisma-enums.js';
 import type { StoreStatus } from '../common/types/prisma-enums.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { withTenantScope } from '../database/tenant-scope.extension.js';
+import type { TenantModelName } from '../database/tenant-scope.extension.js';
 import { normalizeEmail } from '../auth/email.util.js';
 import { StoreAccessService } from './store-access.service.js';
-import type { StoreMembership, StoreSummary } from './store-access.service.js';
+import type {
+  StoreMembership,
+  StoreSummary,
+  TenantScopedReader,
+} from './store-access.service.js';
+import { lockStoreRow } from './store-owner-lock.js';
 import { generateInviteToken, hashInviteToken } from '../invitations/invite-token.util.js';
 import type { CreateStoreDto } from './dto/create-store.dto.js';
 import type { CreateInvitationDto } from './dto/create-invitation.dto.js';
@@ -180,22 +187,28 @@ export class StoresService {
     }));
   }
 
-  /**
+/**
    * Ubah peran seorang anggota.
    *
    * OWNER toko itu saja boleh. `targetUserId` dari PATH, jadi tidak ada cara
    * menuliskan "ubah peran diriku sendiri" lewat body.
    *
-   * ## R-21: owner terakhir
+   * ## R-21: owner terakhir, dan kenapa semuanya satu transaksi
    *
    * Menurunkan owner terakhir ke `STAFF` ditolak dengan `LAST_OWNER` (409),
-   * persis seperti mencabut keanggotaannya. Hasil kedua operasi itu sama saja:
-   * toko tanpa owner, tidak bisa dikelola siapa pun, dan tidak ada jalan pulih
-   * dari UI. Aturan ini memanggil `StoreAccessService.isOwner` - bukan menghitung
-   * ulang perannya sendiri - supaya definisi "owner" hanya punya satu sumber.
+   * persis seperti mencabut keanggotaannya: hasilnya sama saja, yaitu toko tanpa
+   * owner, tidak bisa dikelola siapa pun, dan tidak punya jalan pulih dari UI.
    *
-   * Menaikkan STAFF menjadi OWNER tetap boleh: itu menambah owner, bukan
-   * mengurangi.
+   * Yang menentukan bukan cuma hitungannya, tapi URUTAN dan SINKRONISASINYA.
+   * Pemeriksaan "masih ada owner lain?" harus terjadi DI DALAM transaksi yang
+   * sama dengan penulisannya, dan SETELAH lock baris induk diambil. Tanpa itu,
+   * dua permintaan bersamaan pada toko dengan owner A dan B bisa keduanya
+   * melihat "ada 2 owner", keduanya lolos, lalu salah satunya menghapus owner
+   * terakhir. Penjelasan-mekanismenya di `withStoreOwnerLock` dan di
+   * `store-owner-lock.ts`.
+   *
+   * Menaikkan STAFF menjadi OWNER juga melewati lock yang sama, supaya promosi
+   * tidak bisa menyelundup melewati penjaga yang dibaca operasi lain.
    */
   async updateMember(
     userId: string,
@@ -203,31 +216,30 @@ export class StoresService {
     targetUserId: string,
     dto: UpdateMemberDto,
   ): Promise<{ userId: string; role: StoreMemberRole }> {
+    // Otorisasi di luar transaksi: `assertAccess` hanya membaca dan tidak
+    // mengubah apa pun, jadi tidak ada alasan memegangnya lebih lama dari perlu.
     await this.storeAccess.assertAccess(userId, storeId, StoreMemberRole.OWNER);
 
-    await this.requireMembership(storeId, targetUserId);
+    return this.withStoreOwnerLock(storeId, async (reader, members) => {
+      await this.requireMembership(reader, storeId, targetUserId);
 
-    // "Apakah target adalah owner?" dijawab lewat `StoreAccessService.isOwner`,
-    // bukan dibaca dari baris yang sudah dibaca di atas. Pertanyaannya sama,
-    // tapi lewat satu pintu: kalau nanti definisi "owner" berubah di
-    // `store-access.service.ts`, aturan ini ikut berubah tanpa perlu disentuh.
-    const targetIsOwner = await this.storeAccess.isOwner(targetUserId, storeId);
+      // "Apakah target adalah owner?" dijawab DI DALAM lock dan DI DALAM
+      // transaksi, lewat `StoreAccessService.isOwner` dengan pembaca yang
+      // sama. Satu definisi, pembacaan yang fresh.
+      const targetIsOwner = await this.storeAccess.isOwner(targetUserId, storeId, reader);
 
-    // Hanya operasi yang benar-benar MENGAMBIL peran owner yang perlu
-    // diperiksa. `OWNER -> OWNER` tidak mengurangi jumlah owner.
-    if (targetIsOwner && dto.role !== StoreMemberRole.OWNER) {
-      await this.assertAnotherOwnerExists(storeId);
-    }
+      // Hanya operasi yang benar-benar MENGAMBIL peran owner yang perlu
+      // diperiksa. `OWNER -> OWNER` tidak mengurangi jumlah owner.
+      if (targetIsOwner && dto.role !== StoreMemberRole.OWNER) {
+        await this.assertAnotherOwnerExists(reader, storeId);
+      }
 
-    const updated = await this.prisma
-      .tenantModel('storeMembers', storeId)
-      .update({
+      return members.update({
         where: { storeId_userId: { storeId, userId: targetUserId } },
         data: { role: dto.role },
         select: { userId: true, role: true },
       });
-
-    return updated;
+    });
   }
 
   /**
@@ -240,20 +252,27 @@ export class StoresService {
    * yang bisa mengunjuk owner baru, mengembalikan akses, atau memperbaiki
    * keadaan itu sendiri - karena semua operasi yang dibutuhkan untuk itu butuh
    * OWNER lebih dulu.
+   *
+   * Pemeriksaan dan penghapusannya berada dalam satu transaksi yang memegang
+   * lock baris induk, bukan dua permintaan terpisah. Tanpa serialisasi,
+   * "cek jumlah owner lalu hapus" bisa diloloskan dua kali bersamaan dan
+   * menyisakan toko tanpa owner.
    */
   async removeMember(userId: string, storeId: string, targetUserId: string): Promise<void> {
+    // Otorisasi di luar transaksi, dengan alasan yang sama seperti di
+    // `updateMember`.
     await this.storeAccess.assertAccess(userId, storeId, StoreMemberRole.OWNER);
 
-    await this.requireMembership(storeId, targetUserId);
+    await this.withStoreOwnerLock(storeId, async (reader, members) => {
+      await this.requireMembership(reader, storeId, targetUserId);
 
-    // Sama seperti `updateMember`: lewat `isOwner`, bukan baca peran dari baris.
-    if (await this.storeAccess.isOwner(targetUserId, storeId)) {
-      await this.assertAnotherOwnerExists(storeId);
-    }
+      // Sama seperti `updateMember`: lewat `isOwner`, di dalam lock.
+      if (await this.storeAccess.isOwner(targetUserId, storeId, reader)) {
+        await this.assertAnotherOwnerExists(reader, storeId);
+      }
 
-    await this.prisma
-      .tenantModel('storeMembers', storeId)
-      .delete({ where: { storeId_userId: { storeId, userId: targetUserId } } });
+      await members.delete({ where: { storeId_userId: { storeId, userId: targetUserId } } });
+    });
   }
 
   /**
@@ -303,7 +322,7 @@ export class StoresService {
     };
   }
 
-  /** Baris `stores` sebagai bentuk client, atau 404. */
+/** Baris `stores` sebagai bentuk client, atau 404. */
   private async loadStore(storeId: string): Promise<StoreView> {
     const store = await this.prisma.stores.findUnique({
       where: { id: storeId },
@@ -315,12 +334,80 @@ export class StoresService {
     return store;
   }
 
+  /**
+   * Jalankan `fn` di dalam satu transaksi yang memegang lock baris induk toko.
+   *
+   * Ini SATU-SATUNYA pintu untuk operasi yang mengubah jumlah owner (R-21).
+   * Urutannya disengaja dan tidak boleh diacak:
+   *
+   * 1. `SELECT ... FROM stores WHERE id = ? FOR UPDATE` - mengambil lock baris
+   *    induk. Semua operasi owner-changing pada toko yang sama membloki baris
+   *    yang sama, jadi mereka BERURUTAN, bukan paralel.
+   * 2. `fn` berjalan: membaca keanggotaan target, menghitung owner, lalu
+   *    menulis. Semua di bawah lock itu, jadi hitungan yang dilihat selalu
+   *    sudah memuat hasil commit operasi owner-changing sebelumnya.
+   * 3. Commit atau rollback.
+   *
+   * ## Kenapa lock pada baris induk, bukan baris keanggotaan
+   *
+   * Jumlah owner dihitung sebagai "lebih dari satu baris di sekumpulan baris".
+   * Lock hanya satu baris keanggotaan tidak membuat pembacaan itu menjadi
+   * atomic: dua operasi masih bisa mengunci dua baris yang BERBEDA, keduanya
+   * membaca jumlah yang sama, lalu keduanya menulis. Yang membuat pembacaan
+   * jumlah itu atomic adalah lock pada satu baris yang disepakati semua, dan
+   * baris `stores` adalah satu-satunya kandidat yang memenuhi itu (lihat
+   * `store-owner-lock.ts`).
+   *
+   * ## Aturan yang harus dipatuhi pemanggil berikutnya
+   *
+   * Serialisasi ini hanya berlaku selama SEMUA operasi yang bisa mengubah
+   * jumlah owner melewati helper ini. Begitu ada satu operasi owner-changing
+   * lain yang menulis `store_members` tanpa lock, penjaga ini jadi tidak
+   * lengkap. Jangan tambahkan operasi owner-changing dengan
+   * `prisma.tenantModel('storeMembers', ...).update/delete` langsung di luar
+   * helper ini.
+   *
+   * ## Kenapa `assertAccess` TIDAK ikut di dalam transaksi
+   *
+   * Otorisasi hanya membaca, dan pemeriksaan itu tidak perlu serialisasi.
+   * Memegangnya di dalam transaksi akan memperpanjang lock untuk setiap
+   * permintaan yang ditolak. Pemanggil memanggilnya sebelum masuk ke sini.
+   *
+   * @param storeId toko yang di-lock; harus sudah lolos `assertAccess`
+   * @param fn operasi yang berjalan di bawah lock
+   */
+  private async withStoreOwnerLock<T>(
+    storeId: string,
+    fn: (
+      reader: TenantScopedReader,
+      members: ReturnType<PrismaService['tenantModel']>,
+    ) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      await lockStoreRow(tx, storeId);
+
+      // Klien transaksi tidak punya `tenantModel`, jadi `TenantScopedReader`
+      // dibungkus di sini. Aturan scoping-nya tetap milik
+      // `withTenantScope`, bukan ditulis ulang.
+      const reader: TenantScopedReader = {
+        tenantModel: ((model: TenantModelName, scope: string) =>
+          withTenantScope(
+            (tx as unknown as Record<string, object>)[model],
+            scope,
+          )) as TenantScopedReader['tenantModel'],
+      };
+
+      return fn(reader, reader.tenantModel('storeMembers', storeId));
+    });
+  }
+
   /** Keanggotaan `targetUserId` di `storeId`, atau 404. */
   private async requireMembership(
+    reader: TenantScopedReader,
     storeId: string,
     targetUserId: string,
   ): Promise<StoreMembership> {
-    const membership = await this.prisma
+    const membership = await reader
       .tenantModel('storeMembers', storeId)
       .findUnique({ where: { storeId_userId: { storeId, userId: targetUserId } } });
 
@@ -334,14 +421,25 @@ export class StoresService {
   /**
    * Tolak operasi yang akan membuat toko kehilangan owner terakhirnya (R-21).
    *
-   * Pemanggil harus sudah memastikan target yang dimaksud adalah OWNER, lewat
-   * `StoreAccessService.isOwner`. Perhitungan jumlah owner memakai
-   * `tenantModel(...).count({ where: { role: OWNER } })`: tanpa tenant scope,
-   * `count` itu akan menjumlah SELURUH owner di database dan aturan owner
-   * terakhir tidak akan pernah menyala.
+   * Selalu dipanggil dari dalam `withStoreOwnerLock`, jadi pembacaan jumlah
+   * owner terjadi di bawah lock baris induk dan di dalam transaksi yang sama
+   * dengan operasi yang memicunya.
+   *
+   * Dua hal yang menjaga helper ini benar:
+   *
+   * - `isOwner` di pemanggil sudah memakai pembaca yang sama, jadi
+   *   keputusan "apakah target owner" dan keputusan "apakah masih ada owner
+   *   lain" melihat keadaan yang sama.
+   * - Hitungannya memakai `tenantModel(...).count({ where: { role: OWNER } })`.
+   *   Tanpa tenant scope, `count` itu menjumlah SELURUH owner di database dan
+   *   aturan owner terakhir tidak akan pernah menyala - dibuktikan oleh test
+   *   "owner terakhir toko A tetap terkunci walau toko lain punya owner".
    */
-  private async assertAnotherOwnerExists(storeId: string): Promise<void> {
-    const ownerCount = await this.prisma
+  private async assertAnotherOwnerExists(
+    reader: TenantScopedReader,
+    storeId: string,
+  ): Promise<void> {
+    const ownerCount = await reader
       .tenantModel('storeMembers', storeId)
       .count({ where: { role: StoreMemberRole.OWNER } });
 

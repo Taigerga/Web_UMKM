@@ -3,6 +3,7 @@ import { AppError } from '../common/errors/app-error.js';
 import { StoreStatus } from '../common/types/prisma-enums.js';
 import type { StoreMemberRole as StoreMemberRoleType } from '../common/types/prisma-enums.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { withTenantScope } from '../database/tenant-scope.extension.js';
 import { normalizeEmail } from '../auth/email.util.js';
 import { hashInviteToken } from './invite-token.util.js';
 
@@ -21,7 +22,14 @@ export interface InvitationPreview {
   expiresAt: string;
 }
 
-/** Hasil menerima undangan: toko mana, dan peran yang didapat. */
+/**
+ * Hasil menerima undangan: toko mana, dan peran yang DIMILIKI setelahnya.
+ *
+ * `role` di sini adalah peran yang benar-benar ada di `store_members` SESUDAH
+ * operasi, bukan peran yang tertulis di undangan. Keduanya bisa berbeda: kalau
+ * penerima sudah jadi anggota toko itu, undangan tidak menimpa peran yang sudah
+ * dimiliki (lihat `accept`), sehingga jawabannya adalah peran lama.
+ */
 export interface AcceptedInvitation {
   storeId: string;
   storeName: string;
@@ -103,19 +111,34 @@ export class InvitationsService {
    * Urutan operasi, dan kenapa:
    *
    * 1. Validasi token (lihat `preview`).
-   * 2. Klaim undangan secara atomik lewat
-   *    `updateMany({ where: { acceptedAt: null } })`. Kalau jumlah baris yang
-   *    terpengaruh 0, ada permintaan lain yang menang lebih dulu, dan pemanggil
-   *    mendapat `INVITE_ALREADY_ACCEPTED` (RF-4) tanpa keanggotaan terbentuk.
-   *    Aturan "cek dulu baru tulis" tidak bisa menahan dua permintaan yang tiba
-   *    bersamaan; `UPDATE ... WHERE accepted_at IS NULL` bisa.
-   * 3. Email akun harus cocok dengan email undangan. Tanpa ini, siapa pun yang
+   * 2. Email akun harus cocok dengan email undangan. Tanpa ini, siapa pun yang
    *    memegang token - termasuk orang yang meneruskannya - bisa masuk ke toko
    *    dengan akunnya sendiri. Menolak di sini juga membiarkan undangan tetap
    *    utuh untuk penerima yang sebenarnya.
-   * 4. Keanggotaan dibuat dengan `upsert` yang TIDAK mengubah peran kalau sudah
-   *    ada. Undangan adalah pintu masuk, bukan jalur ubah peran: kalau ia bisa
-   *    menurunkan peran, aturan owner terakhir (R-21) punya bypass.
+   * 3. **Klaim dan pembuatan keanggotaan dalam SATU transaksi.**
+   *
+   *    Di dalamnya ada dua hal yang harus selalu terjadi bersama:
+   *
+   *    - **Klaim atomik** lewat `updateMany({ where: { acceptedAt: null } })`.
+   *      Kalau jumlah baris yang terpengaruh 0, ada permintaan lain yang menang
+   *      lebih dulu, dan pemanggil mendapat `INVITE_ALREADY_ACCEPTED` (RF-4)
+   *      tanpa keanggotaan terbentuk. Aturan "cek dulu baru tulis" tidak bisa
+   *      menahan dua permintaan yang tiba bersamaan; `UPDATE ... WHERE
+   *      accepted_at IS NULL` bisa.
+   *    - **Keanggotaan** dibuat dengan `upsert` yang TIDAK mengubah peran kalau
+   *      sudah ada. Undangan adalah pintu masuk, bukan jalur ubah peran: kalau
+   *      ia bisa menurunkan peran, aturan owner terakhir (R-21) punya bypass.
+   *
+   *    keduanya harus berada dalam satu `$transaction` yang sama. Tanpa itu,
+   *    kegagalan pada `upsert` meninggalkan `acceptedAt` SUDAH ter-commit:
+   *    undangan hangus permanen sementara penerima tidak memperoleh keanggotaan
+   *    sama sekali, dan tidak ada jalan memulihkannya karena token sudah
+   *    tercatat terpakai.
+   *
+   * 4. Jawaban memakai peran yang benar-benar DIMILIKI, dibaca dari baris
+   *    membership yang dikembalikan `upsert` - bukan `invite.role`. Melaporkan
+   *    peran yang diundang ketika database sudah menyimpan peran lain membuat
+   *    frontend menyalakan kontrol OWNER yang akan ditolak backend.
    */
   async accept(token: string, userId: string): Promise<AcceptedInvitation> {
     const invite = await this.findInviteByToken(token);
@@ -150,31 +173,40 @@ export class InvitationsService {
       );
     }
 
-    // Klaim atomik: `acceptedAt: null` di `where` membuat undangan ini terpakai
-    // hanya sekali, bahkan kalau dua permintaan datang bersamaan.
-    const claimed = await this.prisma
-      .tenantModel('storeInvites', invite.storeId)
-      .updateMany({
+const membership = await this.prisma.$transaction(async (tx) => {
+      // `tx` tidak punya `tenantModel`; aturan scoping-nya tetap milik
+      // `withTenantScope` dan tidak ditulis ulang di sini.
+      const invites = withTenantScope(tx.storeInvites, invite.storeId);
+      const members = withTenantScope(tx.storeMembers, invite.storeId);
+
+      // `acceptedAt: null` di `where` membuat undangan ini terpakai hanya
+      // sekali, bahkan kalau dua permintaan datang bersamaan.
+      const claimed = await invites.updateMany({
         where: { id: invite.id, acceptedAt: null },
         data: { acceptedAt: new Date() },
       });
 
-    if (claimed.count === 0) {
-      throw AppError.conflict(
-        'INVITE_ALREADY_ACCEPTED',
-        'Undangan ini sudah pernah dipakai.',
-      );
-    }
+      if (claimed.count === 0) {
+        throw AppError.conflict(
+          'INVITE_ALREADY_ACCEPTED',
+          'Undangan ini sudah pernah dipakai.',
+        );
+      }
 
-    // `update: {}` sengaja kosong. Kalau keanggotaan sudah ada, peran yang
-    // sudah dimiliki tidak ditimpa; lihat catatan langkah 4 di atas.
-    await this.prisma.tenantModel('storeMembers', invite.storeId).upsert({
-      where: { storeId_userId: { storeId: invite.storeId, userId } },
-      create: { storeId: invite.storeId, userId, role: invite.role },
-      update: {},
+      // `update: {}` sengaja kosong. Kalau keanggotaan sudah ada, peran yang
+      // sudah dimiliki tidak ditimpa; lihat catatan langkah 3 di atas.
+      //
+      // `select: { role: true }` supaya jawaban di bawah memakai peran yang
+      // benar-benar tersimpan, bukan peran yang diundang.
+      return members.upsert({
+        where: { storeId_userId: { storeId: invite.storeId, userId } },
+        create: { storeId: invite.storeId, userId, role: invite.role },
+        update: {},
+        select: { role: true },
+      });
     });
 
-    return { storeId: store.id, storeName: store.name, role: invite.role };
+    return { storeId: store.id, storeName: store.name, role: membership.role };
   }
 
   /**
