@@ -2,15 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Role } from '../common/types/prisma-enums.js';
+import type { AuthUser } from '../common/types/auth-user.js';
 import { APP_CONFIG } from '../config/configuration.js';
 import type { AppConfig } from '../config/configuration.js';
 
-/** Bentuk `req.user` setelah JWT tervalidasi. */
-export interface AuthenticatedUser {
-  userId: string;
-  email: string;
-  role: Role;
-}
+/**
+ * Bentuk `req.user` setelah JWT tervalidasi.
+ *
+ * Alias dari {@link AuthUser}: satu bentuk, bukan dua yang bisa berbeda.
+ */
+export type AuthenticatedUser = AuthUser;
 
 /** Isi access token yang dipakai `validate`. */
 interface JwtPayload {

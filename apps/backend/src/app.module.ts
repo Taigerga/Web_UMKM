@@ -7,6 +7,11 @@ import { AppConfigModule } from './config/config.module.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
+import { StoresModule } from './stores/stores.module.js';
+import { AdminModule } from './admin/admin.module.js';
+import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
+import { RolesGuard } from './common/guards/roles.guard.js';
+import { StoreScopeGuard } from './stores/guards/store-scope.guard.js';
 
 /**
  * Rate limit global default: 300 request / menit per IP.
@@ -16,7 +21,7 @@ import { UsersModule } from './users/users.module.js';
  * `ThrottlerGuard` Menjalankan SEMUA throttler yang terdaftar pada setiap
  * request, kedua batas sama-sama berlaku pada endpoint auth. Polanya
  * "ketat + longgar" itu disengaja: batas ketat menahan percobaan brute force,
- * batas default menjaga agar satu klien tidak bisa menguras Kuota global.
+ * batas default menjaga agar satu klien tidak bisa menguras kuota global.
  */
 export const DEFAULT_THROTTLE_OPTIONS = [
   { name: 'default', ttl: 60_000, limit: 300 },
@@ -36,6 +41,8 @@ export const AUTH_THROTTLE_OPTIONS = [
     HealthModule,
     AuthModule,
     UsersModule,
+    StoresModule,
+    AdminModule,
   ],
   providers: [
     // Tanpa provider ini, `@Throttle()` hanya metadata yang TIDAK dibaca
@@ -43,6 +50,30 @@ export const AUTH_THROTTLE_OPTIONS = [
     // sama sekali. `ThrottlerGuard` harus jadi `APP_GUARD` supaya setiap
     // request melewati semua throttler yang terdaftar.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+
+    // ---------------------------------------------------------------
+    // R-17: rantai otorisasi, urut dan tidak boleh diacak.
+    // ---------------------------------------------------------------
+    // Urutan di `providers` INI adalah urutan eksekusi, dan itu bukan
+    // sekadar preferensi:
+    //  1. `JwtAuthGuard`  - siapa? Tanpa `req.user`, dua guard berikutnya
+    //     tidak punya apa pun untuk diperiksa.
+    //  2. `RolesGuard`    - peran platform; murah, dan menyaring yang
+    //     memang tidak boleh masuk area admin sama sekali.
+    //  3. `StoreScopeGuard` - keanggotaan toko; satu query database, jadi
+    //     paling mahal dan tidak boleh berjalan untuk request yang memang
+    //     sudah gugur di langkah 2.
+    //
+    // Ketiganya menghormati `@Public()`, jadi `register`, `login`, `refresh`,
+    // `logout`, dan `/health` tetap terbuka tanpa perlu konfigurasi tambahan.
+    //
+    // Ketiganya dideklarasikan DI SINA, bukan di `AuthModule`: APP_GUARD
+    // yang tersebar di beberapa module menghasilkan urutan yang bergantung
+    // pada urutan pemindaian modul, dan urutan itu menentukan apakah guard
+    // berat jalan sebelum guard murah.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: StoreScopeGuard },
   ],
   // `APP_CONFIG` sekarang disediakan oleh `AppConfigModule` (global).
   // Modul ikut di-export supaya tokennya bisa diambil lewat `app.get()` dari

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller.js';
@@ -20,9 +19,11 @@ import type { AppConfig } from '../config/configuration.js';
  * `JwtModule` dikonfigurasi dari `AppConfig` yang sama dengan `TokenService`, jadi
  * secret dan TTL tidak bisa berbeda antara penerbit dan pemeriksa token.
  *
- * `JwtAuthGuard` dipasang sebagai `APP_GUARD` supaya berlaku global: endpoint
- * baru otomatis terkunci kecuali ditandai `@Public()`. Menulis `@UseGuards`
- * di setiap controller baru adalah cara pasti eventual lupa di salah satunya.
+ * `JwtAuthGuard` TIDAK lagi didaftarkan sebagai `APP_GUARD` di sini. Rantai
+ * guard global (R-17: `JwtAuthGuard` → `RolesGuard` → `StoreScopeGuard`)
+ * dideklarasikan seluruhnya di `AppModule`, karena urutan eksekusi APP_GUARD
+ * mengikuti urutan provider - dan urutan itu tidak boleh bergantung pada
+ * module mana yang kebetulan mendaftarkan dirinya lebih dulu.
  *
  * `PasswordService` dan `RefreshTokenService` di-export untuk
  * `UsersModule` (ganti password harus bisa memverifikasi password lama dan
@@ -51,7 +52,9 @@ import type { AppConfig } from '../config/configuration.js';
     TokenService,
     RefreshTokenService,
     JwtStrategy,
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // Tetap provider supaya bisa di-override di test; pendaftaran
+    // `APP_GUARD`-nya pindah ke `AppModule`.
+    JwtAuthGuard,
   ],
   exports: [PasswordService, RefreshTokenService, TokenService, AuthService],
 })
