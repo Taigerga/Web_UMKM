@@ -70,33 +70,29 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   /*
-   * Sengaja TIDAK ada `overflow-x: hidden` di sini. Dua alasan, keduanya
-   * terukur di browser:
+   * Sengaja TIDAK ada `overflow-x: hidden` di sini. Alasannya sederhana:
+   * aturannya tidak dibutuhkan, dan tidak ada pengukuran yang menunjukkan
+   * aturan itu memperbaiki apa pun.
    *
-   * 1. Aturan itu membuat overflow yang seharusnya tertangani di dalam
-   *    wadahnya sendiri hilang tanpa jejak. Tabel yang lebih lebar dari
-   *    layar seharusnya menggulir di dalam wadahnya sendiri (`overflow-x-auto`
-   *    pada `Table`), sehingga yang bergeser adalah tabelnya dan konteksnya
-   *    tetap terlihat. Dengan `overflow-x: hidden` di sini, overflow itu
-   *    hilang tanpa jejak — tabel terpotong dan tidak ada yang menunjukkan
-   *    bahwa ada tabel yang perlu digulir.
+   * Yang sudah diperiksa (Chromium, viewport 375, dengan dan tanpa aturan
+   * yang disuntikkan ulang) — semuanya IDENTIK dengan dan tanpa aturan:
    *
-   * 2. Aturan itu membuat pengukuran scroll-width jadi rujukan ke dirinya
-   *    sendiri: pada viewport 375, `documentElement.scrollWidth` terbaca
-   *    360. Angka itu mengukur efek aturannya sendiri, bukan lebar halaman,
-   *    sehingga tidak bisa dipakai sebagai bukti "tidak ada scroll
-   *    horizontal". Setelah aturan dihapus, angkanya 375 — sama dengan
-   *    viewport.
+   * - scrollWidth dokumen: 375 (headless) / 360 (headed)
+   * - scroll container tabel: tetap bisa digulir 162px
+   * - halaman dengan overflow 900px yang disuntikkan: scrollWidth tetap 900
+   *   dan halaman tetap bisa digulir ke 540px, dengan maupun tanpa aturan
    *
-   * Soal navbar: `getComputedStyle(body).overflowY` memang terbaca `auto`,
-   * tapi itu perilaku yang diharapkan di CSS Overflow 3 ketika overflow
-   * `html` masih `visible` — nilainya dipropagasikan ke viewport dan
-   * `body` sendiri diperlakukan sebagai `visible`. Navbar sticky TIDAK
-   *    rusak; sudah diuji dengan menyuntikkan aturannya kembali dan navbar
-   *    tetap menempel. Jangan mencari bug sticky di sini.
+   * Catatan untuk pembaca yang menemukan angka "360" di catatan lama:
+   * itu `clientWidth` dengan gutter scrollbar vertikal 15px, bukan efek
+   * aturan apa pun. 375 - 15 = 360, dan `scrollWidth` = `clientWidth`
+   * adalah pembacaan biasa untuk "tidak ada scroll horizontal".
    *
-   * Kontrol lebar ada di elemennya: `min-w-0` pada grid child, dan
-   * `overflow-x-auto` + prop `minWidth` pada `Table`.
+   * Kesimpulan: jangan pakai `documentElement.scrollWidth` sebagai bukti
+   * layout benar. Yang dipakai di sini adalah audit element-level —
+   * elemen yang meluber di luar scroll container yang disengaja.
+   *
+   * Kontrol lebar yang benar-benar bekerja ada di elemennya: `min-w-0` pada
+   * grid child, dan `overflow-x-auto` + prop `minWidth` pada `Table`.
    */
 }
 
