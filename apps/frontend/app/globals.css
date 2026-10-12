@@ -1,26 +1,99 @@
 @import "tailwindcss";
 
+/*
+ * BisnisInsight — design tokens.
+ *
+ * Seluruh warna terkumpul di sini. Komponen di `components/ui/` hanya
+ * mengacu ke token lewat utility class Tailwind (`bg-navy`, `text-accent-deep`),
+ * tidak pernah menulis hex langsung.
+ *
+ * Dark mode TIDAK ada di Fase 1. Blok `prefers-color-scheme: dark` dari
+ * template create-next-app sengaja dihapus: pembalikan otomatis menghasilkan
+ * kontras yang tidak terkontrol pada komponen baru.
+ */
+
+@theme {
+  /* --- Brand ------------------------------------------------------------ */
+  --color-navy: #0b1b3a;
+  --color-navy-deep: #071227;
+  --color-navy-soft: #16294d;
+  --color-navy-line: #2b3f66;
+
+  /* Aksen cyan. `accent` dipakai sebagai isian/garis (kontras tinggi di
+     navy), `accent-deep` dipakai sebagai teks aksen di atas kertas terang
+     karena cyan terang tidak terbaca di background putih. */
+  --color-accent: #22d3ee;
+  --color-accent-deep: #0e7490;
+  --color-accent-wash: #ecfeff;
+
+  /* --- Netral / kertas -------------------------------------------------- */
+  --color-paper: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-line: #e0e5ec;
+  --color-line-strong: #c6cedb;
+  --color-ink: #0b1b3a;
+  --color-ink-muted: #55607a;
+  --color-ink-faint: #7d879b;
+
+  /* --- Status (dipakai Badge) ------------------------------------------- */
+  --color-positive: #0f7b53;
+  --color-positive-wash: #ecfdf5;
+  --color-caution: #96601a;
+  --color-caution-wash: #fffaeb;
+  --color-critical: #b42318;
+  --color-critical-wash: #fef3f2;
+  --color-neutral-wash: #f1f3f7;
+
+  /* --- Tipografi -------------------------------------------------------- */
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  /* --- Radius & shadow -------------------------------------------------- */
+  --radius-card: 0.75rem;
+  --shadow-card: 0 1px 2px rgb(11 27 58 / 0.05);
+  --shadow-lift: 0 12px 32px -12px rgb(11 27 58 / 0.28);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Cegah tabel lebar (mis. pratinjau ledger) memaksa halaman scroll
+     horizontal di layar sempit. */
+  overflow-x: hidden;
+}
+
+/* Fokus keyboard terlihat di seluruh komponen, bukan hanya di link. */
+:focus-visible {
+  outline: 2px solid var(--color-accent-deep);
+  outline-offset: 2px;
+}
+
+/*
+ * Animasi ditunda ke Fase 4, tapi `prefers-reduced-motion` sudah dihormati
+ * sejak awal supaya tidak ada keputusan desain yang bergantung pada gerakan.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
