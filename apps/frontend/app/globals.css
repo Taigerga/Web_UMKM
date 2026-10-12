@@ -70,18 +70,33 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   /*
-   * Sengaja TIDAK ada `overflow-x: hidden` di sini.
+   * Sengaja TIDAK ada `overflow-x: hidden` di sini. Dua alasan, keduanya
+   * terukur di browser:
    *
-   * `overflow-x: hidden` bersama `overflow-y: visible` membuat `overflow-y`
-   * dihitung menjadi `auto`, sehingga `body` menjadi scroll container. Navbar
-   * `position: sticky` lalu mengikat ke kotak body yang tidak pernah
-   * menggulir, dan navbar berhenti menempel. Selain itu, aturan itu justru
-   * menyembunyikan symptoms yang wajib dicek: tabel lebar di layar sempit
-   * seharusnya menggulir di dalam wadahnya sendiri (`overflow-x-auto`), bukan
-   * dipotong oleh halaman.
+   * 1. Aturan itu membuat overflow yang seharusnya tertangani di dalam
+   *    wadahnya sendiri hilang tanpa jejak. Tabel yang lebih lebar dari
+   *    layar seharusnya menggulir di dalam wadahnya sendiri (`overflow-x-auto`
+   *    pada `Table`), sehingga yang bergeser adalah tabelnya dan konteksnya
+   *    tetap terlihat. Dengan `overflow-x: hidden` di sini, overflow itu
+   *    hilang tanpa jejak — tabel terpotong dan tidak ada yang menunjukkan
+   *    bahwa ada tabel yang perlu digulir.
    *
-   * Kontrol lebar ada di elemennya: `min-w-0` pada grid child dan
-   * `overflow-x-auto` pada pembungkus tabel.
+   * 2. Aturan itu membuat pengukuran scroll-width jadi rujukan ke dirinya
+   *    sendiri: pada viewport 375, `documentElement.scrollWidth` terbaca
+   *    360. Angka itu mengukur efek aturannya sendiri, bukan lebar halaman,
+   *    sehingga tidak bisa dipakai sebagai bukti "tidak ada scroll
+   *    horizontal". Setelah aturan dihapus, angkanya 375 — sama dengan
+   *    viewport.
+   *
+   * Soal navbar: `getComputedStyle(body).overflowY` memang terbaca `auto`,
+   * tapi itu perilaku yang diharapkan di CSS Overflow 3 ketika overflow
+   * `html` masih `visible` — nilainya dipropagasikan ke viewport dan
+   * `body` sendiri diperlakukan sebagai `visible`. Navbar sticky TIDAK
+   *    rusak; sudah diuji dengan menyuntikkan aturannya kembali dan navbar
+   *    tetap menempel. Jangan mencari bug sticky di sini.
+   *
+   * Kontrol lebar ada di elemennya: `min-w-0` pada grid child, dan
+   * `overflow-x-auto` + prop `minWidth` pada `Table`.
    */
 }
 
