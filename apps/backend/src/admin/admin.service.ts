@@ -167,23 +167,45 @@ export class AdminService {
       throw AppError.notFound('Pengguna tidak ditemukan.', 'USER_NOT_FOUND');
     }
 
-    const updated = await this.prisma.users.update({
-      where: { id: targetUserId },
-      data: { isActive },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
+    // Update dan pencabutan refresh token SATU transaksi.
+    //
+    // Tanpa itu, `revokeAllForUser` yang gagal meninggalkan akun dalam keadaan
+    // `isActive=false` dengan sesi yang masih hidup: akunnya terlihat dinonaktifkan
+    // tapi orangnya masih bisa menukar refresh token-nya. Dan karena audit ditulis
+    // setelahnya, kegagalan itu juga berarti TIDAK ADA baris yang mencatat admin
+    // menonaktifkan siapa - perubahan akses yang tidak terlihat sama sekali.
+    //
+    // `tx` diteruskan ke `revokeAllForUser` agar keduanya ikut transaksi yang
+    // sama. Tanpa itu, transaksi berjalan di koneksi lain dan hasilnya tidak
+    // atomik sama sekali - jauh lebih buruk dari tidak ada transaksi.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.users.update({
+        where: { id: targetUserId },
+        data: { isActive },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
+
+      if (!isActive) {
+        await this.refreshTokens.revokeAllForUser(targetUserId, tx);
+      }
+
+      return row;
     });
 
-    if (!isActive) {
-      await this.refreshTokens.revokeAllForUser(targetUserId);
-    }
-
+    // Audit DI LUAR transaksi, setelah commit.
+    //
+    // Itu bukan sekadar karena R-23. Menulisnya di dalam berarti kegagalan
+    // audit ikut me-rollback seluruh operasi bisnis: akun yang SUDAH
+    // dinonaktifkan akan hidup kembali karena satu INSERT yang gagal. Untuk
+    // operasi yang tidak bisa dibatalkan, lebih baik jejaknya hilang dan itu
+    // terlihat lewat `AuditService.failureCount` daripada membatalkan efeknya.
     await this.audit.record({
       actorId,
       action: AUDIT_ACTIONS.ADMIN_USER_STATUS_CHANGED,

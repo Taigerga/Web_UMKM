@@ -16,6 +16,25 @@ const UNKNOWN = 'unknown';
 /** Batas panjang nilai meta, supaya audit tidak jadi tempat sampah data besar. */
 const MAX_META_STRING = 512;
 
+/**
+ * Klien yang bisa menulis ke `audit_logs`.
+ *
+ * Bentuk struktural, bukan `Prisma.TransactionClient`: `record` hanya butuh
+ * `create` pada model `auditLogs`, dan bentuk longgar itu membuat
+ * `PrismaService` dan klien transaksi bisa keduanya lewat tanpa cast.
+ *
+ * Kenapa perlu ada: beberapa peristiwa audit tidak boleh ditulis di luar
+ * transaksi yang sama dengan perubahannya. `store.member_removed` dan
+ * `store.member_role_changed` adalah contohnya - kalau penulisan audit gagal
+ * setelah commit, jejaknya hilang permanen karena baris yang mencatatnya sudah
+ * dihapus. Lihat `StoresService.removeMember`.
+ */
+export interface AuditWriter {
+  auditLogs: {
+    create(args: { data: Record<string, unknown> }): Promise<unknown>;
+  };
+}
+
 /** Awal pesan warn, supaya kegagalan audit bisa disaring dari log teknis. */
 const WARN_PREFIX = 'audit gagal dicatat';
 
@@ -85,6 +104,39 @@ export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Jumlah kegagalan penulisan audit sejak proses ini berjalan.
+   *
+   * ## Kenapa perlu ada penghitung, bukan cuma baris log
+   *
+   * R-23 melarang kegagalan audit menggagalkan operasi bisnis. Itu benar, tapi
+   * konsekuensinya adalah kelas kegagalan yang tidak terlihat: akun sudah
+   * dinonaktifkan, sesi sudah dicabut, dan TIDAK ADA yang mencatat bahwa itu
+   * terjadi. Untuk operasi yang tidak bisa dibatalkan - menonaktifkan akun,
+   * mencabut keanggotaan - satu baris `warn` di log teknis adalah kontrol
+   * pengganti yang tipis: log teknis justru tempat yang paling jarang dibaca
+   * tepat ketika dibutuhkan.
+   *
+   * Penghitung membuat kondisi itu TERLIHAT tanpa harus menggali log, dan tanpa
+   * mengubah R-23: operasinya tetap berhasil, hanya jejaknya hilang dan itu
+   * sekarang bisa diketahui. Dieksposur di `/health/details` sebagai
+   * angka polos - tanpa rincian, tanpa nama aksi, tanpa apa pun yang bisa jadi
+   * kanal kebocoran lewat endpoint yang bukan untuk publik.
+   *
+   * ## Batasnya, terus terang
+   *
+   * Ini penghitung **dalam proses**. Restart mengembalikan ke nol, jadi ini bukan
+   * catatan yang bukaannya saat insiden selesai. Yang diawinya adalah
+   * deteksi cepat "ada yang salah dengan audit", bukan rekonstruksi kejadian.
+   * Rekonstruksi yang bertahan butuh outbox atau retry queue - itu urusan fase
+   * berikutnya, dan sengaja tidak dibangun di sini.
+   *
+   * Monotonik, tidak pernah turun: tidak ada `reset()`. Nilai 1 dan 3 sama-sama
+   * berarti "ada masalah"; yang penting arahnya naik, supaya tidak bisa
+   * tersamar sebagai kondisi sehat.
+   */
+  failureCount = 0;
+
+  /**
    * Catat satu peristiwa. `Promise` ini SELALU resolve.
    *
    * Validasi bentuk `entry` dilakukan DI DALAI try yang sama, dan kegagalannya
@@ -93,9 +145,13 @@ export class AuditService {
    * Keduanya mungkin, tapi diagnosisnya berbeda, dan satu pesan untuk keduanya
    * berarti salah satunya selalu didiagnosis dengan tebakan.
    */
-  async record(entry: AuditEntry): Promise<void> {
+  async record(entry: AuditEntry, client?: AuditWriter): Promise<void> {
     const invalid = invalidReason(entry);
     if (invalid !== undefined) {
+      // Entry cacat berarti tidak ada yang tercatat, jadi ini dihitung
+      // kegagalan juga - meski tidak ada error di database yang bisa
+      // membuktikannya.
+      this.failureCount += 1;
       this.logger.warn(
         `${WARN_PREFIX} (entri tidak valid) ${invalid}. ` +
           'Pemanggil harus mengirim action dan entity berupa string non-kosong.',
@@ -107,7 +163,13 @@ export class AuditService {
       const context = currentAuditContext();
       const meta = this.sanitizeMeta(entry.action, entry.meta);
 
-      await this.prisma.auditLogs.create({
+      // `client` dipakai kalau pemanggil perlu baris audit ini ikut
+      // commit/rollback transaksinya. Tanpa argumen ini, penulisan terjadi di
+      // koneksi utama - yang benar untuk sebagian besar pemanggil, dan salah untuk operasi
+      // yang jejaknya tidak bisa direkonstruksi setelah commit.
+      const target = client ?? this.prisma;
+
+      await target.auditLogs.create({
         data: {
           actorId: entry.actorId ?? null,
           storeId: entry.storeId ?? null,
@@ -123,6 +185,10 @@ export class AuditService {
         },
       });
     } catch (error) {
+      // Penambahnya DI DALAM catch, bukan sesudahnya: kalau satu-satunya
+      // tempat menaikkan ada di luar blok try, catch yang melempar akan
+      // melewatinya - dan justru kasus itulah yang paling perlu terlihat.
+      this.failureCount += 1;
       this.logger.warn(
         `${WARN_PREFIX} (${errorName(error)}) untuk tindakan ${describeAction(entry?.action)}`,
       );

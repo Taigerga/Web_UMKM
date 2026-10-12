@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { PrismaService } from '../src/database/prisma.service.js';
 import { buildTestApp } from './utils/test-app.js';
@@ -59,6 +59,16 @@ interface TestUser {
   id: string;
   email: string;
   token: string;
+}
+
+/** Ambil `auditFailures` dari `/health/details` sebagai ADMIN. */
+async function fetchAuditFailures(adminToken: string): Promise<number> {
+  const res = await request(app.getHttpServer())
+    .get('/api/v1/health/details')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+
+  return res.body.data.auditFailures as number;
 }
 
 /** Daftar lewat API, ubah peran platform, lalu login. */
@@ -331,6 +341,48 @@ describe('PATCH /admin/users/:userId/status', () => {
       where: { userId: target.id, revokedAt: null },
     });
     expect(remaining).toBe(0);
+  });
+
+  it('nonaktifkan akun tetap terlihat meski penulisan audit gagal (counter naik)', async () => {
+    // R-23 melarang kegagalan audit menggagalkan operasi bisnis, dan itu
+    // benar - tapi akibatnya adalah "akun dinonaktifkan, sesi dicabut,
+    // dan tidak ada yang mencatat itu terjadi". Untuk operasi yang tidak bisa
+    // dibatalkan, satu baris `warn` adalah kontrol pengganti yang tipis.
+    // Test ini mengunci kontrol penggantinya: penghitung kegagalan naik.
+    const admin = await createUser('ADMIN');
+    const target = await createUser('OWNER');
+
+    const before = await fetchAuditFailures(admin.token);
+
+    const spy = vi
+      .spyOn(prisma.auditLogs, 'create')
+      .mockRejectedValue(new Error('audit down'));
+
+    try {
+      await request(app.getHttpServer())
+        .patch(`/api/v1/admin/users/${target.id}/status`)
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({ isActive: false })
+        .expect(200);
+    } finally {
+      spy.mockRestore();
+    }
+
+    // 1. Aksinya benar-benar terjadi, meski auditnya hilang.
+    const row = await prisma.users.findUniqueOrThrow({ where: { id: target.id } });
+    expect(row.isActive).toBe(false);
+    expect(
+      await prisma.refreshTokens.count({ where: { userId: target.id, revokedAt: null } }),
+    ).toBe(0);
+
+    // 2. Kehilangan jejaknya terlihat.
+    expect(await fetchAuditFailures(admin.token)).toBeGreaterThan(before);
+
+    // 3. Dan memang tidak ada baris audit - jadi kondisi ini nyata, bukan
+    //    penghitung yang naik tanpa sebab.
+    expect(
+      await prisma.auditLogs.count({ where: { action: 'admin.user_status_changed' } }),
+    ).toBe(0);
   });
 
   it('akun yang dinonaktifkan tidak bisa login lagi', async () => {

@@ -343,3 +343,80 @@ describe('AuditService.record: tidak pernah melempar (R-23)', () => {
     expect(a.warnings[0]).not.toBe(b.warnings[0]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Penghitung kegagalan yang bertahan melewati restart
+// ---------------------------------------------------------------------------
+
+describe('AuditService: penghitung kegagalan audit', () => {
+  it('bermula di nol dan tidak bergerak saat penulisan berhasil', async () => {
+    const { prisma } = makeFakePrisma();
+    const audit = makeService(prisma);
+
+    expect(audit.failureCount).toBe(0);
+
+    await audit.record({ action: AUDIT_ACTIONS.STORE_CREATED, entity: 'store' });
+    await audit.record({ action: AUDIT_ACTIONS.AUTH_LOGIN, entity: 'user' });
+
+    expect(audit.failureCount).toBe(0);
+  });
+
+  it('bertambah satu untuk setiap kegagalan penulisan, dan tidak pernah turun', async () => {
+    // Kenaikan, bukan set: dua kegagalan berturut-turut harus bernilai 2. Kalau
+    // ini hanya bernilai 1, angka 1 jadi tidak bisa dibedakan dari "baru saja
+    // terjadi" - dan jumlahnya yang penting saat menangani insiden.
+    const { prisma } = makeFakePrisma({ rejectWith: new Error('mati') });
+    const audit = makeService(prisma);
+
+    await audit.record({ action: AUDIT_ACTIONS.STORE_CREATED, entity: 'store' });
+    expect(audit.failureCount).toBe(1);
+
+    await audit.record({ action: AUDIT_ACTIONS.AUTH_LOGIN, entity: 'user' });
+    expect(audit.failureCount).toBe(2);
+
+    await audit.record({ action: AUDIT_ACTIONS.AUTH_LOGOUT, entity: 'user' });
+    expect(audit.failureCount).toBe(3);
+  });
+
+  it('naik juga saat entry ditolak karena bentuknya salah', async () => {
+    // Entri cacat berarti TIDAK ADA yang tercatat. Itu bentuk kegagalan yang
+    // paling mudah hilang karena tidak ada error di database - jadi harus ikut
+    // dihitung, bukan hanya kegagalan driver.
+    const { prisma } = makeFakePrisma();
+    const audit = makeService(prisma);
+
+    await audit.record(undefined as unknown as { action: string; entity: string });
+    expect(audit.failureCount).toBe(1);
+  });
+
+  it('TIDAK naik saat meta dibuang redaksi - penulisan tetap berhasil', async () => {
+    // Pembuangan redaksi bukan kegagalan: barisnya tetap ditulis, hanya
+    // isinya dipangkas. Menghitungnya akan membuat penghitung naik setiap kali
+    // ada call site yang mencoba mengirim kunci tak terizinkan, dan itu akan
+    // memburamkan sinyal yang seharusnya tajam.
+    const { prisma } = makeFakePrisma();
+    const audit = makeService(prisma);
+
+    await captureWarnings(() =>
+      audit.record({
+        action: AUDIT_ACTIONS.STORE_UPDATED,
+        entity: 'store',
+        meta: { fields: ['name'], password: 'x' } as Record<string, unknown>,
+      }),
+    );
+
+    expect(audit.failureCount).toBe(0);
+  });
+
+  it('penambahnya ada DI DALAM catch, sehingga tidak bisa terlewat olehcatch yang melempar', async () => {
+    // Penghitung harus naik tepat di tempat gagalnya, bukan sesudahnya. Kalau
+    // satu-satunya penambahnya berada setelah blok try/catch, maka catch yang
+    // melempar akan melewatinya - dan justru kasus itulah yang paling perlu
+    // terlihat.
+    const { prisma } = makeFakePrisma({ rejectWith: new Error('mati') });
+    const audit = makeService(prisma);
+
+    await audit.record({ action: AUDIT_ACTIONS.STORE_CREATED, entity: 'store' });
+    expect(audit.failureCount).toBe(1);
+  });
+});

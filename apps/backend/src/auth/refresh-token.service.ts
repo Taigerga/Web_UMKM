@@ -3,6 +3,27 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AppError } from '../common/errors/app-error.js';
 import { APP_CONFIG } from '../config/configuration.js';
 import type { AppConfig } from '../config/configuration.js';
+
+/**
+ * Klien yang bisa menulis ke `refresh_tokens`.
+ *
+ * Dipakai supaya `revokeAllForUser` bisa dijalankan DI DALAM `$transaction`
+ * milik pemanggil, bukan di koneksi terpisah. Tanpa bentuk ini, satu-satunya
+ * cara membuatnya atomik adalah menggandakan query-nya di setiap pemanggil -
+ * dan dua salinan itu akan berbeda begitu aturannya berubah.
+ *
+ * Sengaja struktural, bukan `Prisma.TransactionClient`: bentuknya hanya perlu
+ * mampu `updateMany` pada model `refreshTokens`, jadi `PrismaService` dan
+ * klien transaksi sama-sama bisa lewat tanpa cast.
+ */
+export interface RevocationClient {
+  refreshTokens: {
+    updateMany(args: {
+      where: { userId: string; revokedAt: null };
+      data: { revokedAt: Date };
+    }): Promise<unknown>;
+  };
+}
 import { PrismaService } from '../database/prisma.service.js';
 
 /** Hasil issuance: token mentah (dikirim lewat cookie HttpOnly) + kedaluwarsa. */
@@ -178,13 +199,21 @@ export class RefreshTokenService {
   }
 
   /**
-   * Cabut seluruh token milik satu user di semua keluarga.
-   *
-   * Dipakai saat password berubah: sesi lain ikut mati karena password lama
-   * tidak berlaku lagi.
-   */
-  async revokeAllForUser(userId: string): Promise<void> {
-    await this.prisma.refreshTokens.updateMany({
+ * Cabut seluruh token milik satu user di semua keluarga.
+ *
+ * Dipakai saat password berubah dan saat akun dinonaktifkan: sesi lain ikut
+ * mati karena kredensial atau izin lamanya tidak berlaku lagi.
+ *
+ * @param userId pemilik token yang dicabut
+ * @param client klien opsional; default-nya `this.prisma`. Dipakai oleh pemanggil
+ *   yang butuh pencabutan ini ATOMIK dengan perubahan lain - lihat
+ *   `AdminService.setUserStatus` dan `UsersService.changePassword`. Tanpa
+ *   meneruskan `tx`, penulisan terjadi di koneksi lain dan tidak ikut
+ *   commit/rollback transaksi pemanggil.
+ */
+  async revokeAllForUser(userId: string, client?: RevocationClient): Promise<void> {
+    const target = client ?? this.prisma;
+    await target.refreshTokens.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });

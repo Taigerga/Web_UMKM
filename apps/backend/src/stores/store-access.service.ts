@@ -17,6 +17,16 @@ import type { TenantModelName } from '../database/tenant-scope.extension.js';
  */
 export interface TenantScopedReader {
   tenantModel<K extends TenantModelName>(model: K, storeId: string): PrismaClient[K];
+  /**
+   * Klien transaksi yang membuka reader ini, kalau ada.
+   *
+   * Absen untuk `PrismaService` (yang bukan klien transaksi) dan untuk unit
+   * test yang memakai bentuk minimal. Dipakai oleh pemanggil yang perlu menulis
+   * DI DALAM transaksi yang sama - baris audit keanggotaan misalnya - supaya
+   * penulisan itu benar-benar ikut commit/rollback, bukan hanya terlihat
+   * "di dalam" secara tata letak kode.
+   */
+  tx?: unknown;
 }
 
 /**

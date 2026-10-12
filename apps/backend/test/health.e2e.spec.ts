@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { PrismaService } from '../src/database/prisma.service.js';
 import { buildTestApp } from './utils/test-app.js';
@@ -180,10 +180,14 @@ describe('/health/details tidak membocorkan env var maupun stack trace', () => {
     expect(res.body).not.toHaveProperty('error');
   });
 
-  it('respons hanya berisi status, timestamp, dan komponen - tidak ada field lain', async () => {
-    // Bentuk yang dikunci, bukan hanya "tidak memuat rahasia". Endpoint ini
-    // akan terus berkembang; test ini yang memastikan setiap tambahan field harus
+  it('respons hanya berisi field yang diizinkan - tidak ada field lain', async () => {
+    // Bentuk yang dikunci, bukan hanya "tidak memuat rahasia". Endpoint ini akan
+    // terus berkembang; test ini yang memastikan setiap tambahan field harus
     // melewati keputusan sadar, bukan datang tanpa sengaja.
+    //
+    // `auditFailures` masuk daftar di sini karena ditambahkan atas permintaan
+    // review Task 6, untuk membuat kegagalan audit yang tidak bisa menggagalkan
+    // operasi bisnis terlihat tanpa harus menggali log teknis.
     const admin = await createUser('ADMIN');
 
     const res = await request(app.getHttpServer())
@@ -191,7 +195,12 @@ describe('/health/details tidak membocorkan env var maupun stack trace', () => {
       .set('Authorization', `Bearer ${admin.token}`)
       .expect(200);
 
-    expect(Object.keys(res.body.data).sort()).toEqual(['components', 'status', 'timestamp']);
+    expect(Object.keys(res.body.data).sort()).toEqual([
+      'auditFailures',
+      'components',
+      'status',
+      'timestamp',
+    ]);
     expect(res.body.data.components).toHaveLength(1);
     expect(Object.keys(res.body.data.components[0]).sort()).toEqual([
       'checkedAt',
@@ -200,6 +209,65 @@ describe('/health/details tidak membocorkan env var maupun stack trace', () => {
     ]);
     // Tidak ada versi runtime, tidak ada penggunaan memori, tidak ada uptime.
     expect(JSON.stringify(res.body)).not.toMatch(/version|memory|uptime|node/i);
+  });
+
+  it('auditFailures adalah angka bulat dan tidak memuat rincian apa pun', async () => {
+    // Angka polos adalah seluruh nilainya. Kalau suatu saat ada yang menambahkan
+    // "aksi terakhir yang gagal" atau nama tabel, endpoint ini berubah jadi
+    // kanal bocor lewat tempat yang justru tidak untuk publik.
+    const admin = await createUser('ADMIN');
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/health/details')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200);
+
+    expect(typeof res.body.data.auditFailures).toBe('number');
+    expect(Number.isInteger(res.body.data.auditFailures)).toBe(true);
+    expect(res.body.data.auditFailures).toBeGreaterThanOrEqual(0);
+    expect(Object.keys(res.body.data.auditFailures ?? {})).toEqual([]);
+  });
+
+  it('auditFailures naik saat penulisan audit gagal, dan tidak memengaruhi status', async () => {
+    const admin = await createUser('ADMIN');
+    // Dua peran berbeda untuk dua hal berbeda: hanya ADMIN boleh membaca
+    // `/health/details`, dan hanya OWNER boleh membuat toko. Memakai satu user
+    // untuk keduanya akan gagal di `@Roles` dan menguji yang salah.
+    const owner = await createUser('OWNER');
+
+    const before = await request(app.getHttpServer())
+      .get('/api/v1/health/details')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200);
+
+    // Dimatikan HANYA penulisan audit. `AuditService` memakai instance `prisma`
+    // yang sama, jadi spy ini tidak menyentuh yang lain.
+    const spy = vi
+      .spyOn(prisma.auditLogs, 'create')
+      .mockRejectedValue(new Error('audit down'));
+
+    try {
+      await request(app.getHttpServer())
+        .post('/api/v1/stores')
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({ name: 'Toko Untuk Menghitung' })
+        .expect(201);
+    } finally {
+      spy.mockRestore();
+    }
+
+    const after = await request(app.getHttpServer())
+      .get('/api/v1/health/details')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .expect(200);
+
+    expect(after.body.data.auditFailures).toBeGreaterThan(before.body.data.auditFailures);
+
+    // `status` TIDAK ikut berubah. Sistemnya sehat - database hidup, endpoint
+    // menjawab - dan membuatnya `degraded` hanya karena satu insert yang gagal
+    // akan melatih orang mengabaikan nilai ini.
+    expect(after.body.data.status).toBe('ok');
+    expect(after.body.data.components[0]).toMatchObject({ name: 'database', status: 'up' });
   });
 
   it('komponen database melaporkan status dan waktu pemeriksaan yang masuk akal', async () => {

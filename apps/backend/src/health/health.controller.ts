@@ -5,6 +5,7 @@ import { Public } from '../common/decorators/public.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Role } from '../common/types/prisma-enums.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { AuditService } from '../audit/audit.service.js';
 
 /** Bentuk satu komponen yang dilaporkan `/health/details`. */
 interface HealthComponent {
@@ -19,6 +20,20 @@ interface HealthDetailsBody {
   status: 'ok' | 'degraded';
   timestamp: string;
   components: HealthComponent[];
+  /**
+   * Jumlah kegagalan penulisan `audit_logs` sejak proses berjalan.
+   *
+   * Angka polos, tanpa rincian. Yang perlu terlihat adalah "ada yang salah",
+   * bukan apa yang salah: rincian apa pun di sini bisa jadi kanal kebocoran
+   * lewat endpoint yang bukan untuk publik.
+   *
+   * `status` sengaja tidak ikut memantulkan kondisi ini. Endpoint ini menjawab
+   * "apakah komponen sistem sehat", dan sistem yang sehat boleh punya audit
+   * yang gagal menulis - membuat `status` berubah akan membuat monitoring
+   * bersiklus hanya karena satu insert yang gagal, dan itu akan melatih orang
+   * mengabaikannya.
+   */
+  auditFailures: number;
 }
 
 /**
@@ -46,11 +61,17 @@ interface HealthDetailsBody {
  * konfigurasi, penggunaan memori, dan stack trace tidak muncul - bukan karena
  * disembunyikan oleh filter, tapi karena tidak pernah dimasukkan ke objek
  * respons. Filter global hanya mengubah 5xx; respons 200 dikirim apa adanya.
+ *
+ * Satu-satunya tambahan dari bentuk minimum itu adalah `auditFailures` - angka
+ * polos tanpa rincian. Alasannya ada di `HealthDetailsBody`.
  */
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /**
    * Liveness check. Sengaja tidak menyentuh database supaya endpoint tetap
@@ -92,6 +113,7 @@ export class HealthController {
         status: database.status === 'up' ? 'ok' : 'degraded',
         timestamp: new Date().toISOString(),
         components: [database],
+        auditFailures: this.audit.failureCount,
       },
     };
   }

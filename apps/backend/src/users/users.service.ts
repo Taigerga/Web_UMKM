@@ -133,14 +133,33 @@ export class UsersService {
     }
 
     const passwordHash = await this.passwordService.hash(dto.newPassword);
-    await this.prisma.users.update({ where: { id: userId }, data: { passwordHash } });
-    await this.refreshTokenService.revokeAllForUser(userId);
+
+    // Penyimpanan password baru dan pencabutan SELURUH refresh token adalah
+    // satu transaksi.
+    //
+    // Tanpa itu, `revokeAllForUser` yang gagal meninggalkan password sudah
+    // diganti sementara sesi-sesi lama masih hidup - persis keadaan yang
+    // langkah 3 di docblock di atas untuk mencegah: user sudah mengubah
+    // password karena orang lain punya akses, tapi pencuri tetap bisa masuk
+    // dari perangkat lain selama token-nya belum kedaluwarsa.
+    //
+    // Dan karena audit ditulis setelahnya, kegagalan itu juga berarti tidak ada
+    // yang tercatat bahwa password pernah diganti.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.users.update({ where: { id: userId }, data: { passwordHash } });
+      await this.refreshTokenService.revokeAllForUser(userId, tx);
+    });
 
     // Audit TANPA meta, dan itu bukan kelalaian: allowlist
     // `auth.password_changed` sengaja kosong. Password lama, password baru,
     // dan hash-nya semuanya terlarang di sini - allowlist kosong membuat itu
     // ditegakkan oleh `AuditService`, bukan oleh call site ini yang sedang
     // ingat untuk tidak mengirimkannya.
+    //
+    // DI LUAR transaksi: kegagalan audit tidak boleh menggagalkan operasi
+    // bisnis (R-23), dan password yang sudah diganti tidak bisa dikembalikan
+    // ke bentuk lama karena satu INSERT yang gagal. Kehilangan jejaknya terlihat
+    // lewat `AuditService.failureCount`.
     await this.audit.record({
       actorId: userId,
       action: AUDIT_ACTIONS.AUTH_PASSWORD_CHANGED,

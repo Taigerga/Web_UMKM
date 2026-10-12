@@ -13,6 +13,7 @@ import type {
   TenantScopedReader,
 } from './store-access.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import type { AuditWriter } from '../audit/audit.service.js';
 import { AUDIT_ACTIONS } from '../audit/audit-actions.js';
 import { lockStoreRow } from './store-owner-lock.js';
 import { generateInviteToken, hashInviteToken } from '../invitations/invite-token.util.js';
@@ -254,16 +255,8 @@ export class StoresService {
     // mengubah apa pun, jadi tidak ada alasan memegangnya lebih lama dari perlu.
     await this.storeAccess.assertAccess(userId, storeId, StoreMemberRole.OWNER);
 
-    // Peran SEBELUM perubahan harus dibawa keluar dari lock untuk ditulis ke
-    // audit. `members.update` mengembalikan peran SESUDAH, jadi tanpa capture
-    // ini audit hanya bisa mencatat `to` - padahal "peran apa yang dicabut"
-    // adalah justru bagian yang paling dibutuhkan saat menelusuri perubahan
-    // akses.
-    let previousRole: StoreMemberRole | undefined;
-
-    const updated = await this.withStoreOwnerLock(storeId, async (reader, members) => {
+    return this.withStoreOwnerLock(storeId, async (reader, members) => {
       const membership = await this.requireMembership(reader, storeId, targetUserId);
-      previousRole = membership.role;
 
       // "Apakah target adalah owner?" dijawab DI DALAM lock dan DI DALAM
       // transaksi, lewat `StoreAccessService.isOwner` dengan pembaca yang
@@ -276,23 +269,42 @@ export class StoresService {
         await this.assertAnotherOwnerExists(reader, storeId);
       }
 
-      return members.update({
+      const updated = await members.update({
         where: { storeId_userId: { storeId, userId: targetUserId } },
         data: { role: dto.role },
         select: { userId: true, role: true },
       });
-    });
 
-    await this.audit.record({
-      actorId: userId,
-      storeId,
-      action: AUDIT_ACTIONS.STORE_MEMBER_ROLE_CHANGED,
-      entity: 'store_member',
-      entityId: targetUserId,
-      meta: { from: previousRole ?? null, to: dto.role },
-    });
+      // Audit DI DALAM lock, bukan sesudahnya.
+      //
+      // Peran SEBELUM perubahan sudah ada di tangan (`membership.role`), jadi
+      // tidak ada alasan menundanya sampai setelah commit. Dan menundanya
+      // berbahaya di sini: `AuditService` tidak melempar (R-23), jadi kalau
+      // penulisan audit gagal setelah transaksi selesai, peran lama DAN baris
+      // audit sama-sama hilang - sementara aturan owner terakhir (R-21)
+      // mengizinkan operasi ini terjadi tepat pada saat ada owner kedua. Tidak
+      // ada yang bisa direkonstruksi sesudahnya.
+      //
+      // Di dalam transaksi, dua kemungkinan itu hilang: kalau commit, keduanya
+      // durable; kalau rollback, keduanya hilang bersama dan tidak ada keadaan
+      // setengah jadi yang menyesatkan.
+      await this.audit.record(
+        {
+          actorId: userId,
+          storeId,
+          action: AUDIT_ACTIONS.STORE_MEMBER_ROLE_CHANGED,
+          entity: 'store_member',
+          entityId: targetUserId,
+          meta: { from: membership.role, to: dto.role },
+        },
+        // Klien transaksi, supaya audit ikut commit/rollback yang sama. Tanpa
+        // itu, "di dalam lock" hanya berlaku secara tata letak kode, sementara
+        // penulisan tetap terjadi di koneksi terpisah.
+        reader.tx as AuditWriter | undefined,
+      );
 
-    return updated;
+      return updated;
+    });
   }
 
   /**
@@ -316,14 +328,8 @@ export class StoresService {
     // `updateMember`.
     await this.storeAccess.assertAccess(userId, storeId, StoreMemberRole.OWNER);
 
-    // Peran yang dicatat, sama seperti pada `updateMember`: setelah baris
-    // keanggotaan hilang, peran yang pernah dimiliki target tidak bisa dibaca
-    // lagi dari mana pun.
-    let removedRole: StoreMemberRole | undefined;
-
     await this.withStoreOwnerLock(storeId, async (reader, members) => {
       const membership = await this.requireMembership(reader, storeId, targetUserId);
-      removedRole = membership.role;
 
       // Sama seperti `updateMember`: lewat `isOwner`, di dalam lock.
       if (await this.storeAccess.isOwner(targetUserId, storeId, reader)) {
@@ -331,15 +337,26 @@ export class StoresService {
       }
 
       await members.delete({ where: { storeId_userId: { storeId, userId: targetUserId } } });
-    });
 
-    await this.audit.record({
-      actorId: userId,
-      storeId,
-      action: AUDIT_ACTIONS.STORE_MEMBER_REMOVED,
-      entity: 'store_member',
-      entityId: targetUserId,
-      meta: { role: removedRole ?? null },
+      // Audit DI DALAM lock - alasannya sama seperti di `updateMember`, dan di
+      // sini lebih tajam lagi: begitu baris keanggotaan terhapus, sifatnya
+      // hilang. Tidak ada yang bisa direkonstruksi; kalau penulisan audit gagal
+      // setelah commit, "siapa mencabut siapa, atas otoritas OWNER siapa"
+      // hilang permanen.
+      //
+      // Peran target dibaca dari `membership` yang sudah ada di tangan, bukan
+      // sesudah delete - pada titik itu barisnya sudah tidak ada.
+      await this.audit.record(
+        {
+          actorId: userId,
+          storeId,
+          action: AUDIT_ACTIONS.STORE_MEMBER_REMOVED,
+          entity: 'store_member',
+          entityId: targetUserId,
+          meta: { role: membership.role },
+        },
+        reader.tx as AuditWriter | undefined,
+      );
     });
   }
 
@@ -477,6 +494,12 @@ export class StoresService {
             (tx as unknown as Record<string, object>)[model],
             scope,
           )) as TenantScopedReader['tenantModel'],
+        // Klien transaksinya ikut terekspos di sini, supaya operasi yang perlu
+        // menulis DI DALAM transaksi yang sama (mis. baris audit keanggotaan)
+        // benar-benar ikut commit/rollback. Tanpa ini, menulis lewat
+        // `this.prisma` di dalam callback hanya terlihat "di dalam lock"
+        // secara tata letak kode, padahal terjadi di koneksi terpisah.
+        tx,
       };
 
       return fn(reader, reader.tenantModel('storeMembers', storeId));
