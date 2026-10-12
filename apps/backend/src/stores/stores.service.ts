@@ -12,6 +12,8 @@ import type {
   StoreSummary,
   TenantScopedReader,
 } from './store-access.service.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AUDIT_ACTIONS } from '../audit/audit-actions.js';
 import { lockStoreRow } from './store-owner-lock.js';
 import { generateInviteToken, hashInviteToken } from '../invitations/invite-token.util.js';
 import type { CreateStoreDto } from './dto/create-store.dto.js';
@@ -96,6 +98,7 @@ export class StoresService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storeAccess: StoreAccessService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -132,6 +135,19 @@ export class StoresService {
       return created;
     });
 
+    // Audit DI LUAR transaksi, setelah COMMIT. Menulisnya di dalam
+    // `$transaction` berarti audit ikut di-rollback saat operasi bisnis
+    // gagal, sehingga jejaknya hilang persis di saat yang paling perlu
+    // ditelusuri. `AuditService.record` tidak melempar, jadi kegagalan audit
+    // di sini tidak memengaruhi hasil yang dikembalikan ke pemanggil.
+    await this.audit.record({
+      actorId: userId,
+      storeId: store.id,
+      action: AUDIT_ACTIONS.STORE_CREATED,
+      entity: 'store',
+      entityId: store.id,
+    });
+
     return { ...store, role: StoreMemberRole.OWNER };
   }
 
@@ -146,9 +162,18 @@ export class StoresService {
     return this.loadStore(storeId);
   }
 
-  /** Ubah nama/kota. OWNER toko itu saja. */
+  /**
+   * Ubah nama/kota. OWNER toko itu saja.
+   *
+   * Audit mencatat NAMA kolom yang berubah, bukan nilai barunya. Itu pilihan
+   * sadar: nilai nama kota adalah data bisnis tenant yang sudah ada di
+   * `stores`, dan menyalinnya ke audit hanya menghasilkan salinan kedua yang
+   * bisa berbeda dari sumbernya.
+   */
   async update(userId: string, storeId: string, dto: UpdateStoreDto): Promise<StoreView> {
     await this.storeAccess.assertAccess(userId, storeId, StoreMemberRole.OWNER);
+
+    const fields = (['name', 'city'] as const).filter((field) => dto[field] !== undefined);
 
     const store = await this.prisma.stores.update({
       where: { id: storeId },
@@ -157,6 +182,15 @@ export class StoresService {
         ...(dto.city !== undefined ? { city: dto.city.trim() } : {}),
       },
       select: { id: true, name: true, city: true, timezone: true, status: true },
+    });
+
+    await this.audit.record({
+      actorId: userId,
+      storeId,
+      action: AUDIT_ACTIONS.STORE_UPDATED,
+      entity: 'store',
+      entityId: storeId,
+      meta: { fields },
     });
 
     return store;
@@ -220,8 +254,16 @@ export class StoresService {
     // mengubah apa pun, jadi tidak ada alasan memegangnya lebih lama dari perlu.
     await this.storeAccess.assertAccess(userId, storeId, StoreMemberRole.OWNER);
 
-    return this.withStoreOwnerLock(storeId, async (reader, members) => {
-      await this.requireMembership(reader, storeId, targetUserId);
+    // Peran SEBELUM perubahan harus dibawa keluar dari lock untuk ditulis ke
+    // audit. `members.update` mengembalikan peran SESUDAH, jadi tanpa capture
+    // ini audit hanya bisa mencatat `to` - padahal "peran apa yang dicabut"
+    // adalah justru bagian yang paling dibutuhkan saat menelusuri perubahan
+    // akses.
+    let previousRole: StoreMemberRole | undefined;
+
+    const updated = await this.withStoreOwnerLock(storeId, async (reader, members) => {
+      const membership = await this.requireMembership(reader, storeId, targetUserId);
+      previousRole = membership.role;
 
       // "Apakah target adalah owner?" dijawab DI DALAM lock dan DI DALAM
       // transaksi, lewat `StoreAccessService.isOwner` dengan pembaca yang
@@ -240,6 +282,17 @@ export class StoresService {
         select: { userId: true, role: true },
       });
     });
+
+    await this.audit.record({
+      actorId: userId,
+      storeId,
+      action: AUDIT_ACTIONS.STORE_MEMBER_ROLE_CHANGED,
+      entity: 'store_member',
+      entityId: targetUserId,
+      meta: { from: previousRole ?? null, to: dto.role },
+    });
+
+    return updated;
   }
 
   /**
@@ -263,8 +316,14 @@ export class StoresService {
     // `updateMember`.
     await this.storeAccess.assertAccess(userId, storeId, StoreMemberRole.OWNER);
 
+    // Peran yang dicatat, sama seperti pada `updateMember`: setelah baris
+    // keanggotaan hilang, peran yang pernah dimiliki target tidak bisa dibaca
+    // lagi dari mana pun.
+    let removedRole: StoreMemberRole | undefined;
+
     await this.withStoreOwnerLock(storeId, async (reader, members) => {
-      await this.requireMembership(reader, storeId, targetUserId);
+      const membership = await this.requireMembership(reader, storeId, targetUserId);
+      removedRole = membership.role;
 
       // Sama seperti `updateMember`: lewat `isOwner`, di dalam lock.
       if (await this.storeAccess.isOwner(targetUserId, storeId, reader)) {
@@ -272,6 +331,15 @@ export class StoresService {
       }
 
       await members.delete({ where: { storeId_userId: { storeId, userId: targetUserId } } });
+    });
+
+    await this.audit.record({
+      actorId: userId,
+      storeId,
+      action: AUDIT_ACTIONS.STORE_MEMBER_REMOVED,
+      entity: 'store_member',
+      entityId: targetUserId,
+      meta: { role: removedRole ?? null },
     });
   }
 
@@ -313,6 +381,20 @@ export class StoresService {
 
     // `select` di atas sudah tidak menyertakan `tokenHash`; `token` ditambahkan
     // di sini dari variabel lokal, bukan dibaca dari baris yang disimpan.
+    //
+    // Yang TIDAK masuk audit: token mentah, `tokenHash`, dan email tujuan.
+    // Dua yang pertama adalah kredensial; email adalah data pribadi orang yang
+    // belum tentu sudah punya akun, dan `store_invites` tetap memuatnya
+    // selama undangan hidup. Yang dicatat cukup peran yang ditawarkan.
+    await this.audit.record({
+      actorId: userId,
+      storeId,
+      action: AUDIT_ACTIONS.STORE_INVITATION_CREATED,
+      entity: 'invitation',
+      entityId: created.id,
+      meta: { role: dto.role },
+    });
+
     return {
       id: created.id,
       email: created.email,

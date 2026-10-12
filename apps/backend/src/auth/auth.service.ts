@@ -3,12 +3,14 @@ import { hash } from '@node-rs/argon2';
 import { AppError } from '../common/errors/app-error.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
-import { RefreshTokenService } from './refresh-token.service.js';
+import { RefreshTokenService, hashRefreshToken } from './refresh-token.service.js';
 import type { RegisterDto } from './dto/register.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { normalizeEmail } from './email.util.js';
 import { Role } from '../common/types/prisma-enums.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AUDIT_ACTIONS } from '../audit/audit-actions.js';
 import type {
   Role as RoleType,
   StoreMemberRole,
@@ -80,7 +82,30 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly audit: AuditService,
   ) {}
+
+  /**
+   * Catat peristiwa autentikasi.
+   *
+   * `meta` sengaja KOSONG untuk seluruh peristiwa auth. Email akun adalah data
+   * pribadi dan sudah ada di baris `users`; `entityId` sudah menunjuk user yang
+   * sama. Yang tidak boleh masuk ke sini - dan tidak punya tempat lain yang
+   * aman - adalah password dan refresh token.
+   */
+  private async auditAuth(
+    action: string,
+    userId: string | undefined,
+    meta?: Record<string, unknown>,
+  ): Promise<void> {
+    await this.audit.record({
+      actorId: userId,
+      action,
+      entity: 'user',
+      entityId: userId,
+      ...(meta ? { meta } : {}),
+    });
+  }
 
   /**
    * Buat akun baru.
@@ -108,6 +133,8 @@ export class AuthService {
       select: { id: true, email: true, name: true, role: true },
     });
 
+    await this.auditAuth(AUDIT_ACTIONS.AUTH_REGISTER, user.id);
+
     return this.startSession(user);
   }
 
@@ -131,6 +158,13 @@ export class AuthService {
 
     if (!user || !passwordOk) {
       if (user) await this.registerFailedAttempt(user);
+      // Dicatat SEBELUM dilempar: percobaan login gagal adalah aktivitas yang
+      // justru paling perlu terlihat, dan tidak ada kode di bawah yang akan
+      // berjalan setelah `throw`.
+      await this.auditAuth(AUDIT_ACTIONS.AUTH_LOGIN, user?.id, {
+        outcome: 'failure',
+        reason: 'INVALID_CREDENTIALS',
+      });
       throw AppError.unauthorized(
         INVALID_CREDENTIALS_MESSAGE,
         'INVALID_CREDENTIALS',
@@ -138,6 +172,10 @@ export class AuthService {
     }
 
     if (!user.isActive) {
+      await this.auditAuth(AUDIT_ACTIONS.AUTH_LOGIN, user.id, {
+        outcome: 'failure',
+        reason: 'ACCOUNT_DISABLED',
+      });
       throw AppError.forbidden(
         'Akun ini dinonaktifkan. Hubungi administrator.',
         'ACCOUNT_DISABLED',
@@ -147,6 +185,10 @@ export class AuthService {
     // Lock dicek setelah password benar supaya akun terkunci tidak bisa dipakai
     // untuk membedakannya dari akun yang tidak ada.
     if (user.lockedUntil !== null && user.lockedUntil.getTime() > Date.now()) {
+      await this.auditAuth(AUDIT_ACTIONS.AUTH_LOGIN, user.id, {
+        outcome: 'failure',
+        reason: 'ACCOUNT_LOCKED',
+      });
       throw AppError.forbidden(
         'Akun terkunci sementara karena terlalu banyak percobaan login gagal.',
         'ACCOUNT_LOCKED',
@@ -157,6 +199,8 @@ export class AuthService {
       where: { id: user.id },
       data: { failedLoginCount: 0, lockedUntil: null },
     });
+
+    await this.auditAuth(AUDIT_ACTIONS.AUTH_LOGIN, user.id, { outcome: 'success' });
 
     return this.startSession({
       id: user.id,
@@ -202,6 +246,7 @@ export class AuthService {
     // sah - termasuk token BARU yang baru saja dibuat rotasi di atas.
     if (!user || !user.isActive) {
       await this.refreshTokenService.revokeAllForUser(rotated.userId);
+      await this.auditAuth(AUDIT_ACTIONS.AUTH_REFRESH, rotated.userId);
       throw AppError.unauthorized(
         'Sesi tidak valid. Silakan masuk kembali.',
         'SESSION_INVALID',
@@ -213,11 +258,14 @@ export class AuthService {
     // penyerang yang sudah memegang refresh token tetap bisa masuk.
     if (user.lockedUntil !== null && user.lockedUntil.getTime() > Date.now()) {
       await this.refreshTokenService.revokeAllForUser(rotated.userId);
+      await this.auditAuth(AUDIT_ACTIONS.AUTH_REFRESH, rotated.userId);
       throw AppError.forbidden(
         'Akun terkunci sementara karena terlalu banyak percobaan login gagal.',
         'ACCOUNT_LOCKED',
       );
     }
+
+    await this.auditAuth(AUDIT_ACTIONS.AUTH_REFRESH, user.id);
 
     return {
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
@@ -231,9 +279,30 @@ export class AuthService {
     };
   }
 
-  /** Cabut refresh token milik user. Idempoten. */
+  /**
+ * Cabut refresh token milik user. Idempoten.
+ *
+ * `actorId` untuk audit dibaca dari baris token SEBELUM dicabut, karena
+ * setelah `revokeToken` barisnya masih ada tapi tidak ada lagi yang menunjuk
+ * sesi itu. `revokeToken` sengaja tidak diubah untuk mengembalikan baris itu:
+ * itu mengubah kontrak pemanggilnya, sementara satu pembacaan di sini tidak.
+ *
+ * Yang dicatat adalah `userId`, bukan token. presented di sini adalah
+ * kredensial setara-bearer; masuk ke `audit_logs` akan memindahkannya dari
+ * "hanya ada di cookie dan di memori" jadi "tersimpan 7 hari".
+ *
+ * Logout dengan token yang tidak dikenal tetap tercatat, dengan `actorId` null.
+ * Itu masih aktivitas: ada yang mencoba mencabut sesi yang tidak ada.
+ */
   async logout(presented: string): Promise<void> {
+    const owner = await this.prisma.refreshTokens.findUnique({
+      where: { tokenHash: hashRefreshToken(presented) },
+      select: { userId: true },
+    });
+
     await this.refreshTokenService.revokeToken(presented);
+
+    await this.auditAuth(AUDIT_ACTIONS.AUTH_LOGOUT, owner?.userId);
   }
 
   /** Profil user beserta toko yang boleh diakses. Lihat `loadProfile`. */

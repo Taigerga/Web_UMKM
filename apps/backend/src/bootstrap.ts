@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { auditContextMiddleware } from './audit/audit-context.middleware.js';
 import type { AppConfig } from './config/configuration.js';
 
 /**
@@ -12,6 +13,11 @@ import type { AppConfig } from './config/configuration.js';
  */
 export function configureApp(app: INestApplication, config: AppConfig): void {
   app.use(helmet());
+  // CONTEXT REQUEST SEBELUM FILTER: `AllExceptionsFilter` butuh `request.url`
+  // untuk redaksi token undangan, dan `AuditService` butuh ip + user-agent
+  // untuk mengisi kolomnya. Keduanya membaca request yang sama, jadi satu
+  // middleware cukup untuk keduanya.
+  app.use(auditContextMiddleware);
   app.enableCors({
     origin: config.corsOrigins,
     //Dibutuhkan untuk refresh token HttpOnly di task autentikasi.

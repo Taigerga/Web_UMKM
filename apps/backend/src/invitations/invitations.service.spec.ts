@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InvitationsService } from './invitations.service.js';
 import { generateInviteToken, hashInviteToken } from './invite-token.util.js';
 import type { PrismaService } from '../database/prisma.service.js';
+import type { AuditService } from '../audit/audit.service.js';
 
 /**
  * Klaim undangan dan pembuatan keanggotaan harus SATU transaksi.
@@ -130,6 +131,15 @@ function makeFakePrisma(state: CommittedState, failOn?: 'storeMembers'): FakePri
 
 const token = generateInviteToken();
 
+/**
+ * Stub `AuditService`.
+ *
+ * `accept` menulis audit setelah transaksinya selesai. Stub ini tidak sengaja
+ * diuji di sini - yang diuji di file ini adalah batas transaksi. Audit-nya
+ * diuji di `src/audit/audit.service.spec.ts` dan `test/audit.e2e.spec.ts`.
+ */
+const auditStub = { record: async () => {} } as unknown as AuditService;
+
 function makeService(options: { failOn?: 'storeMembers'; membership?: { role: string } | null; inviteRole?: string } = {}) {
   const state: CommittedState = {
     invite: {
@@ -141,7 +151,7 @@ function makeService(options: { failOn?: 'storeMembers'; membership?: { role: st
     membership: options.membership ?? null,
   };
   const fake = makeFakePrisma(state, options.failOn);
-  return { service: new InvitationsService(fake.prisma), state, fake };
+  return { service: new InvitationsService(fake.prisma, auditStub), state, fake };
 }
 
 describe('InvitationsService.accept: klaim dan keanggotaan satu transaksi', () => {

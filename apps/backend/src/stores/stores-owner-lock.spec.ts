@@ -2,6 +2,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { StoresService } from './stores.service.js';
 import { StoreAccessService } from './store-access.service.js';
 import type { PrismaService } from '../database/prisma.service.js';
+import type { AuditService } from '../audit/audit.service.js';
+
+/**
+ * Stub `AuditService` untuk test lock.
+ *
+ * Sengaja TIDAK pushing apa pun ke `calls`: audit ditulis setelah transaksi
+ * selesai, di luar lock. Kalau stub ikut mencatat, assertion
+ * `calls.every(c => c.client === 'tx')` akan gagal karena alasan yang salah -
+ * ia akan gagal bukan karena ada operasi yang bocor ke klien utama, tapi karena
+ * audit memang tidak boleh ikut di dalamnya.
+ */
+const auditStub = { record: async () => {} } as unknown as AuditService;
 
 /**
  * Serialisasi operasi owner lewat lock baris induk (R-21).
@@ -83,7 +95,7 @@ function makeService(prisma: PrismaService): StoresService {
     isOwner: vi.fn(async () => true),
   } as unknown as StoreAccessService;
 
-  return new StoresService(prisma, storeAccess);
+  return new StoresService(prisma, storeAccess, auditStub);
 }
 
 describe('StoresService.withStoreOwnerLock', () => {

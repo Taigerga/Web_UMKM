@@ -6,6 +6,8 @@ import { PrismaService } from '../database/prisma.service.js';
 import { withTenantScope } from '../database/tenant-scope.extension.js';
 import { normalizeEmail } from '../auth/email.util.js';
 import { hashInviteToken } from './invite-token.util.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AUDIT_ACTIONS } from '../audit/audit-actions.js';
 
 /**
  * Isi preview undangan yang boleh keluar ke client.
@@ -63,7 +65,10 @@ export interface AcceptedInvitation {
  */
 @Injectable()
 export class InvitationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /**
    * Lihat ringkasan undangan tanpa menerimanya.
@@ -96,6 +101,18 @@ export class InvitationsService {
     if (store.status === StoreStatus.SUSPENDED) {
       throw AppError.forbidden('Toko ini sedang dinonaktifkan.', 'STORE_SUSPENDED');
     }
+
+    // Audit `preview` dicatat tanpa meta: halaman ini dipanggil publik oleh
+    // siapa pun yang memegang token, jadi yang dicatat hanya fakta bahwa
+    // undangan itu pernah dilihat - bukan siapa yang melihatnya, dan bukan
+    // email tujuannya. Keduanya akan menjadikan audit jadi kanal kebocoran
+    // untuk data orang yang belum tentu memberikan persetujuannya.
+    await this.audit.record({
+      storeId: invite.storeId,
+      action: AUDIT_ACTIONS.INVITATION_PREVIEWED,
+      entity: 'invitation',
+      entityId: invite.id,
+    });
 
     return {
       email: invite.email,
@@ -204,6 +221,20 @@ const membership = await this.prisma.$transaction(async (tx) => {
         update: {},
         select: { role: true },
       });
+    });
+
+    // `role` yang dicatat adalah peran yang benar-benar DIMILIKI setelah
+    // operasi, sama dengan yang dikembalikan ke pemanggil di bawah. Kalau
+    // yang dicatat adalah `invite.role`, jejaknya akan berbeda dari kenyataan
+    // pada kasus penerima yang sudah jadi anggota - persis kasus yang
+    // membuat `upsert` dengan `update: {}` itu wajib.
+    await this.audit.record({
+      actorId: userId,
+      storeId: store.id,
+      action: AUDIT_ACTIONS.INVITATION_ACCEPTED,
+      entity: 'invitation',
+      entityId: invite.id,
+      meta: { role: membership.role },
     });
 
     return { storeId: store.id, storeName: store.name, role: membership.role };

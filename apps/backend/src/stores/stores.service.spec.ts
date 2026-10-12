@@ -2,6 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { StoresService } from './stores.service.js';
 import { StoreAccessService } from './store-access.service.js';
 import type { PrismaService } from '../database/prisma.service.js';
+import type { AuditEntry, AuditService } from '../audit/audit.service.js';
+
+/**
+ * Stub `AuditService`.
+ *
+ * `record` di-stub dan bukan objek kosong supaya test ini tidak gagal dengan
+ * "record is not a function" setiap kali `create` menulis audit - yang diuji
+ * di sini adalah transaksinya, bukan auditnya. Stub ini juga mengumpulkan
+ * entry-nya, jadi test bisa memeriksa audit tanpa database.
+ */
+function makeAuditStub(): { audit: AuditService; entries: AuditEntry[] } {
+  const entries: AuditEntry[] = [];
+  const audit = {
+    record: async (entry: AuditEntry) => {
+      entries.push(entry);
+    },
+  } as unknown as AuditService;
+  return { audit, entries };
+}
 
 /**
  * `StoresService.create` harus SATU transaksi (kontrak Task 5).
@@ -81,10 +100,22 @@ function makeFakePrisma(calls: CallLog[], failOn?: string) {
 }
 
 function makeService(prisma: PrismaService): StoresService {
+  return makeServiceWithAudit(prisma).service;
+}
+
+/** Service plus stub audit-nya, untuk test yang memeriksa audit. */
+function makeServiceWithAudit(prisma: PrismaService): {
+  service: StoresService;
+  entries: AuditEntry[];
+} {
   // `create` tidak menyentuh `StoreAccessService`, jadi stub kosong cukup - dan
   // memang disengaja: kalau `create` nanti mulai butuh akses, test ini akan
   // gagal dengan "not a function" alih-alih diam-diam lolos.
-  return new StoresService(prisma, {} as StoreAccessService);
+  const stub = makeAuditStub();
+  return {
+    service: new StoresService(prisma, {} as StoreAccessService, stub.audit),
+    entries: stub.entries,
+  };
 }
 
 describe('StoresService.create: satu transaksi', () => {
@@ -152,5 +183,45 @@ describe('StoresService.create: satu transaksi', () => {
     // Toko sempat tercatat di dalam transaksi, tapi baris keanggotaan TIDAK
     // pernah dicoba: tidak ada anggota dari toko yang tidak jadi apa pun.
     expect(calls.map((c) => c.where)).toEqual(['stores.create']);
+  });
+
+  it('audit store.created menunjuk toko dan pemanggil yang benar', async () => {
+    const { service, entries } = makeServiceWithAudit(makeFakePrisma([]));
+
+    await service.create('user-1', { name: 'Warung', city: 'Bandung' });
+
+    expect(entries).toEqual([
+      {
+        actorId: 'user-1',
+        storeId: 'store-1',
+        action: 'store.created',
+        entity: 'store',
+        entityId: 'store-1',
+      },
+    ]);
+  });
+
+  it('audit tidak pernah membawa nama atau kota toko', async () => {
+    // `store.updated` sengaja hanya mencatat NAMA kolom yang berubah. Kalau
+    // `store.created` mulai membawa nilai, itu keputusan yang harus terlihat di
+    // diff allowlist - bukan masuk diam-diam lewat `meta` bebas.
+    const { service, entries } = makeServiceWithAudit(makeFakePrisma([]));
+
+    await service.create('user-1', { name: 'Warung Rahasia', city: 'Bandung' });
+
+    expect(JSON.stringify(entries)).not.toContain('Warung Rahasia');
+    expect(JSON.stringify(entries)).not.toContain('Bandung');
+    expect(entries[0]).not.toHaveProperty('meta');
+  });
+
+  it('toko yang gagal dibuat tidak menulis audit sama sekali', async () => {
+    // Audit ditulis SETELAH commit. Kalau ditulis di dalam `$transaction`, baris
+    // audit ikut hilang saat transaksi di-rollback - persis di saat jejaknya
+    // paling perlu ditelusuri.
+    const { service, entries } = makeServiceWithAudit(makeFakePrisma([], 'stores'));
+
+    await expect(service.create('user-1', { name: 'Warung' })).rejects.toThrow();
+
+    expect(entries).toEqual([]);
   });
 });

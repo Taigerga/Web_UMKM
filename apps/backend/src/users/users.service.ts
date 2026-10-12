@@ -6,6 +6,8 @@ import { PasswordService } from '../auth/password.service.js';
 import { normalizeEmail } from '../auth/email.util.js';
 import { RefreshTokenService } from '../auth/refresh-token.service.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AUDIT_ACTIONS } from '../audit/audit-actions.js';
 import type { UpdateProfileDto } from './dto/update-profile.dto.js';
 import type { ChangePasswordDto } from './dto/change-password.dto.js';
 
@@ -26,6 +28,7 @@ export class UsersService {
     private readonly authService: AuthService,
     private readonly passwordService: PasswordService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -132,5 +135,17 @@ export class UsersService {
     const passwordHash = await this.passwordService.hash(dto.newPassword);
     await this.prisma.users.update({ where: { id: userId }, data: { passwordHash } });
     await this.refreshTokenService.revokeAllForUser(userId);
+
+    // Audit TANPA meta, dan itu bukan kelalaian: allowlist
+    // `auth.password_changed` sengaja kosong. Password lama, password baru,
+    // dan hash-nya semuanya terlarang di sini - allowlist kosong membuat itu
+    // ditegakkan oleh `AuditService`, bukan oleh call site ini yang sedang
+    // ingat untuk tidak mengirimkannya.
+    await this.audit.record({
+      actorId: userId,
+      action: AUDIT_ACTIONS.AUTH_PASSWORD_CHANGED,
+      entity: 'user',
+      entityId: userId,
+    });
   }
 }

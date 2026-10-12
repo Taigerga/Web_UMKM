@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module.js';
 import { StoresModule } from './stores/stores.module.js';
 import { InvitationsModule } from './invitations/invitations.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { AuditModule } from './audit/audit.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { StoreScopeGuard } from './stores/guards/store-scope.guard.js';
@@ -45,6 +46,8 @@ export const AUTH_THROTTLE_OPTIONS = [
     StoresModule,
     InvitationsModule,
     AdminModule,
+    // Audit adalah dependensi yang dipakai hampir semua modul di atas.
+    AuditModule,
   ],
   providers: [
     // Tanpa provider ini, `@Throttle()` hanya metadata yang TIDAK dibaca
