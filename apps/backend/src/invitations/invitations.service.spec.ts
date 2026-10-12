@@ -138,7 +138,7 @@ const token = generateInviteToken();
  * diuji di sini - yang diuji di file ini adalah batas transaksi. Audit-nya
  * diuji di `src/audit/audit.service.spec.ts` dan `test/audit.e2e.spec.ts`.
  */
-const auditStub = { record: async () => {} } as unknown as AuditService;
+const auditStub = { record: async () => true } as unknown as AuditService;
 
 function makeService(options: { failOn?: 'storeMembers'; membership?: { role: string } | null; inviteRole?: string } = {}) {
   const state: CommittedState = {

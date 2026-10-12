@@ -7,6 +7,7 @@ import { PrismaService } from '../src/database/prisma.service.js';
 import { StoreAccessService } from '../src/stores/store-access.service.js';
 import { StoresService } from '../src/stores/stores.service.js';
 import { InvitationsService } from '../src/invitations/invitations.service.js';
+import { AuditService } from '../src/audit/audit.service.js';
 import { buildTestApp } from './utils/test-app.js';
 
 /**
@@ -32,6 +33,7 @@ let prisma: PrismaService;
 let storesService: StoresService;
 let invitationsService: InvitationsService;
 let storeAccess: StoreAccessService;
+let auditService: AuditService;
 
 const VALID_PASSWORD = 'rahasia-kuat-123';
 
@@ -51,6 +53,7 @@ beforeAll(async () => {
   storesService = app.get(StoresService);
   invitationsService = app.get(InvitationsService);
   storeAccess = app.get(StoreAccessService);
+  auditService = app.get(AuditService);
 });
 
 afterAll(async () => {
@@ -1216,5 +1219,139 @@ describe('R-19: penghapusan toko tetap tidak ada', () => {
       .set('Authorization', `Bearer ${owner.token}`)
       .expect(204);
     expect(await prisma.stores.count({ where: { id: store.id } })).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Kegagalan audit di dalam lock tidak boleh membatalkan perubahan secara senyap
+// ---------------------------------------------------------------------------
+
+describe('kegagalan audit di dalam owner-lock', () => {
+  /**
+   * Paksa `AuditService.record` melaporkan kegagalan, lalu kembalikan spy-nya.
+   *
+   * Menyasar METHOD-nya, bukan `prisma.auditLogs.create`: penulisan yang
+   * dilakukan di dalam `$transaction` berjalan lewat klien transaksi, yang
+   *.delegate-nya BUKAN delegate root yang dipunyai `PrismaService`. Spy di
+   * delegate root tidak akan pernah menyentuh jalur itu - dan test yang
+   * terasa benar padahal tidak menguji apa pun adalah hasil yang paling buruk.
+   */
+  function forceAuditFailure() {
+    return vi
+      .spyOn(auditService, 'record')
+      .mockResolvedValue(false as unknown as Awaited<ReturnType<typeof auditService.record>>);
+  }
+
+  it('DELETE anggota tidak mengembalikan sukses dengan perubahan yang dibatalkan', async () => {
+    // Baris audit keanggotaan ditulis DI DALAM transaksi owner-lock. Kalau
+    // penulisan itu gagal dan `record` menelan error-nya (R-23), InnoDB bisa
+    // sudah me-rollback SELURUH transaksi pada deadlock - lalu Prisma mengirim
+    // COMMIT untuk transaksi yang tidak ada, dan MySQL memperlakukannya sebagai
+    // commit kosong yang berhasil.
+    //
+    // Bentuk kegagalannya yang paling buruk: 204 dengan keanggotaan yang sudah
+    // dihapus lalu dibatalkan, tanpa baris audit, tanpa error.
+    const owner = await createUser('OWNER');
+    const staff = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await prisma.storeMembers.create({
+      data: { storeId: store.id, userId: staff.id, role: 'STAFF' },
+    });
+
+    const spy = forceAuditFailure();
+
+    let status: number;
+    try {
+      const res = await request(app.getHttpServer())
+        .delete(`/api/v1/stores/${store.id}/members/${staff.id}`)
+        .set('Authorization', `Bearer ${owner.token}`);
+      status = res.status;
+    } finally {
+      spy.mockRestore();
+    }
+
+    // Tidak boleh ada jalan tengah: status dan isi database harus sepakat.
+    // Sukses berarti perubahan WAJIB durable DAN tercatat; gagal berarti
+    // keanggotaan WAJIB masih utuh.
+    const membership = await prisma.storeMembers.count({
+      where: { storeId: store.id, userId: staff.id },
+    });
+    const audited = await prisma.auditLogs.count({
+      where: { action: 'store.member_removed' },
+    });
+
+    if (status === 204) {
+      expect(membership).toBe(0);
+      expect(audited).toBe(1);
+      return;
+    }
+
+    expect(status).toBeGreaterThanOrEqual(400);
+    expect(membership).toBe(1);
+    expect(audited).toBe(0);
+  });
+
+  it('PATCH peran anggota juga tidak mengembalikan sukses dengan perubahan yang dibatalkan', async () => {
+    const owner = await createUser('OWNER');
+    const staff = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await prisma.storeMembers.create({
+      data: { storeId: store.id, userId: staff.id, role: 'STAFF' },
+    });
+
+    const spy = forceAuditFailure();
+
+    let status: number;
+    try {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/stores/${store.id}/members/${staff.id}`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .send({ role: 'OWNER' });
+      status = res.status;
+    } finally {
+      spy.mockRestore();
+    }
+
+    const membership = await prisma.storeMembers.findUniqueOrThrow({
+      where: { storeId_userId: { storeId: store.id, userId: staff.id } },
+    });
+    const audited = await prisma.auditLogs.count({
+      where: { action: 'store.member_role_changed' },
+    });
+
+    if (status === 200) {
+      expect(membership.role).toBe('OWNER');
+      expect(audited).toBe(1);
+      return;
+    }
+
+    expect(status).toBeGreaterThanOrEqual(400);
+    expect(membership.role).toBe('STAFF');
+    expect(audited).toBe(0);
+  });
+
+  it('positive control: tanpa kegagalan audit, DELETE anggota tetap 204 dan tercatat', async () => {
+    // Tanpa ini, dua test di atas bisa hijau hanya karena endpoint-nya rusak
+    // atau karena spy-nya tidak pernah terpanggil.
+    const owner = await createUser('OWNER');
+    const staff = await createUser('OWNER');
+    const store = await createStoreViaApi(owner);
+    await prisma.storeMembers.create({
+      data: { storeId: store.id, userId: staff.id, role: 'STAFF' },
+    });
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/stores/${store.id}/members/${staff.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(204);
+
+    expect(
+      await prisma.storeMembers.count({
+        where: { storeId: store.id, userId: staff.id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.auditLogs.count({ where: { action: 'store.member_removed' } }),
+    ).toBe(1);
   });
 });

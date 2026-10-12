@@ -13,7 +13,7 @@ import type {
   TenantScopedReader,
 } from './store-access.service.js';
 import { AuditService } from '../audit/audit.service.js';
-import type { AuditWriter } from '../audit/audit.service.js';
+import type { AuditWriter, AuditEntry } from '../audit/audit.service.js';
 import { AUDIT_ACTIONS } from '../audit/audit-actions.js';
 import { lockStoreRow } from './store-owner-lock.js';
 import { generateInviteToken, hashInviteToken } from '../invitations/invite-token.util.js';
@@ -288,23 +288,65 @@ export class StoresService {
       // Di dalam transaksi, dua kemungkinan itu hilang: kalau commit, keduanya
       // durable; kalau rollback, keduanya hilang bersama dan tidak ada keadaan
       // setengah jadi yang menyesatkan.
-      await this.audit.record(
-        {
-          actorId: userId,
-          storeId,
-          action: AUDIT_ACTIONS.STORE_MEMBER_ROLE_CHANGED,
-          entity: 'store_member',
-          entityId: targetUserId,
-          meta: { from: membership.role, to: dto.role },
-        },
-        // Klien transaksi, supaya audit ikut commit/rollback yang sama. Tanpa
-        // itu, "di dalam lock" hanya berlaku secara tata letak kode, sementara
-        // penulisan tetap terjadi di koneksi terpisah.
-        reader.tx as AuditWriter | undefined,
-      );
+      await this.auditInsideTransaction({
+        actorId: userId,
+        storeId,
+        action: AUDIT_ACTIONS.STORE_MEMBER_ROLE_CHANGED,
+        entity: 'store_member',
+        entityId: targetUserId,
+        meta: { from: membership.role, to: dto.role },
+      }, reader.tx as AuditWriter | undefined);
 
       return updated;
     });
+  }
+
+  /**
+   * Catat audit DI DALAM transaksi owner-lock, dan gagalkan transaksi kalau
+   * penulisan auditnya gagal.
+   *
+   * ## Kenapa helper ini ada, dan kenapa melempar
+   *
+   * `AuditService.record` tidak melempar (R-23) - itu benar untuk pemanggil
+   * after-commit, yang operasinya sudah selesai dan tidak bisa dibatalkan.
+   *
+   * Untuk pemanggil DI DALAM transaksi, "`record` menelan error" berarti sesuatu
+   * yang jauh lebih buruk: InnoDB me-rollback SELURUH transaksi pada deadlock
+   * (dan pada lock-wait timeout ketika `innodb_rollback_on_timeout=1`), bukan
+   * cuma statement yang gagal. Kalau error itu ditelan dan callback selesai
+   * normal, Prisma mengirim COMMIT untuk transaksi yang sudah tidak ada, MySQL
+   * memperlakukannya sebagai commit kosong yang berhasil, dan pemanggil mendapat
+   * 200 dengan perubahan keanggotaan yang sudah dibatalkan - tanpa baris audit.
+   *
+   * Kegagalan senyap yang tidak bisa dideteksi: tidak ada error di respons, tidak
+   * ada baris di `audit_logs`, dan tidak ada perubahan di database. Nasihat
+   * "coba lagi" dari user tidak akan pernah berhasil, karena operasi yang sama
+   * akan ditolak hilang.
+   *
+   * Karena itu pemanggil dalam-transaksi WAJIB memeriksa hasil penulisan dan
+   * melempar, supaya `$transaction` melakukan rollback yang jujur: perubahan
+   * tidak jadi DAN permintaan gagal. Itu bentuk yang bisa ditangani - dan
+   * operator melihat kegagalan lewat `AuditService.failureCount`.
+   *
+   * Perhatikan bahwa ini TIDAK melanggar R-23: `record` sendiri tetap tidak
+   * melempar. Yang melempar adalah pemanggil, setelah memeriksa nilai
+   * kembaliannya.
+   *
+   * @param entry peristiwa yang dicatat
+   * @param tx klien transaksi, supaya baris ikut commit/rollback yang sama
+   */
+  private async auditInsideTransaction(entry: AuditEntry, tx: AuditWriter | undefined): Promise<void> {
+    const written = await this.audit.record(entry, tx);
+    if (written) return;
+
+    // Sengaja `AppError` dengan kode dan pesan yang tidak menyebut database:
+    // `AllExceptionsFilter` mengkolaps 5xx menjadi INTERNAL_ERROR untuk client,
+    // dan yang asli hanya masuk log internal.
+    throw new AppError(
+      'AUDIT_WRITE_FAILED',
+      500,
+      'Perubahan dibatalkan karena jejak audit gagal ditulis.',
+    );
   }
 
   /**
@@ -346,17 +388,14 @@ export class StoresService {
       //
       // Peran target dibaca dari `membership` yang sudah ada di tangan, bukan
       // sesudah delete - pada titik itu barisnya sudah tidak ada.
-      await this.audit.record(
-        {
-          actorId: userId,
-          storeId,
-          action: AUDIT_ACTIONS.STORE_MEMBER_REMOVED,
-          entity: 'store_member',
-          entityId: targetUserId,
-          meta: { role: membership.role },
-        },
-        reader.tx as AuditWriter | undefined,
-      );
+      await this.auditInsideTransaction({
+        actorId: userId,
+        storeId,
+        action: AUDIT_ACTIONS.STORE_MEMBER_REMOVED,
+        entity: 'store_member',
+        entityId: targetUserId,
+        meta: { role: membership.role },
+      }, reader.tx as AuditWriter | undefined);
     });
   }
 
@@ -446,6 +485,23 @@ export class StoresService {
    *    menulis. Semua di bawah lock itu, jadi hitungan yang dilihat selalu
    *    sudah memuat hasil commit operasi owner-changing sebelumnya.
    * 3. Commit atau rollback.
+   *
+   * ## Urutan lock yang WAJIB dihormati operasi berikutnya
+   *
+   * Transaksi ini memegang `stores` (X) dan, sejak penulisan baris audit
+   * dipindahkan ke dalamnya, juga `users` (S) untuk baris aktornya: `audit_logs`
+   * punya FK ke `users`, dan pemeriksaan FK InnoDB mengambil shared lock yang
+   * ditahan sampai commit. Urutannya **stores -> users**.
+   *
+   * Konsekuensi: operasi owner-changing sebuah toko bisa diblokir oleh X-lock
+   * yang sedang berjalan pada baris `users` milik owner yang sama - misalnya
+   * `PATCH /admin/users/:userId/status`.
+   *
+   * Cycle belum bisa terjadi hari ini karena tidak ada jalur yang mengambil
+   * `users` lalu `stores`. Yang harus dijaga oleh fitur berikutnya adalah itu:
+   * operasi yang mengambil `users` (X) lebih dulu lalu butuh `stores` (X) akan
+   * membentuk deadlock. Kalau nanti dibutuhkan, jangan "memperbaiki" dengan
+   * menulis audit di luar lock - lihat catatan di `auditInsideTransaction`.
    *
    * ## Kenapa lock pada baris induk, bukan baris keanggotaan
    *

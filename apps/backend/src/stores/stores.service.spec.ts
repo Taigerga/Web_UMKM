@@ -17,6 +17,10 @@ function makeAuditStub(): { audit: AuditService; entries: AuditEntry[] } {
   const audit = {
     record: async (entry: AuditEntry) => {
       entries.push(entry);
+      // `true` = baris benar-benar ditulis. `StoresService` memeriksa nilai
+      // ini pada penulisan dalam-transaksi, jadi stub yang mengembalikan
+      // `undefined` akan membuat test gagal karena alasan yang salah.
+      return true;
     },
   } as unknown as AuditService;
   return { audit, entries };

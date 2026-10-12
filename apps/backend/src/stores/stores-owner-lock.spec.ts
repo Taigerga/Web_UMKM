@@ -13,7 +13,7 @@ import type { AuditService } from '../audit/audit.service.js';
  * ia akan gagal bukan karena ada operasi yang bocor ke klien utama, tapi karena
  * audit memang tidak boleh ikut di dalamnya.
  */
-const auditStub = { record: async () => {} } as unknown as AuditService;
+const auditStub = { record: async () => true } as unknown as AuditService;
 
 /**
  * Serialisasi operasi owner lewat lock baris induk (R-21).

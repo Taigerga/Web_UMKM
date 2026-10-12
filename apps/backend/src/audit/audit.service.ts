@@ -137,15 +137,41 @@ export class AuditService {
   failureCount = 0;
 
   /**
-   * Catat satu peristiwa. `Promise` ini SELALU resolve.
+   * Catat satu peristiwa.
    *
-   * Validasi bentuk `entry` dilakukan DI DALAI try yang sama, dan kegagalannya
-   * dilaporkan sebagai pesan tersendiri. Alasannya: `entry` rusak adalah bug di
-   * call site, sedangkan kegagalan `prisma.create` adalah masalah infrastruktur.
-   * Keduanya mungkin, tapi diagnosisnya berbeda, dan satu pesan untuk keduanya
-   * berarti salah satunya selalu didiagnosis dengan tebakan.
+   * `Promise` ini SELALU resolve - R-23 tidak berubah. Yang membawa kabar
+   * adalah nilai kembaliannya: `true` kalau baris benar-benar ditulis,
+   * `false` kalau gagal.
+   *
+   * ## Kenapa nilai kembali, bukan exception
+   *
+   * Kalau `record` melempar sentinel error, setiap pemanggil after-commit harus
+   * membungkus panggilannya dengan `try/catch` supaya R-23 tetap berlaku - dan
+   * pemanggil baru yang lupa akan menemukan R-23 dilanggar saat integration,
+   * bukan saat compile.
+   *
+   * Dengan nilai kembali, `record` tetap tidak melempar untuk siapa pun.
+   * Pemanggil after-commit yang mengabaikan nilai itu berperilaku persis seperti
+   * dulu, dan itu memang yang mereka mau.
+   *
+   * ## Kenapa ini penting untuk pemanggil DI DALAM transaksi
+   *
+   * InnoDB me-rollback SELURUH transaksi pada deadlock, dan pada lock-wait timeout
+   * ketika `innodb_rollback_on_timeout=1` - bukan cuma statement yang gagal.
+   *
+   * Kalau `record` menelan error itu dan membiarkan callback selesai normal,
+   * Prisma mengirim COMMIT untuk transaksi yang sudah tidak ada. MySQL
+   * memperlakukannya sebagai commit kosong yang BERHASIL, dan pemanggil mendapat
+   * 200 dengan perubahan yang sudah dibatalkan - tanpa baris audit. Kegagalan
+   * senyap yang tidak bisa dideteksi, jadi pemanggil dalam-transaksi wajib
+   * memeriksa nilai kembalian ini dan melempar agar `$transaction` rollback.
+   *
+   * @param entry peristiwa yang dicatat
+   * @param client klien opsional; kalau diisi, baris ikut commit/rollback
+   *   transaksi pemanggil
+   * @returns `true` kalau barisnya benar-benar ditulis
    */
-  async record(entry: AuditEntry, client?: AuditWriter): Promise<void> {
+  async record(entry: AuditEntry, client?: AuditWriter): Promise<boolean> {
     const invalid = invalidReason(entry);
     if (invalid !== undefined) {
       // Entry cacat berarti tidak ada yang tercatat, jadi ini dihitung
@@ -156,7 +182,7 @@ export class AuditService {
         `${WARN_PREFIX} (entri tidak valid) ${invalid}. ` +
           'Pemanggil harus mengirim action dan entity berupa string non-kosong.',
       );
-      return;
+      return false;
     }
 
     try {
@@ -184,6 +210,8 @@ export class AuditService {
           ...(meta ? { meta } : {}),
         },
       });
+
+      return true;
     } catch (error) {
       // Penambahnya DI DALAM catch, bukan sesudahnya: kalau satu-satunya
       // tempat menaikkan ada di luar blok try, catch yang melempar akan
@@ -192,6 +220,7 @@ export class AuditService {
       this.logger.warn(
         `${WARN_PREFIX} (${errorName(error)}) untuk tindakan ${describeAction(entry?.action)}`,
       );
+      return false;
     }
   }
 

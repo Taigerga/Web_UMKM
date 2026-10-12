@@ -296,8 +296,10 @@ describe('AuditService.record: tidak pernah melempar (R-23)', () => {
       audit.record(undefined as unknown as { action: string; entity: string }),
     );
 
+    // R-23: tidak melempar. Yang dikunci di sini adalah properties itu, bukan
+    // nilai kembalian - nilai kembalian punya test sendiri di bawah.
     await expect(audit.record(undefined as unknown as { action: string; entity: string }))
-      .resolves.toBeUndefined();
+      .resolves.not.toThrow();
 
     // Pesannya harus menyebut APA yang salah, bukan cuma "gagal". Bug di call site
     // dan masalah infrastruktur menghasilkan pesan yang berbeda; kalau keduanya
@@ -341,6 +343,79 @@ describe('AuditService.record: tidak pernah melempar (R-23)', () => {
     expect(a.warnings[0]).toContain('entri tidak valid');
     expect(b.warnings[0]).toContain('Error');
     expect(a.warnings[0]).not.toBe(b.warnings[0]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Nilai kembalian: fondasi bagi pemanggil dalam-transaksi
+// ---------------------------------------------------------------------------
+
+describe('AuditService.record: nilai kembalian', () => {
+  it('true kalau barisnya benar-benar ditulis', async () => {
+    const { prisma, calls } = makeFakePrisma();
+    const audit = makeService(prisma);
+
+    await expect(
+      audit.record({ action: AUDIT_ACTIONS.STORE_CREATED, entity: 'store' }),
+    ).resolves.toBe(true);
+
+    expect(calls).toHaveLength(1);
+  });
+
+  it('false kalau penulisan gagal, DAN tetap tidak melempar', async () => {
+    // Dua hal sekaligus, karena keduanya yang dibutuhkan pemanggil
+    // dalam-transaksi: ia harus BISA memeriksa kegagalannya, dan pemeriksaan itu
+    // tidak boleh berupa exception.
+    const { prisma } = makeFakePrisma({ rejectWith: new Error('deadlock') });
+    const audit = makeService(prisma);
+
+    await expect(
+      audit.record({ action: AUDIT_ACTIONS.STORE_CREATED, entity: 'store' }),
+    ).resolves.toBe(false);
+  });
+
+  it('false kalau entry ditolak karena bentuknya salah', async () => {
+    const { prisma } = makeFakePrisma();
+    const audit = makeService(prisma);
+
+    await expect(
+      audit.record(undefined as unknown as { action: string; entity: string }),
+    ).resolves.toBe(false);
+  });
+
+  it('false DIAM-DIAM tidak pernah terjadi: penulisan berhasil selalu true', async () => {
+    // Penjaga terhadap regresi paling menyebalkan di kontrak ini: `record`
+    // mengembalikan nilai falsy padahal barisnya tertulis, dan pemanggil
+    // dalam-transaksi akan rollback operasi yang sebenarnya sukses.
+    const { prisma } = makeFakePrisma();
+    const audit = makeService(prisma);
+
+    await expect(
+      audit.record({ action: AUDIT_ACTIONS.STORE_CREATED, entity: 'store' }),
+    ).resolves.toBe(true);
+
+    // Dan hasilnya `true` secara ketat, bukan sekadar truthy.
+    expect(typeof (await audit.record({ action: 'x', entity: 'y' }))).toBe('boolean');
+  });
+
+  it('nilai kembalian tidak berubah oleh redaksi meta', async () => {
+    // Meta yang dipangkas tetap TULIS barisnya, jadi hasilnya harus `true`.
+    // Kalau tidak, satu kunci tak terizinkan akan membatalkan seluruh
+    // operasi keanggotaan - dan itu jauh lebih buruk daripada kehilangan
+    // sedikit isi `meta`.
+    const { prisma, calls } = makeFakePrisma();
+    const audit = makeService(prisma);
+
+    const written = await captureWarnings(() =>
+      audit.record({
+        action: AUDIT_ACTIONS.STORE_UPDATED,
+        entity: 'store',
+        meta: { fields: ['name'], password: 'x' } as Record<string, unknown>,
+      }),
+    );
+
+    expect(written.result).toBe(true);
+    expect(calls).toHaveLength(1);
   });
 });
 

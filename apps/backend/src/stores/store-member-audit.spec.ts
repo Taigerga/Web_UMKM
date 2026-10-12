@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { StoresService } from './stores.service.js';
 import { StoreAccessService } from './store-access.service.js';
 import type { PrismaService } from '../database/prisma.service.js';
-import type { AuditService, AuditWriter } from '../audit/audit.service.js';
+import { AuditService } from '../audit/audit.service.js';
+import type { AuditWriter } from '../audit/audit.service.js';
 
 /**
  * Baris audit keanggotaan ditulis DI DALAM transaksi yang sama dengan
@@ -74,6 +75,8 @@ function makeAuditStub(): { audit: AuditService; entries: RecordedEntry[] } {
       | undefined;
 
     if (writer) await writer.auditLogs.create({ data: entry });
+
+    return true;
   };
 
   return { audit: { record } as unknown as AuditService, entries };
@@ -99,7 +102,23 @@ interface MemberFake {
  * yang membuat test bisa membedakan "keduanya dalam satu transaksi" dari "dua
  * operasi terpisah yang kebetulan berurutan".
  */
-function makeMemberFake(state: FakeState, failOnCommit = false): MemberFake {
+interface MemberFakeOptions {
+  /** Kegagalan di COMMIT, setelah callback selesai. */
+  failOnCommit?: boolean;
+  /**
+   * Kegagalan pada INSERT audit yang me-rollback SELURUH transaksi, seperti
+   * InnoDB pada deadlock.
+   */
+  deadlockOnAudit?: boolean;
+}
+
+function makeMemberFake(
+  state: FakeState,
+  options: MemberFakeOptions | boolean = {},
+): MemberFake {
+  const { failOnCommit = false, deadlockOnAudit = false } =
+    typeof options === 'boolean' ? { failOnCommit: options } : options;
+
   const pending: FakeState = { ...state, members: [...state.members] };
   let auditCommitted = false;
 
@@ -132,12 +151,30 @@ function makeMemberFake(state: FakeState, failOnCommit = false): MemberFake {
 
   let auditWrites = 0;
 
+  /**
+   * Status transaksi di sisi database.
+   *
+   * `rolledBackByServer` meniru InnoDB: pada deadlock, transaksi dibatalkan
+   * oleh server TANPA memberitahu Prisma lewat error tambahan. Prisma lalu
+   * mengirim COMMIT untuk transaksi yang sudah tidak ada, dan MySQL
+   * memperlakukannya sebagai commit kosong yang berhasil.
+   */
+  let rolledBackByServer = false;
+
   const tx = {
     stores: { findUnique: () => Promise.resolve({ id: 'S', status: 'ACTIVE' }) },
     storeMembers: membersDelegate(pending),
     auditLogs: {
       create: () => {
         auditWrites += 1;
+        if (deadlockOnAudit) {
+          // Deadlock: SELURUH transaksi dibatalkan, termasuk `pending` yang
+          // sudah berisi hasil delete.
+          rolledBackByServer = true;
+          pending.members = [...state.members];
+          pending.role = state.role;
+          return Promise.reject(new Error('Deadlock found when trying to get lock'));
+        }
         return Promise.resolve({ id: 'audit-1' });
       },
     },
@@ -150,12 +187,14 @@ function makeMemberFake(state: FakeState, failOnCommit = false): MemberFake {
       try {
         const result = await fn(tx);
 
-        // Kegagalan DI COMMIT, setelah callback selesai. Ini yang paling
-        // relevan untuk yang diuji: delete DAN audit sudah ditulis di dalam
-        // transaksi, lalu commit-nya gagal (deadlock, lock wait timeout, koneksi
-        // putus). Kalau audit-nya lewat klien utama, barisnya sudah durable di
-        // sini dan tidak akan hilang bersama rollback.
         if (failOnCommit) throw new Error('commit gagal');
+
+        if (rolledBackByServer) {
+          // COMMIT terhadap transaksi yang sudah di-rollback server: dianggap
+          // berhasil, dan tidak ada yang tersisa.
+          auditCommitted = false;
+          return result;
+        }
 
         // Commit: jurnal pending dipindahkan ke state committed.
         state.members = [...pending.members];
@@ -256,5 +295,79 @@ describe('audit keanggotaan ditulis di dalam transaksi yang sama', () => {
     // Dan keanggotaannya juga tidak berubah: rollback berarti tidak terjadi
     // apa-apa yang terlihat.
     expect(state.members).toContain('target');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deadlock: kegagalan audit tidak boleh membatalkan perubahan secara senyap
+// ---------------------------------------------------------------------------
+
+describe('kegagalan audit di dalam lock membatalkan operasi, bukan menyenyapkan', () => {
+  it('removeMember GAGAL saat INSERT audit memicu rollback seluruh transaksi', async () => {
+    // Ini kelas kegagalan yang berbahaya: InnoDB me-rollback SELURUH transaksi
+    // pada deadlock, `AuditService.record` menelan error-nya (R-23), lalu
+    // Prisma mengirim COMMIT untuk transaksi yang sudah tidak ada.
+    //
+    // Kalau pemanggil tidak memeriksa hasil penulisan, hasilnya adalah 200
+    // dengan keanggotaan yang sudah dihapus lalu dibatalkan - tanpa baris
+    // audit, tanpa error. Kegagalan yang tidak bisa dideteksi DAN tidak bisa
+    // dipulihkan: mencoba lagi akan ditolak `MEMBER_NOT_FOUND`.
+    const state: FakeState = { members: ['caller', 'target'], role: 'STAFF' };
+    const fake = makeMemberFake(state, { deadlockOnAudit: true });
+    const { audit, entries } = makeAuditStub();
+    const service = new StoresService(fake.prisma, allowAccess(), audit);
+
+    // Permintaan harus gagal. Bukan "boleh gagal" - HARUS.
+    await expect(service.removeMember('caller', 'S', 'target')).rejects.toThrow();
+
+    // Dan tidak boleh ada baris audit yang bertahan, karena transaksinya
+    // dibatalkan.
+    expect(fake.isAuditCommitted()).toBe(false);
+    // Penulisannya tetap dicoba; yang gagal adalah hasilnya, bukan pemanggilannya.
+    expect(entries).toHaveLength(1);
+  });
+
+  it('updateMember GAGAL saat INSERT audit memicu rollback seluruh transaksi', async () => {
+    const state: FakeState = { members: ['caller', 'target'], role: 'STAFF' };
+    const fake = makeMemberFake(state, { deadlockOnAudit: true });
+    const { audit } = makeAuditStub();
+    const service = new StoresService(fake.prisma, allowAccess(), audit);
+
+    await expect(
+      service.updateMember('caller', 'S', 'target', { role: 'OWNER' }),
+    ).rejects.toThrow();
+
+    expect(fake.isAuditCommitted()).toBe(false);
+  });
+
+  it('operasi yang berhasil tetap 적용 dan tetap tercatat', async () => {
+    // Positive control. Kalau test di atas lulus karena SEMUA operasi gagal,
+    // maka ia tidak membuktikan apa pun. Jalur sehat harus tetap hijau.
+    const state: FakeState = { members: ['caller', 'target'], role: 'STAFF' };
+    const fake = makeMemberFake(state);
+    const { audit } = makeAuditStub();
+    const service = new StoresService(fake.prisma, allowAccess(), audit);
+
+    await service.removeMember('caller', 'S', 'target');
+
+    expect(state.members).not.toContain('target');
+    expect(fake.isAuditCommitted()).toBe(true);
+  });
+
+  it('with AuditService sungguhan: deadlock mengembalikan false, bukan melempar', async () => {
+    // Memakai instance `AuditService` yang asli, bukan stub, supaya jalur yang
+    // ditelusuri benar-benar jalur produksi: `record` menelan error dan
+    // mengembalikan `false`.
+    const state: FakeState = { members: ['caller', 'target'], role: 'STAFF' };
+    const fake = makeMemberFake(state, { deadlockOnAudit: true });
+
+    const audit = new AuditService(fake.prisma);
+    const service = new StoresService(fake.prisma, allowAccess(), audit);
+
+    await expect(service.removeMember('caller', 'S', 'target')).rejects.toThrow();
+
+    // Dan kegagalannya TERLIHAT lewat penghitung, jadi rollback ini tidak
+    // senyap bagi operator.
+    expect(audit.failureCount).toBeGreaterThan(0);
   });
 });
