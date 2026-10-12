@@ -5,6 +5,13 @@ import { cn } from "@/lib/cn";
 /**
  * Tabel data generik. `columns` mendeskripsikan isi sel sehingga tabel di
  * setiap halaman punya struktur yang sama (header, body, border, padding).
+ *
+ * `minWidth` Lebar minimum tabel (mis. `min-w-[26rem]`). Tabel dengan kolom
+ * banyak butuh ruang lebih dari viewport di layar sempit, jadi lebarnya
+ * dibatasi minimum dan tabel digulir di dalam wadahnya sendiri lewat
+ * `overflow-x-auto` — halaman tidak pernah ikut tergulir ke samping.
+ * Pakai prop ini, jangan menulis `min-w-[...]` di pemanggil: itulah yang
+ * membuat gaya tabel bercabang.
  */
 export type TableColumn<T> = {
   key: string;
@@ -21,6 +28,8 @@ export type TableProps<T> = {
   rowKey: (row: T, index: number) => string;
   caption?: React.ReactNode;
   className?: string;
+  /** Lebar minimum tabel. Kosongkan kalau tabelmu muat di layar sempit. */
+  minWidth?: string;
   emptyState?: React.ReactNode;
 };
 
@@ -36,6 +45,7 @@ export function Table<T>({
   rowKey,
   caption,
   className,
+  minWidth,
   emptyState,
 }: TableProps<T>) {
   if (rows.length === 0 && emptyState) {
@@ -44,7 +54,7 @@ export function Table<T>({
 
   return (
     <div className={cn("w-full overflow-x-auto", className)}>
-      <table className="w-full min-w-full border-collapse text-sm">
+      <table className={cn("w-full border-collapse text-sm", minWidth)}>
         {caption ? (
           <caption className="pb-3 text-left text-xs text-ink-muted">{caption}</caption>
         ) : null}
@@ -55,7 +65,7 @@ export function Table<T>({
                 key={column.key}
                 scope="col"
                 className={cn(
-                  "px-3 py-2.5 text-xs font-semibold tracking-wide text-ink-muted uppercase",
+                  "px-4 py-3 text-xs font-medium text-ink-muted",
                   alignClass[column.align ?? "left"],
                   column.className,
                 )}
@@ -67,15 +77,12 @@ export function Table<T>({
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr
-              key={rowKey(row, index)}
-              className="border-b border-line last:border-b-0"
-            >
+            <tr key={rowKey(row, index)} className="border-b border-line last:border-b-0">
               {columns.map((column) => (
                 <td
                   key={column.key}
                   className={cn(
-                    "px-3 py-3 align-middle text-ink",
+                    "px-4 py-3 align-middle text-ink",
                     alignClass[column.align ?? "left"],
                     column.cellClassName,
                   )}

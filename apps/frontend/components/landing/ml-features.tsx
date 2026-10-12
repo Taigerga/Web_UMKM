@@ -72,9 +72,9 @@ export function MlFeatures() {
         <Card variant="navy" className="flex flex-col gap-3" padding="lg">
           <CardTitle className="text-white">Akurasi model belum diukur</CardTitle>
           <CardDescription className="text-navy-line">
-            Klaim seperti &ldquo;akurasi 94%&rdquo; baru bisa muncul setelah model dilatih
-            pada dataset evaluasi yang kami publikasikan. Sampai itu, kami tidak
-            menampilkannya.
+            Angka keputusan baru bisa muncul setelah model dilatih pada dataset
+            evaluasi yang kami publikasikan. Sampai itu, kami tidak menampilkan
+            klaim akurasi apa pun.
           </CardDescription>
         </Card>
       </div>

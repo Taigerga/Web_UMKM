@@ -1,6 +1,6 @@
 import { ArrowUpRight, Package, Target, TrendingUp, Wallet } from "lucide-react";
 
-import { Badge } from "@/components/ui";
+import { Badge, Table, type TableColumn } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 import { SampleFigure, Section } from "./section";
@@ -47,13 +47,45 @@ const WEEKLY = [
 
 const MAX_WEEKLY = 35;
 
-const TOP_PRODUCTS = [
+type TopProduct = {
+  name: string;
+  sold: string;
+  revenue: string;
+  stock: string;
+};
+
+const TOP_PRODUCTS: TopProduct[] = [
   { name: "Kopi bubuk 250 g", sold: "312", revenue: "Rp 24,1 jt", stock: "42" },
   { name: "Gula aren 1 kg", sold: "186", revenue: "Rp 9,3 jt", stock: "18" },
   { name: "Sedang aren 250 g", sold: "141", revenue: "Rp 8,5 jt", stock: "9" },
   { name: "Teh melati 30 g", sold: "128", revenue: "Rp 4,2 jt", stock: "65" },
   { name: "Krimer 250 sachet", sold: "96", revenue: "Rp 3,8 jt", stock: "27" },
-] as const;
+];
+
+const TOP_PRODUCT_COLUMNS: Array<TableColumn<TopProduct>> = [
+  { key: "name", header: "Produk", render: (row) => row.name },
+  {
+    key: "sold",
+    header: "Terjual",
+    align: "right",
+    cellClassName: "font-mono tabular-nums",
+    render: (row) => row.sold,
+  },
+  {
+    key: "revenue",
+    header: "Omzet",
+    align: "right",
+    cellClassName: "font-mono tabular-nums",
+    render: (row) => row.revenue,
+  },
+  {
+    key: "stock",
+    header: "Stok",
+    align: "right",
+    cellClassName: "font-mono tabular-nums text-ink-muted",
+    render: (row) => row.stock,
+  },
+];
 
 export function DashboardPreview() {
   return (
@@ -103,54 +135,12 @@ export function DashboardPreview() {
         className="mt-6 rounded-[var(--radius-card)] border border-line bg-surface p-1 shadow-card"
         note="Lima produk teratas, dataset sintetis"
       >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[30rem] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-line">
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-ink-muted"
-                >
-                  Produk
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-xs font-medium text-ink-muted"
-                >
-                  Terjual
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-xs font-medium text-ink-muted"
-                >
-                  Omzet
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-xs font-medium text-ink-muted"
-                >
-                  Stok
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {TOP_PRODUCTS.map((row) => (
-                <tr key={row.name} className="border-b border-line last:border-b-0">
-                  <td className="px-4 py-3 text-ink">{row.name}</td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
-                    {row.sold}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
-                    {row.revenue}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-ink-muted">
-                    {row.stock}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={TOP_PRODUCT_COLUMNS}
+          rows={TOP_PRODUCTS}
+          rowKey={(row) => row.name}
+          minWidth="min-w-[30rem]"
+        />
       </SampleFigure>
     </Section>
   );

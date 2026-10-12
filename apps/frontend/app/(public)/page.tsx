@@ -20,23 +20,19 @@ export const metadata: Metadata = {
 /**
  * Batas cache untuk halaman publik.
  *
- * `'use cache'` di sini aman karena isinya identik untuk semua pengunjung:
+ * **`use cache` di sini aman karena isinya identik untuk semua pengunjung:**
  * seluruh konten landing page adalah teks dan angka ilustrasi yang ditulis di
  * source, tanpa `params`, `searchParams`, `cookies()`, `headers()`, maupun query
  * ke database. Tidak ada input per-pengguna yang bisa masuk ke cache key, jadi
  * tidak ada cara User B menerima hasil milik User A.
  *
- * Yang akan membuatnya TIDAK aman (rule R-7):
- * - membaca `cookies()`, `headers()`, atau `searchParams` di dalam scope ini;
- * - mengambil nilai runtime (mis. `storeId`) lalu meneruskannya ke cached
- *   function sebagai argumen;
- * - melakukan query tenant di dalam scope tanpa memasukkan identitas tenant ke
- *   cache key.
+ * Aturan lengkap R-7 beserta tiga bentuk kegagalannya ada di **`apps/frontend/AGENTS.md`**
+ * — di sana, bukan di sini, karena aturan itu berlaku untuk seluruh aplikasi dan
+ * yang paling membutuhkan aturan ini adalah `app/(dashboard)/**`, bukan halaman ini.
+ * Baca sana sebelum menulis halaman dashboard.
  *
- * Dengan `partialPrefetching: true`, prefetch berjalan agresif di client dan
- * cache key yang tidak awareness-user akan membocorkan data antar pengguna.
- * Karena itu seluruh data toko pada aplikasi ini dibaca lewat Client Component
- * yang memanggil backend secara langsung, tidak pernah lewat `'use cache'`.
+ * Ringkasnya: seluruh data tenant diambil lewat Client Component yang memanggil
+ * backend secara langsung, tidak pernah lewat `'use cache'`.
  *
  * `cacheLife('max')`: konten landing nyaris tidak berubah, jadi cukup
  * diprerender ulang ketika build atau deploy berubah.

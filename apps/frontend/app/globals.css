@@ -69,9 +69,20 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  /* Cegah tabel lebar (mis. pratinjau ledger) memaksa halaman scroll
-     horizontal di layar sempit. */
-  overflow-x: hidden;
+  /*
+   * Sengaja TIDAK ada `overflow-x: hidden` di sini.
+   *
+   * `overflow-x: hidden` bersama `overflow-y: visible` membuat `overflow-y`
+   * dihitung menjadi `auto`, sehingga `body` menjadi scroll container. Navbar
+   * `position: sticky` lalu mengikat ke kotak body yang tidak pernah
+   * menggulir, dan navbar berhenti menempel. Selain itu, aturan itu justru
+   * menyembunyikan symptoms yang wajib dicek: tabel lebar di layar sempit
+   * seharusnya menggulir di dalam wadahnya sendiri (`overflow-x-auto`), bukan
+   * dipotong oleh halaman.
+   *
+   * Kontrol lebar ada di elemennya: `min-w-0` pada grid child dan
+   * `overflow-x-auto` pada pembungkus tabel.
+   */
 }
 
 /* Fokus keyboard terlihat di seluruh komponen, bukan hanya di link. */

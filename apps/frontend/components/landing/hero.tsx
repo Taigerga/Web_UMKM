@@ -1,17 +1,59 @@
-import { Badge, ButtonLink, SampleDataBadge } from "@/components/ui";
-import { cn } from "@/lib/cn";
+import { Badge, ButtonLink, SampleDataBadge, Table, type TableColumn } from "@/components/ui";
+
+type LedgerRow = {
+  date: string;
+  item: string;
+  in: string;
+  out: string;
+  balance: string;
+};
 
 /**
  * Baris buku kas pada hero. Angka disusun seperti buku catatan fisik —
  * kolom rata kanan, angka tabular, saldo berjalan — karena itulah tempat
- * pemilik UMKM sudah terbiasa membaca Gautannya.
+ * pemilik UMKM sudah terbiasa membaca catatannya.
  */
-const LEDGER_ROWS = [
+const LEDGER_ROWS: LedgerRow[] = [
   { date: "02 Sep", item: "Kopi bubuk 250 g", in: "1.240.000", out: "—", balance: "8.360.000" },
   { date: "02 Sep", item: "Gula aren 1 kg", in: "—", out: "640.000", balance: "7.720.000" },
-  { date: "03 Sep", item: "Sedang 250 g", in: "1.850.000", out: "—", balance: "9.570.000" },
+  { date: "03 Sep", item: "Sedang aren 250 g", in: "1.850.000", out: "—", balance: "9.570.000" },
   { date: "03 Sep", item: "Kemasan Mika 500 pcs", in: "—", out: "525.000", balance: "9.045.000" },
-] as const;
+];
+
+const LEDGER_COLUMNS: Array<TableColumn<LedgerRow>> = [
+  {
+    key: "date",
+    header: "Tanggal",
+    cellClassName: "whitespace-nowrap text-ink-muted",
+    render: (row) => row.date,
+  },
+  { key: "item", header: "Item", render: (row) => row.item },
+  {
+    key: "in",
+    header: "Masuk",
+    align: "right",
+    cellClassName: "font-mono tabular-nums",
+    render: (row) => (
+      <span className={row.in === "—" ? "text-ink-faint" : "text-positive"}>{row.in}</span>
+    ),
+  },
+  {
+    key: "out",
+    header: "Keluar",
+    align: "right",
+    cellClassName: "font-mono tabular-nums",
+    render: (row) => (
+      <span className={row.out === "—" ? "text-ink-faint" : "text-critical"}>{row.out}</span>
+    ),
+  },
+  {
+    key: "balance",
+    header: "Saldo",
+    align: "right",
+    cellClassName: "font-mono tabular-nums",
+    render: (row) => row.balance,
+  },
+];
 
 export function Hero() {
   return (
@@ -78,65 +120,12 @@ function HeroLedger() {
           <span className="font-mono text-xs text-accent">Saldo Rp 9.045.000</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[26rem] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-line bg-neutral-wash">
-                <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-ink-muted">
-                  Tanggal
-                </th>
-                <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-ink-muted">
-                  Item
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-right text-xs font-medium text-ink-muted"
-                >
-                  Masuk
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-right text-xs font-medium text-ink-muted"
-                >
-                  Keluar
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-right text-xs font-medium text-ink-muted"
-                >
-                  Saldo
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {LEDGER_ROWS.map((row) => (
-                <tr key={`${row.date}-${row.item}`} className="border-b border-line last:border-b-0">
-                  <td className="whitespace-nowrap px-4 py-2.5 text-ink-muted">{row.date}</td>
-                  <td className="px-4 py-2.5 text-ink">{row.item}</td>
-                  <td
-                    className={cn(
-                      "px-4 py-2.5 text-right font-mono tabular-nums",
-                      row.in === "—" ? "text-ink-faint" : "text-positive",
-                    )}
-                  >
-                    {row.in}
-                  </td>
-                  <td
-                    className={cn(
-                      "px-4 py-2.5 text-right font-mono tabular-nums",
-                      row.out === "—" ? "text-ink-faint" : "text-critical",
-                    )}
-                  >
-                    {row.out}
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-ink">
-                    {row.balance}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={LEDGER_COLUMNS}
+          rows={LEDGER_ROWS}
+          rowKey={(row) => `${row.date}-${row.item}`}
+          minWidth="min-w-[26rem]"
+        />
 
         <div className="flex items-center justify-between gap-3 border-t border-accent/40 bg-accent-wash px-4 py-3">
           <span className="text-sm font-medium text-accent-deep">Prediksi minggu depan</span>
