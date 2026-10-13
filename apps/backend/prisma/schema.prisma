@@ -55,6 +55,7 @@ model users {
   invitesSent  storeInvites[]   @relation("InviteSender")
   sessions     refreshTokens[]
   auditLogs    auditLogs[]
+  datasets    datasets[]
 
   @@map("users")
 }
@@ -69,9 +70,13 @@ model stores {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  createdBy users          @relation("StoreCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  members   storeMembers[]
-  invites   storeInvites[]
+  createdBy users           @relation("StoreCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  members  storeMembers[]
+  invites  storeInvites[]
+  datasets datasets[]
+  products products[]
+  customers customers[]
+  orders   orders[]
 
   @@map("stores")
 }
@@ -145,4 +150,159 @@ model auditLogs {
   @@index([storeId, createdAt])
   @@index([actorId])
   @@map("audit_logs")
+}
+
+enum DatasetStatus {
+  UPLOADED
+  VALIDATED
+  IMPORTED
+  ROLLED_BACK
+  FAILED
+}
+
+enum DatasetIssueSeverity {
+  FATAL
+  AUTO_FIX
+  WARN
+  ACCEPT
+}
+
+model datasets {
+  id          String        @id @default(uuid())
+  storeId     String        @map("store_id")
+  uploadedById String       @map("uploaded_by_id")
+  status      DatasetStatus @default(UPLOADED)
+  fileName    String        @db.VarChar(255) @map("file_name")
+  fileHash    String        @db.VarChar(64) @map("file_hash")
+  mimeType    String        @db.VarChar(120) @map("mime_type")
+  rowCount    Int           @default(0) @map("row_count")
+  committedAt DateTime?     @map("committed_at")
+  importedAt  DateTime?     @map("imported_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  store       stores        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  uploadedBy users         @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  mappings    datasetMappings[]
+  issues      datasetIssues[]
+  orders      orders[]
+
+  @@index([storeId, createdAt])
+  @@map("datasets")
+}
+
+model datasetMappings {
+  id         String   @id @default(uuid())
+  datasetId String    @map("dataset_id")
+  mappingJson Json     @map("mapping_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  dataset datasets @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@map("dataset_mappings")
+}
+
+model datasetIssues {
+  id         String               @id @default(uuid())
+  datasetId  String               @map("dataset_id")
+  severity   DatasetIssueSeverity @default(WARN)
+  code       String               @db.VarChar(64)
+  rowNumber  Int?                 @map("row_number")
+  columnName String?              @db.VarChar(127) @map("column_name")
+  message    String               @db.VarChar(255)
+  count      Int                  @default(1)
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  dataset datasets @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId, severity])
+  @@map("dataset_issues")
+}
+
+model products {
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  sku       String   @db.VarChar(64)
+  name      String   @db.VarChar(191)
+  category  String?  @db.VarChar(127)
+  unit      String?  @db.VarChar(32)
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  store       stores            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  prices      productPrices[]
+  orderItems  orderItems[]
+
+  @@unique([storeId, sku])
+  @@index([storeId, name])
+  @@map("products")
+}
+
+model productPrices {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  price     Decimal  @db.Decimal(14, 2)
+  effectiveFrom DateTime @default(now()) @map("effective_from")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  product products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, effectiveFrom])
+  @@map("product_prices")
+}
+
+model customers {
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  code      String   @db.VarChar(64)
+  name      String   @db.VarChar(191)
+  segment   String?  @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  store  stores      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders orders[]
+
+  @@unique([storeId, code])
+  @@index([storeId, name])
+  @@map("customers")
+}
+
+model orders {
+  id          String   @id @default(uuid())
+  storeId     String   @map("store_id")
+  datasetId   String?  @map("dataset_id")
+  customerId  String?  @map("customer_id")
+  orderDate   DateTime @map("order_date")
+  channel     String?  @db.VarChar(64)
+  total       Decimal? @db.Decimal(14, 2)
+  status      String   @default("CONFIRMED") @db.VarChar(32)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  store    stores     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  dataset  datasets?  @relation(fields: [datasetId], references: [id], onDelete: SetNull)
+  customer customers? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    orderItems[]
+
+  @@index([storeId, orderDate])
+  @@index([storeId, customerId])
+  @@map("orders")
+}
+
+model orderItems {
+  id        String   @id @default(uuid())
+  orderId   String   @map("order_id")
+  productId String?  @map("product_id")
+  qty       Decimal  @db.Decimal(14, 4)
+  price     Decimal  @db.Decimal(14, 2)
+  discount  Decimal? @db.Decimal(14, 2)
+
+  order    orders     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product  products?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
 }
