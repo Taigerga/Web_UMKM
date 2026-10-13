@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service.js";
+import { RedisService } from "../cache/redis.service.js";
 
 export type SalesSummary = {
   totalSales: number;
@@ -35,9 +36,16 @@ export type CustomerSegment = {
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async getSalesSummary(storeId: string, period: "7d" | "30d" | "ytd" = "30d"): Promise<SalesSummary> {
+    const cacheKey = `store:${storeId}:metric:summary:${period}`;
+    const cached = await this.redis.get<SalesSummary>(cacheKey);
+    if (cached) return cached;
+
     const days = period === "7d" ? 7 : period === "30d" ? 30 : 365;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -54,7 +62,7 @@ export class AnalyticsService {
     const totalOrders = orders.length;
     const totalItems = orders.reduce((sum, o) => sum + o.items.length, 0);
 
-    return {
+    const result = {
       totalSales,
       totalOrders,
       totalItems,
@@ -62,6 +70,9 @@ export class AnalyticsService {
       avgItemsPerOrder: totalOrders > 0 ? totalItems / totalOrders : 0,
       period,
     };
+
+    await this.redis.set(cacheKey, result, 3600);
+    return result;
   }
 
   async getSalesTrend(storeId: string, period: "7d" | "30d" | "90d" = "30d"): Promise<SalesTrend[]> {
