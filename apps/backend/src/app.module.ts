@@ -12,6 +12,7 @@ import { InvitationsModule } from './invitations/invitations.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { DatasetsModule } from './datasets/datasets.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -49,6 +50,7 @@ export const AUTH_THROTTLE_OPTIONS = [
     InvitationsModule,
     DatasetsModule,
     CatalogModule,
+    AnalyticsModule,
     AdminModule,
     // Audit adalah dependensi yang dipakai hampir semua modul di atas.
     AuditModule,
