@@ -70,13 +70,16 @@ model stores {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  createdBy users           @relation("StoreCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  members  storeMembers[]
-  invites  storeInvites[]
-  datasets datasets[]
-  products products[]
-  customers customers[]
-  orders   orders[]
+  createdBy             users                 @relation("StoreCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  members               storeMembers[]
+  invites               storeInvites[]
+  datasets              datasets[]
+  products              products[]
+  customers             customers[]
+  orders                orders[]
+  productCategories     productCategories[]
+  suppliers             suppliers[]
+  forecastResults       forecastResults[]
 
   @@map("stores")
 }
@@ -230,9 +233,12 @@ model products {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  store       stores            @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  prices      productPrices[]
-  orderItems  orderItems[]
+  store             stores                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  prices            productPrices[]
+  orderItems        orderItems[]
+  productSuppliers  productSuppliers[]
+  margins           productMargins?
+  forecastResults   forecastResults[]
 
   @@unique([storeId, sku])
   @@index([storeId, name])
@@ -305,4 +311,88 @@ model orderItems {
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
+}
+
+// Phase 3: Analytics & Advanced Catalog
+
+model productCategories {
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  name      String   @db.VarChar(127)
+  description String? @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  store    stores @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@map("product_categories")
+}
+
+model suppliers {
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  name      String   @db.VarChar(191)
+  contact   String?  @db.VarChar(127)
+  address   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  store    stores @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productSuppliers productSuppliers[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@map("suppliers")
+}
+
+model productSuppliers {
+  id          String   @id @default(uuid())
+  productId   String   @map("product_id")
+  supplierId  String   @map("supplier_id")
+  costPrice   Decimal  @db.Decimal(14, 2) @map("cost_price")
+  leadDays    Int      @default(7) @map("lead_days")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  product  products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier suppliers @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+  @@index([productId])
+  @@index([supplierId])
+  @@map("product_suppliers")
+}
+
+model productMargins {
+  id              String   @id @default(uuid())
+  productId       String   @map("product_id")
+  costPrice       Decimal  @db.Decimal(14, 2) @map("cost_price")
+  marginPercent   Decimal  @db.Decimal(5, 2) @map("margin_percent")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  product products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId])
+  @@map("product_margins")
+}
+
+model forecastResults {
+  id              String   @id @default(uuid())
+  storeId         String   @map("store_id")
+  productId       String   @map("product_id")
+  forecastDate    DateTime @map("forecast_date")
+  predictedQty    Decimal  @db.Decimal(14, 4) @map("predicted_qty")
+  confidence      Decimal  @db.Decimal(5, 2) @default(0.95)
+  lowerBound      Decimal? @db.Decimal(14, 4) @map("lower_bound")
+  upperBound      Decimal? @db.Decimal(14, 4) @map("upper_bound")
+  computedAt      DateTime @default(now()) @map("computed_at")
+
+  store   stores   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, forecastDate])
+  @@index([storeId, forecastDate])
+  @@index([productId])
+  @@map("forecast_results")
 }
