@@ -37,7 +37,7 @@ export function Input({
         inputVariants.size[size],
         invalid
           ? "border-critical focus-visible:outline-critical"
-          : "border-line-strong hover:border-line-strong/80 focus-visible:border-accent-deep",
+          : "border-line-strong hover:border-line-strong-hover focus-visible:border-accent-deep",
         className,
       )}
       {...props}

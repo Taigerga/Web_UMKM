@@ -30,7 +30,17 @@
   --color-paper: #f4f6f8;
   --color-surface: #ffffff;
   --color-line: #e0e5ec;
-  --color-line-strong: #c6cedb;
+  /* Garis batas kontrol form. Nilai INI adalah perbaikan aksesibilitas, bukan
+     pilihan rasa: `--color-line-strong` sebelumnya `#C6CEDB` yang hanya 1.58:1
+     di atas putih, dan dipakai `Input`/`Select`/`Textarea` untuk batas kontrol.
+     WCAG 1.4.11 menuntut 3:1 untuk batas komponen non-teks yang dibutuhkan
+     untuk mengenali kontrol. Nilai sekarang 3.60:1 di `--color-surface`
+     (tempat form auth diletakkan) dan 3.32:1 di `--color-paper`. */
+  --color-line-strong: #7c87a0;
+  /* State hover untuk batas kontrol. Token ini ada karena hover lama memakai
+     `line-strong/80`: opasitas 80% menurunkan kontras ke 2.66:1 dan
+     membatalkan seluruh perbaikan di atas tepat saat kursor masuk ke field. */
+  --color-line-strong-hover: #6e7a96;
   --color-ink: #0b1b3a;
   --color-ink-muted: #55607a;
   --color-ink-faint: #7d879b;

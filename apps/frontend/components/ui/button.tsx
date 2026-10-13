@@ -1,3 +1,5 @@
+import type { Route } from "next";
+import Link from "next/link";
 import * as React from "react";
 
 import { cn } from "@/lib/cn";
@@ -62,24 +64,35 @@ export function Button({
 /**
  * Varian tautan yang terlihat seperti tombol.
  *
- * Sengaja memakai `<a>`, bukan `next/link`: target-nya adalah route autentikasi
- * (`/login`, `/register`) yang belum ada di Fase 1, dan `typedRoutes` akan
- * menolak `href` ke route yang belum terdaftar. Pola button-to-link untuk route
- * yang belum ada akan diperbarui ke `next/link` di Task 9.
+ * Pakai `next/link`, bukan `<a>`. Navigasi antar-route di aplikasi ini
+ * adalah navigasi peramban: memuat ulang dokumen untuk pindah dari landing ke
+ * halaman masuk membuang seluruh bundle yang sudah diunduh, dan di koneksi
+ * seluler itu perbedaan yang terasa.
+ *
+ * Generic `<T extends string>` di `Route<T>` adalah pola dari dokumentasi
+ * Next.js untuk komponen yang membungkus `Link`: typedRoutes memvalidasi
+ * string literal, tapi `href` yang diteruskan sebagai prop generik perlu
+ * diturunkan tipe Route-nya sendiri supaya pemanggil tetap mendapat
+ * pemeriksaan yang sama.
+ *
+ * `href` menerima `Route` maupun anchor halaman (`#faq`) karena keduanya
+ * dipakai di landing: `typedRoutes` sengaja tidak ikut memvalidasi anchor,
+ * yang bukan route.
  */
-export function ButtonLink({
+export function ButtonLink<T extends string>({
   className,
   variant = "primary",
   size = "md",
   fullWidth = false,
   ...props
-}: React.ComponentPropsWithoutRef<"a"> & {
+}: Omit<React.ComponentPropsWithoutRef<typeof Link<T>>, "href"> & {
+  href: Route<T> | `#${string}`;
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
 }) {
   return (
-    <a
+    <Link
       className={cn(
         "inline-flex items-center justify-center rounded-lg font-medium",
         "transition-colors duration-150",
@@ -88,7 +101,7 @@ export function ButtonLink({
         fullWidth && "w-full",
         className,
       )}
-      {...props}
+      {...(props as React.ComponentPropsWithoutRef<typeof Link>)}
     />
   );
 }
