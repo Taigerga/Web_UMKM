@@ -22,6 +22,21 @@ export function configureApp(app: INestApplication, config: AppConfig): void {
     origin: config.corsOrigins,
     //Dibutuhkan untuk refresh token HttpOnly di task autentikasi.
     credentials: true,
+    // Header throttle TIDAK bisa dibaca peramban lintas origin tanpa ini.
+    //
+    // `Retry-After` bukan response header yang aman secara CORS, jadi browser
+    // menyembunyikannya dari JavaScript kecuali server menyebutkannya di
+    // `Access-Control-Expose-Headers`. Tanpa baris ini `headers.get(...)` di
+    // frontend selalu `null` untuk respons 429, dan pesan "coba lagi dalam N
+    // detik" tidak pernah bisa muncul - bukan karena logikanya salah, tapi
+    // karena nilainya tidak pernah sampai ke sisi peramban.
+    //
+    // Dua nama diekspos karena `@nestjs/throttler` memakai throttler bernama:
+    // ia menulis `Retry-After-<nama>` untuk throttler yang punya nama
+    // (`Retry-After-auth` di endpoint auth) dan `Retry-After` polos untuk
+    // `default`. Yang aktif bergantung pada throttler mana yang menolak, jadi
+    // keduanya perlu terbuka.
+    exposedHeaders: ['Retry-After', 'Retry-After-auth'],
   });
   // WAJIB untuk endpoint refresh/logout: keduanya membaca refresh token dari
   // cookie. Tanpa ini `req.cookies` undefined dan logout tidak pernah mencabut

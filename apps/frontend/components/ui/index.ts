@@ -12,7 +12,7 @@ export {
 } from "./card";
 export type { CardPadding, CardProps, CardVariant } from "./card";
 
-export { Field, Input, Label, Select, Textarea, inputVariants } from "./input";
+export { Field, Input, Label, Select, Textarea, fieldErrorId, inputVariants } from "./input";
 export type { InputProps, InputSize, SelectProps, SelectSize, TextareaProps } from "./input";
 
 export { Badge, SampleDataBadge, badgeVariants } from "./badge";

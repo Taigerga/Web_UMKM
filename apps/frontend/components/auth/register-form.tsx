@@ -3,10 +3,10 @@
 import Link from "next/link";
 import * as React from "react";
 
-import { Button, Field, Input } from "@/components/ui";
+import { Button, Field, Input, fieldErrorId } from "@/components/ui";
 import { AUTH_ERROR_CODES, ApiError, toFieldErrors } from "@/lib/api-client";
 import { register } from "@/lib/auth-client";
-import { firstFieldError } from "@/lib/auth-errors";
+import { firstFieldError, formatFormLevelError } from "@/lib/auth-errors";
 import type { FieldErrorMap } from "@/lib/auth-errors";
 
 /**
@@ -190,12 +190,29 @@ export function RegisterForm() {
     }
   }
 
+  // Detail validasi yang tidak bisa dikaitkan ke field mana pun tetap
+  // ditampilkan. Melewatkannya berarti `property role should not exist`
+  // - pelanggaran kontrak R-35 yang justru paling perlu terlihat - hilang
+  // tanpa jejak di form yang paling mungkin mengirim `role`.
+  const fieldLevel = formatFormLevelError(fieldErrors);
   const nameError = firstFieldError(fieldErrors, "name");
   const emailError = firstFieldError(fieldErrors, "email");
   const passwordError = firstFieldError(fieldErrors, "password");
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      {fieldLevel ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-critical/30 bg-critical-wash px-4 py-3"
+        >
+          <p className="text-sm font-semibold text-critical">
+            Periksa kembali isian yang ditandai.
+          </p>
+          <p className="text-sm text-ink-muted">{fieldLevel}</p>
+        </div>
+      ) : null}
+
       {formMessage ? (
         <div
           role="alert"
@@ -217,6 +234,7 @@ export function RegisterForm() {
           required
           value={name}
           invalid={nameError !== undefined}
+          aria-describedby={nameError ? fieldErrorId("name") : undefined}
           onChange={(event) => setName(event.target.value)}
           placeholder="Budi Santoso"
         />
@@ -236,6 +254,7 @@ export function RegisterForm() {
           required
           value={email}
           invalid={emailError !== undefined}
+          aria-describedby={emailError ? fieldErrorId("email") : undefined}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="nama@tokoanda.id"
         />
@@ -257,6 +276,7 @@ export function RegisterForm() {
           maxLength={MAX_PASSWORD_LENGTH}
           value={password}
           invalid={passwordError !== undefined}
+          aria-describedby={passwordError ? fieldErrorId("password") : undefined}
           onChange={(event) => setPassword(event.target.value)}
         />
       </Field>
@@ -276,6 +296,9 @@ export function RegisterForm() {
           required
           value={confirmation}
           invalid={mismatch}
+          aria-describedby={
+            mismatch ? fieldErrorId("passwordConfirmation") : undefined
+          }
           onChange={(event) => setConfirmation(event.target.value)}
         />
       </Field>

@@ -5,10 +5,11 @@ import {
   LOGIN_PATH,
   PROTECTED_PREFIX,
   buildLoginUrl,
+  config,
   isProtectedPath,
   proxy,
-  config,
 } from "../proxy";
+import { resolveSafeRedirect } from "@/components/auth/login-form";
 
 function request(url: string, cookies: Record<string, string> = {}): NextRequest {
   const req = new NextRequest(new Request(url));
@@ -70,7 +71,7 @@ describe("proxy", () => {
     expect(location(response)).toContain("next=%2Fdashboard%2Flaporan");
   });
 
-  it("meneruskan request yang sudah punya cookie bi_at", () => {
+  it("meneruskan request yang sudah punya cookie access", () => {
     // Header `x-middleware-next` adalah tanda NextResponse.next(). Cookie di
     // sini sengaja TIDAK diverifikasi: R-33 menetapkan proxy sebagai gate UX,
     // dan verifikasi sesungguhnya tetap di `JwtAuthGuard` backend.
@@ -91,26 +92,75 @@ describe("proxy", () => {
 });
 
 describe("buildLoginUrl", () => {
-  it("tidak meneruskan tujuan yang berada di luar origin sendiri", () => {
-    // `next` berasal dari URL, jadi dikendalikan pengguna. Meneruskannya apa
-    // adanya membuka open redirect tepat setelah password diketik.
-    const url = buildLoginUrl(
-      request("http://localhost:3001/dashboard"),
-    );
+  it("meneruskan tujuan sebagai path internal", () => {
+    const url = buildLoginUrl(request("http://localhost:3001/dashboard"));
     expect(url.searchParams.get("next")).toBe("/dashboard");
   });
 
-  it("menolak URL absolut dan protocol-relative", () => {
-    for (const target of [
-      "https://phishing.example/steal",
-      "//phishing.example/steal",
-    ]) {
-      const url = new URL(LOGIN_PATH, "http://localhost:3001");
-      url.searchParams.set("next", target);
-      // Menyalin logika yang sama persis dengan yang dipakai pemanggil.
-      const value = url.searchParams.get("next") ?? "";
-      const safe = value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
-      expect(safe).toBe("/dashboard");
+  it("mempertahankan query string tujuan", () => {
+    const url = buildLoginUrl(
+      request("http://localhost:3001/dashboard/laporan?periode=2026-09"),
+    );
+    expect(url.searchParams.get("next")).toBe("/dashboard/laporan?periode=2026-09");
+  });
+
+  /**
+   * Batas sesungguhnya ada di `resolveSafeRedirect`, bukan di sini.
+   *
+   * `target` dibentuk dari `nextUrl.pathname` + `nextUrl.search`, dan keduanya
+   * selalu diawali `/`, jadi guard `startsWith("/")` di `buildLoginUrl` tidak
+   * pernah menolak apa pun. Test ini sengaja menguji apa yang sebenarnya
+   * terjadi: `//evil.example` LOLOS dari `buildLoginUrl`, dan yang menahannya
+   * adalah `resolveSafeRedirect`. Menyembunyikan hal itu akan membuat test
+   * kelihatan melindungi sesuatu yang sebenarnya tidak dilindungi.
+   */
+  it("MEMBUKTIKAN guard di buildLoginUrl tidak menahan protocol-relative", () => {
+    const url = buildLoginUrl(request("http://localhost:3001//evil.example/dashboard"));
+    expect(url.searchParams.get("next")).toBe("//evil.example/dashboard");
+  });
+});
+
+describe("composition: proxy -> login form", () => {
+  /**
+   * Test yang benar-benar menutup jalur open redirect.
+   *
+   * Dua berkas terpisah, dua mekanisme berbeda: `buildLoginUrl` menyusun `next`,
+   * `resolveSafeRedirect` memakainya. Yang diuji di sini adalah apa yang
+   * SEBENARNYA terjadi pada request nyata, bukan salinan logika yang ditulis
+   * dua kali dan dijamin benar karena tidak pernah dibandingkan ke aslinya.
+   */
+  it("apapun target dari proxy, redirect akhirnya tetap internal", () => {
+    const hostile = [
+      "http://localhost:3001//evil.example/dashboard",
+      "http://localhost:3001/dashboard?next=https://evil.example",
+      "http://localhost:3001/dashboard/../../evil",
+      "http://localhost:3001/dashboard?a=//evil.example",
+      "http://localhost:3001/dashboard?x=%2F%2Fevil.example",
+    ];
+
+    for (const url of hostile) {
+      const built = buildLoginUrl(request(url));
+      const resolved = resolveSafeRedirect(built.searchParams.get("next"));
+
+      // Invarian yang diuji: hasilnya SELALU path internal pada origin yang
+      // sama. Bukan "harus persis /dashboard" - `/dashboard?next=https://...`
+      // tetap aman, karena `https://` hanya muncul sebagai NILAI QUERY, bukan
+      // sebagai tujuan navigasi. Yang berbahaya adalah hasil yang akan
+      // diartikan peramban sebagai origin lain, yaitu diawali `//` atau punya
+      // scheme.
+      expect(resolved, `harus path internal untuk ${url}`).toMatch(/^\/(?!\/)/);
+      expect(resolved, `tanpa scheme untuk ${url}`).not.toMatch(
+        /^[a-z][a-z0-9+.-]*:/i,
+      );
     }
+  });
+
+  it("tetap meneruskan tujuan yang wajar apa adanya", () => {
+    const built = buildLoginUrl(
+      request("http://localhost:3001/dashboard/laporan?periode=2026-09"),
+    );
+    expect(resolveSafeRedirect(built.searchParams.get("next"))).toBe(
+      "/dashboard/laporan?periode=2026-09",
+    );
   });
 });

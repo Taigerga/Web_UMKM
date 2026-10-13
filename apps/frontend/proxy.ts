@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { ACCESS_COOKIE_NAME } from "./lib/auth-session";
+
 /**
  * Gate UX untuk `/dashboard/*`.
  *
@@ -62,9 +64,16 @@ export function isProtectedPath(pathname: string): boolean {
 export function buildLoginUrl(request: NextRequest): URL {
   const url = new URL(LOGIN_PATH, request.url);
   const target = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-  // Hanya path internal yang diteruskan. Nilai yang sudah berupa URL absolut
-  // tidak boleh ikut, kalau tidak `next` bisa dipakai untuk mengarahkan
-  // pengguna ke situs lain setelah login (open redirect).
+
+  // Guard ini DEFENCE-IN-DEPTH, bukan perlindungan yang aktif. `pathname` dan
+  // `search` dari `NextRequest` selalu diawali `/`, jadi cabang ini tidak pernah
+  // menolak apa pun - sudah diperiksa dengan membangun `NextRequest` dari URL
+  // protocol-relative, bercabang tiga tingkat, dan berisi query bermuatan `//`.
+  //
+  // Bukan pula lengkap: `//evil.example` LOLOS dari sini karena diawali `/`.
+  // Yang benar-benar menutup open redirect adalah `resolveSafeRedirect` di
+  // sisi Client Component, yang menolak `//` dan scheme. Keduanya diuji
+  // bersama di `__tests__/proxy.test.ts`.
   if (target.startsWith("/")) url.searchParams.set("next", target);
   return url;
 }
@@ -76,7 +85,15 @@ export function proxy(request: NextRequest): NextResponse {
 
   // Cookie yang ada = ada sesi menurut peramban. Token-nya sendiri tidak dibaca
   // di sini; lihat catatan R-33 di atas soal kenapa file ini bukan verifikasi.
-  const hasToken = request.cookies.get("bi_at") !== undefined;
+  //
+  // Nama cookie diimpor, bukan ditulis ulang: `auth-session.ts` membacanya dari
+  // `NEXT_PUBLIC_ACCESS_COOKIE_NAME`, jadi dua sumber kebenaran akan membuat
+  // penggantian nama merusak gate ini tanpa satu pun test yang gagal.
+  //
+  // `auth-session.ts` aman diimpor di sini: satu-satunya hal yang dibacanya
+  // adalah `process.env`, dan `readAccessToken()` yang menyentuh `document`
+  // tidak pernah dipanggil dari file ini.
+  const hasToken = request.cookies.get(ACCESS_COOKIE_NAME) !== undefined;
   if (hasToken) return NextResponse.next();
 
   return NextResponse.redirect(buildLoginUrl(request));

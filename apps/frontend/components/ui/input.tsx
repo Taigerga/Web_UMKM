@@ -98,7 +98,24 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
   );
 }
 
-/** Pembungkus field: label + kontrol + pesan bantuan/error, dengan jarak seragam. */
+/** Id elemen pesan galat, diturunkan dari id kontrolnya. */
+export function fieldErrorId(controlId: string): string {
+  return `${controlId}-error`;
+}
+
+/**
+ * Pembungkus field: label + kontrol + pesan bantuan/error, dengan jarak seragam.
+ *
+ * `id` pesan galat DITURUNKAN dari `htmlFor` lewat {@link fieldErrorId}, bukan
+ * ditulis manual oleh pemanggil. Sebelumnya elemen pesan galat tidak punya id
+ * sama sekali, sementara form auth menunjuk `"email-error"` dari
+ * `aria-describedby` - jadi referensinya menunjuk elemen yang tidak ada, dan
+ * pembaca layar tidak pernah membacakan pesan itu sebagai bagian dari input.
+ *
+ * Menurunkan id dari id kontrol juga menutup kelas bug yang sama di masa depan:
+ * form baru yang menentukan sendiri nama id tidak bisa lupa memakai suffix yang
+ * sama dengan yang dibaca `Field`.
+ */
 export function Field({
   className,
   label,
@@ -118,9 +135,17 @@ export function Field({
     <div className={cn("flex flex-col gap-1.5", className)}>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      {hint ? <p className="text-xs leading-relaxed text-ink-muted">{hint}</p> : null}
+      {hint ? (
+        <p id={`${htmlFor}-hint`} className="text-xs leading-relaxed text-ink-muted">
+          {hint}
+        </p>
+      ) : null}
       {error ? (
-        <p role="alert" className="text-xs font-medium text-critical">
+        <p
+          id={fieldErrorId(htmlFor)}
+          role="alert"
+          className="text-xs font-medium text-critical"
+        >
           {error}
         </p>
       ) : null}

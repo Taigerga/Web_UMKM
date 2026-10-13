@@ -3,7 +3,7 @@
 import Link from "next/link";
 import * as React from "react";
 
-import { Button, Field, Input } from "@/components/ui";
+import { Button, Field, Input, fieldErrorId } from "@/components/ui";
 import { AUTH_ERROR_CODES, ApiError, toFieldErrors } from "@/lib/api-client";
 import { login } from "@/lib/auth-client";
 import { firstFieldError, formatFormLevelError } from "@/lib/auth-errors";
@@ -191,7 +191,7 @@ export function LoginForm({ nextPath = "/dashboard" }: LoginFormProps) {
           required
           value={email}
           invalid={emailError !== undefined}
-          aria-describedby={emailError ? "email-error" : undefined}
+          aria-describedby={emailError ? fieldErrorId("email") : undefined}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="nama@tokoanda.id"
         />
@@ -206,7 +206,7 @@ export function LoginForm({ nextPath = "/dashboard" }: LoginFormProps) {
           required
           value={password}
           invalid={passwordError !== undefined}
-          aria-describedby={passwordError ? "password-error" : undefined}
+          aria-describedby={passwordError ? fieldErrorId("password") : undefined}
           onChange={(event) => setPassword(event.target.value)}
         />
       </Field>

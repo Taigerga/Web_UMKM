@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiRequest, readRetryAfter } from "@/lib/api-client";
+import {
+  AUTH_ERROR_CODES,
+  ApiError,
+  apiRequest,
+  readRetryAfter,
+} from "@/lib/api-client";
 import {
   ACCESS_COOKIE_NAME,
   clearAccessToken,
@@ -168,6 +173,28 @@ describe("apiRequest", () => {
     expect(error).toBeInstanceOf(ApiError);
     expect(error.code).toBe("NETWORK_ERROR");
     expect(error.status).toBe(0);
+  });
+
+  it("menolak respons 2xx yang body-nya JSON tapi tanpa amplop `data`", async () => {
+    // Tanpa guard ini, `parsed.data` menghasilkan `undefined` yang diketik
+    // sebagai `T`, dan pemanggil gagal jauh dari penyebabnya - membaca
+    // properti dari `undefined` di tempat yang tidak ada hubungannya dengan
+    // HTTP. `MALFORMED_RESPONSE` sudah ada persis untuk kasus ini.
+    for (const body of [{ nope: 1 }, [1, 2], "bukan objek", 42, null]) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation(async () =>
+          new Response(JSON.stringify(body), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      );
+
+      const error = (await apiRequest("/auth/me").catch((e: unknown) => e)) as ApiError;
+      expect(error, `body ${JSON.stringify(body)}`).toBeInstanceOf(ApiError);
+      expect(error.code).toBe(AUTH_ERROR_CODES.MALFORMED_RESPONSE);
+    }
   });
 
   it("tidak melempar pada 204 tanpa body (logout)", async () => {

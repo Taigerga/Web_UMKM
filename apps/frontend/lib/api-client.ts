@@ -134,6 +134,20 @@ export type ApiRequestOptions = {
  * `ThrottlerGuard` menulis `Retry-After-${nama}` untuk throttler bernama. Jadi
  * header yang benar-benar dikirim adalah `Retry-After-auth`, bukan `Retry-After`.
  * Header polos ikut dibaca supaya tidak rapuh kalau nama throttler berubah.
+ *
+ * ## Syarat agar nilai ini benar-benar sampai ke peramban
+ *
+ * `Retry-After` BUKAN response header yang aman secara CORS. Backend harus
+ * menyebutkannya di `exposedHeaders`; kalau tidak, JavaScript di origin lain
+ * melihat `null` walau header-nya ada di respons, dan fungsi ini selalu
+ * mengembalikan `null`.
+ *
+ * `exposedHeaders: ['Retry-After', 'Retry-After-auth']` sudah dipasang di
+ * `apps/backend/src/bootstrap.ts`, dan
+ * `apps/backend/test/cors-exposed-headers.e2e.spec.ts` mengunci bahwa header itu
+ * benar-benar diekspos. Kalau eksposur itu hilang, gejalanya di sisi ini adalah
+ * "retry-after selalu kosong" - pesan 429 tetap muncul, hanya tanpa hitungan
+ * detiknya.
  */
 const RETRY_AFTER_HEADERS = ["retry-after", "retry-after-auth"] as const;
 
@@ -265,6 +279,19 @@ export async function apiRequest<T>(
       status: response.status,
       code: AUTH_ERROR_CODES.MALFORMED_RESPONSE,
       message: "Respons server tidak bisa dibaca.",
+    });
+  }
+
+  // Amplop `{ data }` diperiksa, bukan diasumsikan. Tanpa pemeriksaan ini,
+  // respons 2xx yang body-nya JSON tapi tanpa `data` menghasilkan `undefined`
+  // yang diketik sebagai `T`, dan pemanggil baru gagal jauh dari penyebabnya -
+  // membaca properti dari `undefined` di tempat yang tidak ada hubungannya
+  // dengan HTTP sama sekali.
+  if (typeof parsed !== "object" || parsed === null || !("data" in parsed)) {
+    throw new ApiError({
+      status: response.status,
+      code: AUTH_ERROR_CODES.MALFORMED_RESPONSE,
+      message: "Respons server tidak sesuai format yang diharapkan.",
     });
   }
 
