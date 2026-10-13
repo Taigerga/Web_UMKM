@@ -51,13 +51,14 @@ export class DatasetsService {
     const absolute = path.resolve(file.path);
     const contents = fs.readFileSync(absolute);
     const fileHash = crypto.createHash("sha256").update(contents).digest("hex");
+    // Store actual filename on disk (not original client filename)
+    const storedFilename = path.basename(file.path);
     const row = await this.prisma.datasets.create({
       data: {
         storeId,
         uploadedById,
         status: "UPLOADED",
-        fileName: file.originalname,
-        filePath: file.path,
+        fileName: storedFilename,
         fileHash,
         mimeType: file.mimetype,
         rowCount: 0,
@@ -100,7 +101,8 @@ export class DatasetsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const raw = fs.readFileSync(dataset.filePath, 'utf8');
+    const filePath = path.join(STORAGE_ROOT, storeId, dataset.fileName);
+    const raw = fs.readFileSync(filePath, 'utf8');
     const records = parseCsv(raw, { columns: true, skip_empty_lines: true, trim: true, bom: true });
     const headers =
       records.length && records[0] && typeof records[0] === 'object'
@@ -199,7 +201,8 @@ export class DatasetsService {
       where: { datasetId },
       orderBy: { createdAt: 'desc' },
     });
-    const raw = fs.readFileSync(dataset.filePath, 'utf8');
+    const filePath = path.join(STORAGE_ROOT, storeId, dataset.fileName);
+    const raw = fs.readFileSync(filePath, 'utf8');
     const records = parseCsv(raw, { columns: true, skip_empty_lines: true, trim: true, bom: true });
     const headers = records.length && records[0] ? Object.keys(records[0] as any) : [];
     const mapping = ((mappingRow?.mappingJson ?? this.inferMapping(headers)) as unknown) as Record<string, string>;

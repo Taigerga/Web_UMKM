@@ -171,4 +171,24 @@ export class DatasetsController {
       example: sample,
     };
   }
+
+  @Get(":datasetId")
+  @StoreAccess()
+  async detail(@Param("storeId") storeId: string, @Param("datasetId") datasetId: string) {
+    return {
+      data: await this.service.get(storeId, datasetId),
+    };
+  }
+
+  @Get(":datasetId/issues")
+  @StoreAccess()
+  async getIssues(@Param("storeId") storeId: string, @Param("datasetId") datasetId: string) {
+    const result = await this.service.validate(storeId, datasetId);
+    return {
+      data: {
+        dataset: result,
+        issues: result.issues,
+      },
+    };
+  }
 }
