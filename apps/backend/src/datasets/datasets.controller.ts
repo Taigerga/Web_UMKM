@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -47,6 +48,61 @@ function makeStorage(storeIdProvider: () => string | undefined) {
 @Controller("stores/:storeId/datasets")
 export class DatasetsController {
   constructor(private readonly service: DatasetsService) {}
+
+  @Get(":datasetId")
+  @StoreAccess()
+  async getDataset(@Param("storeId") storeId: string, @Param("datasetId") datasetId: string) {
+    return {
+      data: await this.service.get(storeId, datasetId),
+    };
+  }
+
+  @Post(":datasetId/mapping")
+  @Roles(Role.OWNER, Role.ADMIN)
+  @StoreAccess()
+  async setMapping(
+    @Param("storeId") storeId: string,
+    @Param("datasetId") datasetId: string,
+    @Body() body: any,
+  ) {
+    const mapping = body?.mapping ?? body;
+    return {
+      data: await this.service.setMapping(storeId, datasetId, mapping),
+    };
+  }
+
+  @Post(":datasetId/validate")
+  @Roles(Role.OWNER, Role.ADMIN)
+  @StoreAccess()
+  async validate(@Param("storeId") storeId: string, @Param("datasetId") datasetId: string) {
+    return {
+      data: await this.service.validate(storeId, datasetId),
+    };
+  }
+
+  @Post(":datasetId/commit")
+  @Roles(Role.OWNER, Role.ADMIN)
+  @StoreAccess()
+  async commitDataset(
+    @Param("storeId") storeId: string,
+    @Param("datasetId") datasetId: string,
+  ) {
+    return {
+      data: await this.service.commit(storeId, datasetId),
+    };
+  }
+
+  @Post(":datasetId/rollback")
+  @Roles(Role.OWNER, Role.ADMIN)
+  @StoreAccess()
+  async rollbackDataset(
+    @Param("storeId") storeId: string,
+    @Param("datasetId") datasetId: string,
+  ) {
+    return {
+      data: await this.service.rollback(storeId, datasetId),
+    };
+  }
 
   @Post()
   @Roles(Role.OWNER, Role.ADMIN)

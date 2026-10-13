@@ -1,0 +1,3 @@
+order_id,order_date,customer_code,customer_name,product_code,product_name,category,qty,unit,unit_price,total_price,channel
+ORD-1,2026-01-01,C1,Ridho,P1,Teh Botol,Minuman,2,botol,3000,6000,online
+ORD-2,2026-01-02,C2,Siti,P2,Kopi,Minuman,1,cup,10000,10000,offline

@@ -173,6 +173,7 @@ model datasets {
   uploadedById String       @map("uploaded_by_id")
   status      DatasetStatus @default(UPLOADED)
   fileName    String        @db.VarChar(255) @map("file_name")
+  filePath    String        @db.VarChar(1024) @map("file_path")
   fileHash    String        @db.VarChar(64) @map("file_hash")
   mimeType    String        @db.VarChar(120) @map("mime_type")
   rowCount    Int           @default(0) @map("row_count")
