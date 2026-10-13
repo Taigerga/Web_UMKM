@@ -113,6 +113,11 @@ describe("buildLoginUrl", () => {
    * terjadi: `//evil.example` LOLOS dari `buildLoginUrl`, dan yang menahannya
    * adalah `resolveSafeRedirect`. Menyembunyikan hal itu akan membuat test
    * kelihatan melindungi sesuatu yang sebenarnya tidak dilindungi.
+   *
+   * Perhatikan bahwa `resolveSafeRedirect` pun harus benar untuk klaim ini
+   * berlaku: ia menolak karakter kontrol DAN memverifikasi asal hasil
+   * resolusi. Hanya dengan pemeriksaan bentuk, ia akan membiarkan
+   * `/<tab>/evil.example` lewat - lihat `__tests__/open-redirect.test.ts`.
    */
   it("MEMBUKTIKAN guard di buildLoginUrl tidak menahan protocol-relative", () => {
     const url = buildLoginUrl(request("http://localhost:3001//evil.example/dashboard"));
@@ -136,21 +141,44 @@ describe("composition: proxy -> login form", () => {
       "http://localhost:3001/dashboard/../../evil",
       "http://localhost:3001/dashboard?a=//evil.example",
       "http://localhost:3001/dashboard?x=%2F%2Fevil.example",
+      // Karakter kontrol: parser URL membuang tab, LF, dan CR sebelum mem-parse,
+      // jadi nilai yang BERAWAL `/` tetap bisa mendarat di origin lain.
+      //
+      // CATATAN jujur soal entry ini: lewat `buildLoginUrl` nilainya tiba
+      // TER-ENCODE DUA KALI, karena seluruh URL request dimasukkan sebagai
+      // nilai `next` yang sudah ter-escape. `%09` tetap `%09` di dalam, jadi
+      // karakter kontrolnya tidak pernah sampai ke `resolveSafeRedirect` dan
+      // entry ini TIDAK menguji lapis penolakan karakter kontrol. Entry ini
+      // hanya menjaga invarian asal untuk jalur bersarang.
+      //
+      // Jalur serangan yang hidup diuji di `__tests__/open-redirect.test.ts`:
+      // pengguna menulis `/login?next=/%09/evil.example` langsung, dan nilai
+      // itu tiba ke `resolveSafeRedirect` sebagai tab sungguhan.
+      "http://localhost:3001/dashboard?next=/%09/evil.example",
+      "http://localhost:3001/dashboard?next=/%0A/evil.example",
+      "http://localhost:3001/dashboard?next=/%0D/evil.example",
+      "http://localhost:3001/dashboard?next=/%00/evil.example",
+      "http://localhost:3001/dashboard?next=/%1F/evil.example",
+      "http://localhost:3001/dashboard?next=/%7F/evil.example",
     ];
 
     for (const url of hostile) {
       const built = buildLoginUrl(request(url));
       const resolved = resolveSafeRedirect(built.searchParams.get("next"));
 
-      // Invarian yang diuji: hasilnya SELALU path internal pada origin yang
-      // sama. Bukan "harus persis /dashboard" - `/dashboard?next=https://...`
-      // tetap aman, karena `https://` hanya muncul sebagai NILAI QUERY, bukan
-      // sebagai tujuan navigasi. Yang berbahaya adalah hasil yang akan
-      // diartikan peramban sebagai origin lain, yaitu diawali `//` atau punya
-      // scheme.
-      expect(resolved, `harus path internal untuk ${url}`).toMatch(/^\/(?!\/)/);
-      expect(resolved, `tanpa scheme untuk ${url}`).not.toMatch(
-        /^[a-z][a-z0-9+.-]*:/i,
+      // Invarian yang diuji adalah ASAL TUJUAN AKHIR, bukan bentuk string-nya.
+      //
+      // Bentuk tidak cukup, dan itu bukan concern teoritis: nilai
+      // `/<tab>/evil.example` diawali `/`, tidak punya scheme, dan tidak
+      // diawali `//` - jadi lolos `/^\/(?!\/)/` - lalu tetap mendarat di
+      // `http://evil.example` karena parser URL membuang tab sebelum mem-parse.
+      // Menguji bentuk di sini pernah memberi rasa aman yang salah.
+      //
+      // Yang diuji: kalau nilai ini diserahkan ke `window.location.replace`
+      // dari origin ini, peramban tetap di origin yang sama.
+      const destination = new URL(resolved, "http://localhost:3001");
+      expect(destination.origin, `asal tujuan untuk ${url}`).toBe(
+        "http://localhost:3001",
       );
     }
   });

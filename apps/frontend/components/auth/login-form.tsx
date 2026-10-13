@@ -78,22 +78,72 @@ export type LoginFormProps = {
 };
 
 /**
- * Hanya izinkan redirect ke path internal.
+ * Asal tetap untuk resolusi URL di {@link resolveSafeRedirect}.
+ *
+ * `.invalid` dicadangkan RFC 2606 dan tidak akan pernah resolve ke host
+ * sungguhan, jadi aman dipakai sebagai dummy. Resolusi dilakukan terhadap asal
+ * tetap ini, bukan `window.location.origin`, supaya hasilnya tidak bergantung
+ * pada lingkungan tempat fungsi ini dijalankan.
+ */
+const REDIRECT_PROBE_ORIGIN = "http://redirect-probe.invalid";
+
+/** Tujuan yang dipakai saat nilai `next` ditolak. */
+const DEFAULT_REDIRECT = "/dashboard";
+
+/** Karakter kontrol ASCII: U+0000-U+001F dan U+007F. */
+const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
+
+/**
+ * Hanya izinkan redirect ke path internal pada origin yang sama.
  *
  * `next` berasal dari URL, jadi nilainya dikendalikan pengguna. Tanpa
- * penyaringan, `/login?next=https://phishing.example` akan terlihat biasa di URL tapi
- * mengirim pengguna ke situs lain tepat setelah ia mengetikkan password-nya di
- * situs yang benar. Ini pola open redirect, dan tempat paling buruk untuk itu
- * adalah login.
+ * penyaringan, `/login?next=https://phishing.example` terlihat biasa di address
+ * bar tapi mengirim pengguna ke situs lain tepat setelah ia mengetikkan
+ * password-nya di situs yang benar. Ini pola open redirect, dan tempat paling
+ * buruk untuk itu adalah login.
+ *
+ * ## Tiga lapis, dan lapis ketiga yang benar-benar menahan
+ *
+ * 1. **Tolak karakter kontrol ASCII.** WAJIB jadi pemeriksaan pertama, sebelum
+ *    apa pun yang lain. Parser URL WHATWG membuang tab, LF, dan CR dari input
+ *    SEBELUM mem-parse-nya, jadi `/<tab>/evil.example` - yang diawali `/` dan
+ *    tidak mengandung `\` - berubah menjadi `http://evil.example/` saat
+ *    diproses. Semua pemeriksaan struktur di bawah akan lolos atas nilai itu.
+ * 2. **Harus diawali satu slash, tanpa backslash.** Menolak `//host` (URL
+ *    protocol-relative) dan `\` (yang beberapa peramban normalkan jadi `/`).
+ * 3. **Verifikasi asal hasil resolusi.** Ini yang sebenarnya menahan. Lapis 1
+ *    dan 2 menolak input yang *terlihat* berbahaya; lapis 3 menjawab pertanyaan
+ *    yang lebih jujur: setelah URL itu diproses, ke mana peramban benar-benar
+ *    akan pergi? Kalau parser mengubah nilai yang lolos menjadi URL lintas
+ *    origin, asal tidak akan sama dan nilainya ditolak.
+ *
+ * Lapis 3 membuat lapis 1 dan 2 bukan satu-satunya pertahanan: denylist saja
+ * tidak cukup selama parser masih bisa mentransformasi nilai yang diizinkan
+ * menjadi lintas-origin - dan itulah justru yang terjadi pada bug ini.
  */
 export function resolveSafeRedirect(raw: string | undefined | null): string {
-  if (typeof raw !== "string") return "/dashboard";
+  if (typeof raw !== "string") return DEFAULT_REDIRECT;
+
+  // (1) Karakter kontrol dulu, sebelum pemeriksaan lain.
+  if (CONTROL_CHARS.test(raw)) return DEFAULT_REDIRECT;
+
   const value = raw.trim();
-  // Harus diawali satu slash, dan tidak dua — `//host` adalah URL protocol-
-  // relative yang menunjuk situs lain meski diawali `/`.
-  if (!value.startsWith("/") || value.startsWith("//")) return "/dashboard";
-  // Tolak yang mencoba keluar dari path dengan menyamar sebagai path biasa.
-  if (value.includes("\\")) return "/dashboard";
+  if (value.length === 0) return DEFAULT_REDIRECT;
+
+  // (2) Bentuk path internal.
+  if (!value.startsWith("/") || value.startsWith("//")) return DEFAULT_REDIRECT;
+  if (value.includes("\\")) return DEFAULT_REDIRECT;
+
+  // (3) Verifikasi asal setelah resolusi. Satu-satunya lapisan yang melihat
+  // hasil akhir parser, jadi satu-satunya yang bisa menjamin tujuan tetap
+  // di origin yang sama.
+  try {
+    const resolved = new URL(value, REDIRECT_PROBE_ORIGIN);
+    if (resolved.origin !== REDIRECT_PROBE_ORIGIN) return DEFAULT_REDIRECT;
+  } catch {
+    return DEFAULT_REDIRECT;
+  }
+
   return value;
 }
 

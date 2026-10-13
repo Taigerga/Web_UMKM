@@ -70,10 +70,19 @@ export function buildLoginUrl(request: NextRequest): URL {
   // menolak apa pun - sudah diperiksa dengan membangun `NextRequest` dari URL
   // protocol-relative, bercabang tiga tingkat, dan berisi query bermuatan `//`.
   //
-  // Bukan pula lengkap: `//evil.example` LOLOS dari sini karena diawali `/`.
-  // Yang benar-benar menutup open redirect adalah `resolveSafeRedirect` di
-  // sisi Client Component, yang menolak `//` dan scheme. Keduanya diuji
-  // bersama di `__tests__/proxy.test.ts`.
+  // DAN guard ini juga tidak lengkap: `//evil.example` LOLOS dari sini karena
+  // diawali `/`. Satu-satunya tempat open redirect ditutup adalah
+  // `resolveSafeRedirect` di sisi Client Component - dan itu pun baru benar
+  // setelah karakter kontrol ditolak dan asal hasil resolusi diverifikasi.
+  //
+  // Catatan penting: `resolveSafeRedirect` yang memeriksa bentuk saja TIDAK
+  // cukup. Parser URL membuang tab, LF, dan CR sebelum mem-parse, jadi nilai
+  // `/<tab>/evil.example` lolos `startsWith("/")` dan `!includes("\\")`,
+  // lalu tetap mendarat di origin lain saat `window.location.replace`
+  // memprosesnya. Yang menutupnya adalah lapis verifikasi asal. Jaga
+  // kedua-duanya tetap ada; menghapus salah satunya membuka open redirect
+  // lagi. Diuji di `__tests__/open-redirect.test.ts` dan
+  // `__tests__/proxy.test.ts`.
   if (target.startsWith("/")) url.searchParams.set("next", target);
   return url;
 }
