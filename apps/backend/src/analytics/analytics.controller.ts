@@ -117,4 +117,27 @@ export class AnalyticsController {
     const data = await this.mlJobs.listJobs(storeId, status, limit ? Number(limit) : 50, offset ? Number(offset) : 0);
     return { data };
   }
+  @Get("profitability")
+  @StoreAccess()
+  async getProfitability(@Param("storeId") storeId: string) {
+    return { data: await this.service.getProfitability(storeId) };
+  }
+
+  @Get("category-breakdown")
+  @StoreAccess()
+  async getCategoryBreakdown(@Param("storeId") storeId: string) {
+    return { data: await this.service.getCategoryBreakdown(storeId) };
+  }
+
+  @Get("product-performance")
+  @StoreAccess()
+  async getProductPerformance(@Param("storeId") storeId: string, @Query("limit") limit: string = "20") {
+    return { data: await this.service.getProductPerformance(storeId, parseInt(limit, 10)) };
+  }
+
+  @Get("customer-value")
+  @StoreAccess()
+  async getCustomerValue(@Param("storeId") storeId: string, @Query("limit") limit: string = "50") {
+    return { data: await this.service.getCustomerValue(storeId, parseInt(limit, 10)) };
+  }
 }
