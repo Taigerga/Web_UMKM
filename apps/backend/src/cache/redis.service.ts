@@ -1,72 +1,40 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import * as redis from "redis";
+﻿import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+
+interface CacheEntry { value: string; expiresAt: number; }
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private client: redis.RedisClient | null = null;
+  private readonly store = new Map<string, CacheEntry>();
 
-  async onModuleInit() {
-    try {
-      const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
-      this.client = redis.createClient({ url: redisUrl });
-      this.client.on("error", (err) => console.error("Redis error:", err));
-      await this.client.connect();
-      console.log("Redis connected");
-    } catch (error) {
-      console.warn("Redis unavailable, using in-memory fallback:", error);
-    }
-  }
+  async onModuleInit() {}
+  async onModuleDestroy() {}
 
-  async onModuleDestroy() {
-    if (this.client) {
-      await this.client.quit();
+  private purgeExpired() {
+    const now = Date.now();
+    for (const [k, v] of this.store.entries()) {
+      if (v.expiresAt <= now) this.store.delete(k);
     }
   }
 
   async get<T>(key: string): Promise<T | null> {
-    if (!this.client) return null;
-    try {
-      const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
-    } catch {
-      return null;
-    }
+    this.purgeExpired();
+    const e = this.store.get(key);
+    if (!e) return null;
+    try { return JSON.parse(e.value) as T; } catch { return null; }
   }
 
   async set<T>(key: string, value: T, ttlSeconds: number = 3600): Promise<void> {
-    if (!this.client) return;
-    try {
-      await this.client.setEx(key, ttlSeconds, JSON.stringify(value));
-    } catch (error) {
-      console.warn("Redis set failed:", error);
-    }
+    this.store.set(key, { value: JSON.stringify(value), expiresAt: Date.now() + ttlSeconds * 1000 });
   }
 
   async del(...keys: string[]): Promise<void> {
-    if (!this.client) return;
-    try {
-      if (keys.length > 0) {
-        await this.client.del(keys);
-      }
-    } catch (error) {
-      console.warn("Redis del failed:", error);
-    }
+    for (const k of keys) this.store.delete(k);
   }
 
   async invalidateStoreMetrics(storeId: string): Promise<void> {
-    const patterns = [
-      `store:${storeId}:metric:*`,
-    ];
-    if (!this.client) return;
-    try {
-      for (const pattern of patterns) {
-        const keys = await this.client.keys(pattern);
-        if (keys.length > 0) {
-          await this.del(...keys);
-        }
-      }
-    } catch (error) {
-      console.warn("Redis invalidate failed:", error);
+    const prefix = `store:${storeId}:`;
+    for (const k of this.store.keys()) {
+      if (k.startsWith(prefix)) this.store.delete(k);
     }
   }
 }

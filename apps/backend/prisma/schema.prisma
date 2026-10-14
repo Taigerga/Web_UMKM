@@ -80,6 +80,7 @@ model stores {
   productCategories     productCategories[]
   suppliers             suppliers[]
   forecastResults       forecastResults[]
+  mlJobs                mlJobs[]
 
   @@map("stores")
 }
@@ -396,3 +397,28 @@ model forecastResults {
   @@index([productId])
   @@map("forecast_results")
 }
+
+model mlJobs {
+  id             String    @id @default(uuid())
+  storeId        String    @map("store_id")
+  jobType        String    @map("job_type")
+  status         String    @default("queued")
+  inputParams    Json?     @map("input_params")
+  result         Json?
+  errorMessage   String?   @map("error_message")
+
+  idempotencyKey String?   @unique @map("idempotency_key")
+  workerId       String?   @map("worker_id")
+  startedAt      DateTime? @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  store stores @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, status])
+  @@index([status, startedAt])
+  @@map("ml_jobs")
+}
+
