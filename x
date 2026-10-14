@@ -1,0 +1,22 @@
+# Machine Learning service - requirements
+pandas>=3.0.0
+numpy>=2.0.0
+scipy>=1.14.0
+scikit-learn>=1.9.0
+statsmodels>=0.15.0
+prophet>=1.3.0
+mlxtend>=0.25.0
+xgboost>=3.4.0
+joblib>=1.6.0
+fastapi>=0.142.0
+uvicorn[standard]>=0.53.0
+pydantic>=2.13.0
+pydantic-settings>=2.15.0
+python-multipart>=0.0.32
+PyMySQL>=1.2.0
+python-dotenv>=1.2.0
+pytest>=9.1.0
+pytest-cov>=7.0.0
+httpx>=0.28.0
+">
+path="E:\ProjekSainsData\Web_UMKM\services\ml\requirements.txt
