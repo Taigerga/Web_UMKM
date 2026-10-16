@@ -24,7 +24,5 @@ import type { AppConfig } from "../config/configuration.js";
     }),
   ],
   controllers: [BisnisInsightMcpController],
-  providers: [BisnisInsightMcpController],
-  exports: [BisnisInsightMcpController],
 })
 export class McpModule {}

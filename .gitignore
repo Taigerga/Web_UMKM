@@ -39,7 +39,11 @@ data/raw/*
 storage/uploads/*
 storage/reports/*
 storage/temporary/*
+apps/backend/storage/uploads/*
+apps/backend/storage/reports/*
+apps/backend/storage/temporary/*
 !storage/**/.gitkeep
+!apps/backend/storage/**/.gitkeep
 
 # ---- Model artifacts (bisa besar, diregenerasi oleh training) ----
 services/ml/artifacts/**/*

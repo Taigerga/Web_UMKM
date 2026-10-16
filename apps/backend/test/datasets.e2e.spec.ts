@@ -78,7 +78,10 @@ describe("POST /stores/:storeId/datasets", () => {
       .attach("file", file)
       .expect(201);
 
-    expect(res.body.data.fileName).toBe("mini.csv");
+    // Nama file di disk di-generate server (anti path traversal), bukan nama
+    // asli dari klien. Nama asli tidak dipakai untuk membentuk path.
+    expect(res.body.data.fileName).toMatch(/^\d+-[0-9a-f-]+\.csv$/);
+    expect(res.body.data.fileName).not.toBe("mini.csv");
     expect(res.body.data.status).toBe("UPLOADED");
   });
 });

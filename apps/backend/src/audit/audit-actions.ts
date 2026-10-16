@@ -52,6 +52,8 @@ export const AUDIT_ACTIONS = {
   ADMIN_USER_STATUS_CHANGED: 'admin.user_status_changed',
   ADMIN_USER_LISTED: 'admin.user_listed',
   ADMIN_STORE_LISTED: 'admin.store_listed',
+
+  CUSTOMER_EXPORTED: 'customer.exported',
 } as const;
 
 /** Union dari semua tindakan yang sah. */
@@ -95,6 +97,10 @@ export const AUDIT_META_ALLOWLIST = {
   [AUDIT_ACTIONS.ADMIN_USER_STATUS_CHANGED]: ['from', 'to'],
   [AUDIT_ACTIONS.ADMIN_USER_LISTED]: [],
   [AUDIT_ACTIONS.ADMIN_STORE_LISTED]: [],
+
+  // Ekspor pelanggan: cukup bukti "siapa mengunduh segmen apa, berapa baris".
+  // Nama/email pelanggan adalah data pribadi dan sengaja tidak masuk audit.
+  [AUDIT_ACTIONS.CUSTOMER_EXPORTED]: ['segment', 'count'],
 } as const satisfies Record<AuditAction, readonly string[]>;
 
 /** Bentuk meta yang boleh ditulis. */

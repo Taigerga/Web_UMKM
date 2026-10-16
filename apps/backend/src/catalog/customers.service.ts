@@ -34,4 +34,36 @@ export class CustomersService {
       },
     });
   }
+
+  /**
+   * Ekspor daftar pelanggan (data minimal) difilter per segmen.
+   *
+   * Hanya `code`, `name`, dan `segment` yang keluar. Kolom tidak dikirim
+   * ke CSV karena memang tidak dibutuhkan untuk kampanye, dan minimisasi
+   * data adalah syarat ekspor pelanggan di Prompt 16.2.
+   */
+  async exportSegments(storeId: string, segment?: string): Promise<{ csv: Buffer; count: number; segment: string }> {
+    const where: any = { storeId };
+    if (segment) where.segment = segment;
+    const rows = await this.prisma.customers.findMany({
+      where,
+      orderBy: [{ segment: "asc" }, { code: "asc" }],
+    });
+
+    const escape = (value: string | null | undefined): string => {
+      const text = value ?? "";
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const lines = ["Kode,Nama,Segmen"];
+    for (const row of rows) {
+      lines.push([escape(row.code), escape(row.name), escape(row.segment)].join(","));
+    }
+
+    return {
+      csv: Buffer.from(lines.join("\n"), "utf-8"),
+      count: rows.length,
+      segment: segment ?? "all",
+    };
+  }
 }

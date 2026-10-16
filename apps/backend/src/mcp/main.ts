@@ -3,7 +3,7 @@ import { McpStrategy, StdioTransport } from "@rekog/mcp-nest";
 import { McpModule } from "./mcp.module.js";
 
 async function bootstrap() {
-  const app = await NestFactory.create(McpModule, { logger: ["error", "warn"] });
+  const app = await NestFactory.create(McpModule, { logger: false });
   app.connectMicroservice({
     strategy: new McpStrategy({
       name: "bisnis-insight-mcp",
