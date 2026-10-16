@@ -49,4 +49,58 @@ export class ReportsController {
     });
     res.send(buffer);
   }
+
+  @Get("sales-summary/xlsx")
+  @StoreAccess()
+  async getSalesSummaryXlsx(
+    @Param("storeId") storeId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.generateSalesSummaryXlsx(storeId, "30d");
+    res.set({
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="sales_report_${new Date().toISOString().split("T")[0]}.xlsx"`,
+    });
+    res.send(buffer);
+  }
+
+  @Get("sales-summary/pdf")
+  @StoreAccess()
+  async getSalesSummaryPdf(
+    @Param("storeId") storeId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.generateSalesSummaryPdf(storeId, "30d");
+    res.set({ "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="sales_report_${new Date().toISOString().split("T")[0]}.pdf"` });
+    res.send(buffer);
+  }
+
+  @Get("detailed/xlsx")
+  @StoreAccess()
+  async getDetailedXlsx(
+    @Param("storeId") storeId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.generateDetailedXlsx(storeId);
+    res.set({
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="detailed_report_${new Date().toISOString().split("T")[0]}.xlsx"`,
+    });
+    res.send(buffer);
+  }
+
+  @Get("forecast/:productId/pdf")
+  @StoreAccess()
+  async getForecastPdf(
+    @Param("storeId") storeId: string,
+    @Param("productId") productId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.service.generateForecastPdf(storeId, productId);
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="forecast_${productId}_${new Date().toISOString().split("T")[0]}.pdf"`,
+    });
+    res.send(buffer);
+  }
 }

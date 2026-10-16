@@ -54,6 +54,7 @@ model users {
   memberships  storeMembers[]
   invitesSent  storeInvites[]   @relation("InviteSender")
   sessions     refreshTokens[]
+  notifications notifications[]
   auditLogs    auditLogs[]
   datasets    datasets[]
 
@@ -81,6 +82,7 @@ model stores {
   suppliers             suppliers[]
   forecastResults       forecastResults[]
   mlJobs                mlJobs[]
+  notifications         notifications[]
 
   @@map("stores")
 }
@@ -422,3 +424,25 @@ model mlJobs {
   @@map("ml_jobs")
 }
 
+
+model notifications {
+  id        String   @id @default(uuid())
+  userId    String
+  storeId   String?
+  type      String   @db.VarChar(64)
+  title     String   @db.VarChar(191)
+  body      String?  @db.Text
+  severity  String   @default("info") @db.VarChar(32)
+  readAt    DateTime?
+  dedupeKey String?  @unique @db.VarChar(191)
+  cooldownUntil DateTime?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store stores? @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt])
+  @@index([storeId, createdAt])
+  @@map("notifications")
+}
