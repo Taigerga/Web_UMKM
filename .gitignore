@@ -1,4 +1,4 @@
-# ---- Dependencies ----
+﻿# ---- Dependencies ----
 node_modules/
 .pnpm-store/
 
@@ -39,6 +39,7 @@ data/raw/*
 storage/uploads/*
 storage/reports/*
 storage/temporary/*
+storage/backups/*
 apps/backend/storage/uploads/*
 apps/backend/storage/reports/*
 apps/backend/storage/temporary/*
