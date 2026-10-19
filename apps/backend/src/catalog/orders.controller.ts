@@ -15,7 +15,10 @@ export class OrdersController {
   }
 
   @Post("manual")
-  @Roles(Role.OWNER, Role.ADMIN)
+  // PROMT §5.3/§5.4: pegawai boleh menginput penjualan harian lewat formulir.
+  // Aksi ini hanya menambah order baru - tidak mengubah/menghapus data - jadi
+  // STAFF diizinkan. Mutasi dataset dan katalog tetap OWNER/ADMIN saja.
+  @Roles(Role.OWNER, Role.ADMIN, Role.STAFF)
   @StoreAccess()
   async createManual(@Param("storeId") storeId: string, @Body() body: any) {
     return { data: await this.service.createManual(storeId, body) };

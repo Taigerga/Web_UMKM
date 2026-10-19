@@ -5,6 +5,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/u
 import { useSession } from "@/components/dashboard/session-provider";
 import { listAccessibleStores } from "@/lib/dashboard-data";
 import type { StoreSummary } from "@/lib/dashboard-data";
+import { canManageStore } from "@/lib/dashboard-nav";
 import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
 
 type Dataset = {
@@ -21,6 +22,11 @@ export function DataPanel() {
   const [dataset, setDataset] = React.useState<Dataset | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
+
+  // Unggah, validasi, commit, dan rollback dataset di backend hanya untuk
+  // OWNER/ADMIN (@Roles). Sembunyikan kontrolnya untuk pegawai supaya UI
+  // tidak menawarkan aksi yang pasti dijawab 403 - backend tetap penegak.
+  const canManage = canManageStore(stores, storeId);
 
   React.useEffect(() => {
     if (session.status !== "ready" || !session.profile) return;
@@ -125,19 +131,25 @@ export function DataPanel() {
           </select>
         </label>
 
-        <input
-          type="file"
-          accept=".csv,.xlsx"
-          disabled={busy}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void upload(file);
-          }}
-        />
+        {canManage ? (
+          <input
+            type="file"
+            accept=".csv,.xlsx"
+            disabled={busy}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void upload(file);
+            }}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Unggah, validasi, commit, dan rollback dataset adalah wewenang pemilik toko.
+          </p>
+        )}
 
         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
 
-        {dataset ? (
+        {canManage && dataset ? (
           <div className="flex flex-col gap-3 rounded border p-3 text-sm">
             <p>{dataset.fileName} ({dataset.rowCount} baris)</p>
             <p>Status: {dataset.status}</p>

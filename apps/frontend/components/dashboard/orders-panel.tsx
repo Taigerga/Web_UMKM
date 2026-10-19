@@ -67,7 +67,9 @@ export function OrdersPanel() {
     event.preventDefault();
     if (!storeId) return;
     try {
-      await api(`/stores/${storeId}/customers`, "POST", { code: customerCode, name: customerName });
+      // Customer dibuat/upsert otomatis oleh endpoint order manual dari
+      // customerCode, jadi tidak perlu POST /customers di sini. Itu juga
+      // membuat formulir ini aman dipakai pegawai (input harian, PROMT §5.3).
       await api(`/stores/${storeId}/orders/manual`, "POST", {
         customerCode,
         customerName,
