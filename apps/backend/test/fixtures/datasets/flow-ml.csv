@@ -1,0 +1,41 @@
+﻿order_id,order_date,customer_code,customer_name,product_code,product_name,category,qty,unit,unit_price,total_price,channel
+ORD-001,2026-09-10,C1,Ridho,P1,Teh Botol,Minuman,2,botol,3000,6000,online
+ORD-002,2026-09-11,C2,Siti,P2,Kopi,Minuman,3,cup,10000,30000,offline
+ORD-003,2026-09-12,C3,Ayu,P3,Roti,Makanan,4,buah,7000,28000,online
+ORD-004,2026-09-13,C4,Budi,P1,Teh Botol,Minuman,5,botol,3000,15000,offline
+ORD-005,2026-09-14,C5,Citra,P2,Kopi,Minuman,2,cup,10000,20000,online
+ORD-006,2026-09-15,C6,Dewi,P3,Roti,Makanan,3,buah,7000,21000,offline
+ORD-007,2026-09-16,C7,Eko,P1,Teh Botol,Minuman,4,botol,3000,12000,online
+ORD-008,2026-09-17,C8,Fajar,P2,Kopi,Minuman,5,cup,10000,50000,offline
+ORD-009,2026-09-18,C9,Gita,P3,Roti,Makanan,2,buah,7000,14000,online
+ORD-010,2026-09-19,C10,Hendra,P1,Teh Botol,Minuman,3,botol,3000,9000,offline
+ORD-011,2026-09-20,C11,Indri,P2,Kopi,Minuman,4,cup,10000,40000,online
+ORD-012,2026-09-21,C12,Joko,P3,Roti,Makanan,5,buah,7000,35000,offline
+ORD-013,2026-09-22,C1,Ridho,P1,Teh Botol,Minuman,2,botol,3000,6000,online
+ORD-014,2026-09-23,C2,Siti,P2,Kopi,Minuman,3,cup,10000,30000,offline
+ORD-015,2026-09-24,C3,Ayu,P3,Roti,Makanan,4,buah,7000,28000,online
+ORD-016,2026-09-25,C4,Budi,P1,Teh Botol,Minuman,5,botol,3000,15000,offline
+ORD-017,2026-09-26,C5,Citra,P2,Kopi,Minuman,2,cup,10000,20000,online
+ORD-018,2026-09-27,C6,Dewi,P3,Roti,Makanan,3,buah,7000,21000,offline
+ORD-019,2026-09-28,C7,Eko,P1,Teh Botol,Minuman,4,botol,3000,12000,online
+ORD-020,2026-09-29,C8,Fajar,P2,Kopi,Minuman,50,cup,10000,500000,offline
+ORD-021,2026-09-30,C9,Gita,P3,Roti,Makanan,2,buah,7000,14000,online
+ORD-022,2026-10-01,C10,Hendra,P1,Teh Botol,Minuman,3,botol,3000,9000,offline
+ORD-023,2026-10-02,C11,Indri,P2,Kopi,Minuman,4,cup,10000,40000,online
+ORD-024,2026-10-03,C12,Joko,P3,Roti,Makanan,5,buah,7000,35000,offline
+ORD-025,2026-10-04,C1,Ridho,P1,Teh Botol,Minuman,2,botol,3000,6000,online
+ORD-026,2026-10-05,C2,Siti,P2,Kopi,Minuman,3,cup,10000,30000,offline
+ORD-027,2026-10-06,C3,Ayu,P3,Roti,Makanan,4,buah,7000,28000,online
+ORD-028,2026-10-07,C4,Budi,P1,Teh Botol,Minuman,60,botol,3000,180000,offline
+ORD-029,2026-10-08,C5,Citra,P2,Kopi,Minuman,2,cup,10000,20000,online
+ORD-030,2026-10-09,C6,Dewi,P3,Roti,Makanan,3,buah,7000,21000,offline
+ORD-031,2026-10-10,C7,Eko,P1,Teh Botol,Minuman,4,botol,3000,12000,online
+ORD-032,2026-10-11,C8,Fajar,P2,Kopi,Minuman,5,cup,10000,50000,offline
+ORD-033,2026-10-12,C9,Gita,P3,Roti,Makanan,2,buah,7000,14000,online
+ORD-034,2026-10-13,C10,Hendra,P1,Teh Botol,Minuman,3,botol,3000,9000,offline
+ORD-035,2026-10-14,C11,Indri,P2,Kopi,Minuman,4,cup,10000,40000,online
+ORD-036,2026-10-15,C12,Joko,P3,Roti,Makanan,5,buah,7000,35000,offline
+ORD-037,2026-10-16,C1,Ridho,P1,Teh Botol,Minuman,2,botol,3000,6000,online
+ORD-038,2026-10-17,C2,Siti,P2,Kopi,Minuman,3,cup,10000,30000,offline
+ORD-039,2026-10-18,C3,Ayu,P3,Roti,Makanan,4,buah,7000,28000,online
+ORD-040,2026-10-19,C4,Budi,P1,Teh Botol,Minuman,5,botol,3000,15000,offline

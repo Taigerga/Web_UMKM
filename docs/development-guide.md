@@ -88,6 +88,21 @@ $env:ADMIN_EMAIL="admin@bisnisinsight.test"; $env:ADMIN_PASSWORD="..."; node scr
 Kredensial hanya dari environment - jangan hardcode atau commit dotenv berisi
 password asli. Respons script hanya menampilkan email dan id, bukan password.
 
+## Skrip QA (migrasi dari nol + backup/restore)
+
+```powershell
+# Database test dihapus lalu dibangun ulang lewat prisma migrate deploy.
+cd apps/backend
+./scripts/migrate-from-zero.ps1 -Seed          # -Seed opsional: isi data demo
+
+# Backup/restore (mysqldump). Restore menimpa isi database - selalu konfirmasi.
+./scripts/backup-restore.ps1 -Mode backup
+./scripts/backup-restore.ps1 -Mode restore -File "..\..\storage\backups\<berkas>.sql"
+```
+
+Kedua skrip harus dijalankan minimal sekali setelah migrasi baru ditambahkan,
+supaya jalur pemulihan ikut teruji - bukan hanya jalur upgrade maju.
+
 ## Catatan
 - Jangan commit `.env`, artefak model besar, atau data sensitif.
 - Tanpa Docker/Redis. Cache in-memory sebagai fallback.
