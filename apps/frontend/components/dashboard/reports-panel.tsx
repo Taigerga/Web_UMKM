@@ -6,16 +6,8 @@ import { useSession } from "@/components/dashboard/session-provider";
 import { listAccessibleStores } from "@/lib/dashboard-data";
 import type { StoreSummary } from "@/lib/dashboard-data";
 import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
-
-type ReportType = "sales-summary" | "detailed" | "forecast";
-type ReportFormat = "html" | "csv" | "xlsx" | "pdf";
-
-/** Format yang sah per tipe laporan; dipakai saat mengganti tipe laporan. */
-const ALLOWED_FORMATS: Record<ReportType, readonly ReportFormat[]> = {
-  "sales-summary": ["html", "xlsx", "pdf"],
-  detailed: ["csv", "xlsx"],
-  forecast: ["html", "pdf"],
-};
+import { ALLOWED_FORMATS, reportPath } from "@/lib/report-format";
+import type { ReportFormat, ReportType } from "@/lib/report-format";
 
 export function ReportsPanel() {
   const session = useSession();
@@ -79,29 +71,13 @@ export function ReportsPanel() {
     setMessage(null);
 
     try {
-      let url = `${API_BASE_URL}${API_PREFIX}/stores/${storeId}/reports/`;
-
-      if (reportType === "sales-summary") {
-        url += "sales-summary";
-        if (format === "xlsx") url += "/xlsx";
-        else if (format === "pdf") url += "/pdf";
-      } else if (reportType === "detailed") {
-        if (format === "xlsx") {
-          url += "detailed/xlsx";
-        } else {
-          url += "detailed";
-        }
-      } else if (reportType === "forecast") {
-        if (!selectedProductId) {
-          setMessage("Pilih produk untuk forecast report");
-          setLoading(false);
-          return;
-        }
-        url += `forecast/${selectedProductId}`;
-        if (format === "pdf") url += "/pdf";
+      if (reportType === "forecast" && !selectedProductId) {
+        setMessage("Pilih produk untuk forecast report");
+        return;
       }
 
-      const res = await fetch(url, {
+      const path = reportPath(storeId, reportType, format, { productId: selectedProductId });
+      const res = await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
         credentials: "include",
       });
 
