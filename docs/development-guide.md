@@ -78,6 +78,16 @@ cd apps/backend
 $env:DATABASE_URL="mysql://root@127.0.0.1:3306/bisnis_insight_test"; npx prisma migrate deploy
 ```
 
+## Provisioning ADMIN
+Platform tidak punya registrasi mandiri untuk admin, jadi akun ADMIN
+dibuat lewat script seed yang idempoten (dipanggil ulang tidak menduplikasi):
+```bash
+cd apps/backend
+$env:ADMIN_EMAIL="admin@bisnisinsight.test"; $env:ADMIN_PASSWORD="..."; node scripts/seed-admin.mjs
+```
+Kredensial hanya dari environment - jangan hardcode atau commit dotenv berisi
+password asli. Respons script hanya menampilkan email dan id, bukan password.
+
 ## Catatan
 - Jangan commit `.env`, artefak model besar, atau data sensitif.
 - Tanpa Docker/Redis. Cache in-memory sebagai fallback.
