@@ -2,6 +2,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service.js";
 import { MlClientService } from "../ml/ml-client.service.js";
+import { MlDataService } from "../ml/ml-data.service.js";
 import { MlJobService } from "./ml-job.service.js";
 import { RedisService } from "../cache/redis.service.js";
 
@@ -13,6 +14,7 @@ export class MlJobWorkerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mlClient: MlClientService,
+    private readonly mlData: MlDataService,
     private readonly jobService: MlJobService,
     private readonly redis: RedisService,
   ) {}
@@ -71,18 +73,35 @@ export class MlJobWorkerService implements OnModuleInit, OnModuleDestroy {
 
   private async execute(job: any) {
     const params = (job.inputParams as any) ?? {};
+    // Setiap inferensi per-toko membangun input dari data toko itu sendiri
+    // (Promt §13.2). Kalau toko belum punya data, Python menjawab 400 dan
+    // job ditandai gagal dengan pesan jelas - status "belum layak", bukan
+    // hasil dikarang.
     switch (job.jobType) {
-      case "forecast":
-        return await this.mlClient.forecast(params.horizonDays ?? params.horizon_days ?? 30);
-      case "segmentation":
-        return await this.mlClient.segmentation();
+      case "forecast": {
+        const input = await this.mlData.forecastInput(
+          job.storeId,
+          params.horizonDays ?? params.horizon_days ?? 30,
+        );
+        return await this.mlClient.forecastRun(input);
+      }
+      case "segmentation": {
+        const input = await this.mlData.segmentationInput(job.storeId);
+        return await this.mlClient.segmentationRun(input);
+      }
       case "market-basket":
-      case "basket":
-        return await this.mlClient.basket(params.topK ?? params.top_k ?? 20);
-      case "churn":
-        return await this.mlClient.churn(params.topK ?? params.top_k ?? 50);
-      case "anomaly":
-        return await this.mlClient.anomaly();
+      case "basket": {
+        const input = await this.mlData.basketInput(job.storeId);
+        return await this.mlClient.basketRun(input, params.topK ?? params.top_k ?? 20);
+      }
+      case "churn": {
+        const input = await this.mlData.churnInput(job.storeId);
+        return await this.mlClient.churnRun(input, params.topK ?? params.top_k ?? 50);
+      }
+      case "anomaly": {
+        const input = await this.mlData.anomalyInput(job.storeId);
+        return await this.mlClient.anomalyRun(input);
+      }
       default:
         throw new Error(`Unknown jobType: ${job.jobType}`);
     }

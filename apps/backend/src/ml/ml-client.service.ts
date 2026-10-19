@@ -58,6 +58,28 @@ export class MlClientService {
     return this.call("/forecast", { horizon_days: horizonDays });
   }
 
+  // --- Inferensi per-toko (Promt §13.2): payload berdata toko, bukan id ---
+
+  async forecastRun(input: { series: { date: string; sales: number }[]; horizon_days: number }) {
+    return this.call("/forecast/run", input);
+  }
+
+  async segmentationRun(input: { customers: unknown[] }) {
+    return this.call("/segmentation/run", input);
+  }
+
+  async basketRun(input: { transactions: { order_id: string; product: string }[] }, topK = 20) {
+    return this.call("/basket/run", { ...input, top_k: topK });
+  }
+
+  async churnRun(input: { customers: unknown[] }, topK = 50) {
+    return this.call("/churn/run", { ...input, top_k: topK });
+  }
+
+  async anomalyRun(input: { series: { date: string; sales: number }[] }) {
+    return this.call("/anomaly/run", input);
+  }
+
   async segmentation() {
     return this.call("/segmentation", {});
   }
