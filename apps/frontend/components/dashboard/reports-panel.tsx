@@ -8,6 +8,14 @@ import type { StoreSummary } from "@/lib/dashboard-data";
 import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
 
 type ReportType = "sales-summary" | "detailed" | "forecast";
+type ReportFormat = "html" | "csv" | "xlsx" | "pdf";
+
+/** Format yang sah per tipe laporan; dipakai saat mengganti tipe laporan. */
+const ALLOWED_FORMATS: Record<ReportType, readonly ReportFormat[]> = {
+  "sales-summary": ["html", "xlsx", "pdf"],
+  detailed: ["csv", "xlsx"],
+  forecast: ["html", "pdf"],
+};
 
 export function ReportsPanel() {
   const session = useSession();
@@ -15,9 +23,18 @@ export function ReportsPanel() {
   const [storeId, setStoreId] = React.useState<string | null>(null);
   const [reportType, setReportType] = React.useState<ReportType>("sales-summary");
   const [period, setPeriod] = React.useState<"7d" | "30d" | "90d">("30d");
+  const [format, setFormat] = React.useState<ReportFormat>("html");
+
+  function changeReportType(next: ReportType) {
+    setReportType(next);
+    // Normalisasi format di sini (event handler), bukan di effect, supaya
+    // tidak ada setState langsung di badan effect.
+    const allowed = ALLOWED_FORMATS[next];
+    setFormat((current) => (allowed.includes(current) ? current : allowed[0]));
+  }
   const [products, setProducts] = React.useState<Array<{ id: string; sku: string; name: string }>>([]);
   const [selectedProductId, setSelectedProductId] = React.useState<string>("");
-  
+
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -33,25 +50,28 @@ export function ReportsPanel() {
 
   React.useEffect(() => {
     if (!storeId) return;
-    // Load products for forecast report
-    loadProducts();
-  }, [storeId]);
-
-  async function loadProducts() {
-    if (!storeId) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}${API_PREFIX}/stores/${storeId}/products`, {
-        credentials: "include",
+    // Muat produk untuk laporan forecast lewat callback promise: setState
+    // hanya di callback, bukan langsung di badan effect.
+    let cancelled = false;
+    void fetch(`${API_BASE_URL}${API_PREFIX}/stores/${storeId}/products`, {
+      credentials: "include",
+    })
+      .then(async (res) => {
+        const json: unknown = await res.json();
+        const items = (json as { data?: unknown }).data;
+        if (cancelled) return;
+        setProducts(Array.isArray(items) ? (items as Array<{ id: string; sku: string; name: string }>) : []);
+        if (Array.isArray(items) && items.length > 0) {
+          setSelectedProductId((items[0] as { id: string }).id);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Gagal memuat produk:", error);
       });
-      const data = await res.json();
-      setProducts(data.data || []);
-      if (data.data?.length > 0) {
-        setSelectedProductId(data.data[0].id);
-      }
-    } catch (error) {
-      console.error("Failed to load products:", error);
-    }
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
 
   async function downloadReport() {
     if (!storeId) return;
@@ -62,9 +82,15 @@ export function ReportsPanel() {
       let url = `${API_BASE_URL}${API_PREFIX}/stores/${storeId}/reports/`;
 
       if (reportType === "sales-summary") {
-        url += `sales-summary`;
+        url += "sales-summary";
+        if (format === "xlsx") url += "/xlsx";
+        else if (format === "pdf") url += "/pdf";
       } else if (reportType === "detailed") {
-        url += `detailed`;
+        if (format === "xlsx") {
+          url += "detailed/xlsx";
+        } else {
+          url += "detailed";
+        }
       } else if (reportType === "forecast") {
         if (!selectedProductId) {
           setMessage("Pilih produk untuk forecast report");
@@ -72,6 +98,7 @@ export function ReportsPanel() {
           return;
         }
         url += `forecast/${selectedProductId}`;
+        if (format === "pdf") url += "/pdf";
       }
 
       const res = await fetch(url, {
@@ -157,7 +184,7 @@ export function ReportsPanel() {
                     type="radio"
                     value={type.value}
                     checked={reportType === type.value}
-                    onChange={(e) => setReportType(e.target.value as ReportType)}
+                    onChange={(e) => changeReportType(e.target.value as ReportType)}
                     className="w-4 h-4"
                   />
                   <span>{type.label}</span>
@@ -207,6 +234,27 @@ export function ReportsPanel() {
             </div>
           )}
 
+          {/* Format selector */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Format</label>
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value as "html" | "csv" | "xlsx" | "pdf")}
+              className="w-full border rounded px-3 py-2"
+            >
+              {(reportType === "sales-summary"
+                ? (["html", "xlsx", "pdf"] as const)
+                : reportType === "detailed"
+                ? (["csv", "xlsx"] as const)
+                : (["html", "pdf"] as const)
+              ).map((f) => (
+                <option key={f} value={f}>
+                  {f.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Download button */}
           <Button
             onClick={downloadReport}
@@ -225,13 +273,15 @@ export function ReportsPanel() {
         </CardHeader>
         <CardContent className="text-sm space-y-2">
           <p>
-            <strong>Ringkasan Penjualan:</strong> HTML (dapat dibuka di browser atau di-print ke PDF)
+            <strong>Ringkasan Penjualan:</strong> HTML, XLSX, dan PDF (30 hari
+            default).
           </p>
           <p>
-            <strong>Detail Pesanan:</strong> CSV (dapat dibuka dengan Excel atau Sheets)
+            <strong>Detail Pesanan:</strong> CSV dan XLSX (detail pesanan &amp;
+            item 90 hari).
           </p>
           <p>
-            <strong>Forecast:</strong> HTML dengan tabel prediksi 30 hari ke depan
+            <strong>Forecast:</strong> HTML interaktif dan PDF.
           </p>
         </CardContent>
       </Card>

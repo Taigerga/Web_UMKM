@@ -54,27 +54,45 @@ export function AnalyticsPanel() {
       .catch(() => setMessage("Gagal memuat toko"));
   }, [session.status, session.profile]);
 
+  async function fetchAnalytics(targetStoreId: string, targetPeriod: string) {
+    // Ambil data tanpa menyentuh state React; pemanggil yang men-set state
+    // (effect melalui callback, tombol Refresh melalui loadAnalytics).
+    const headers = { credentials: "include" };
+    const [summaryRes, trendRes, productsRes] = await Promise.all([
+      fetch(`${API_BASE_URL}${API_PREFIX}/stores/${targetStoreId}/analytics/summary?period=${targetPeriod}`, { headers }),
+      fetch(`${API_BASE_URL}${API_PREFIX}/stores/${targetStoreId}/analytics/trend?period=${targetPeriod}`, { headers }),
+      fetch(`${API_BASE_URL}${API_PREFIX}/stores/${targetStoreId}/analytics/top-products?limit=10`, { headers }),
+    ]);
+
+    const parse = async (res: Response) => {
+      if (!res.ok) return null;
+      const json: unknown = await res.json();
+      return (json as { data: unknown }).data;
+    };
+
+    const [summary, trend, topProducts] = await Promise.all([
+      parse(summaryRes) as Promise<SalesSummary | null>,
+      parse(trendRes) as Promise<SalesTrend | null>,
+      parse(productsRes) as Promise<TopProduct[] | null>,
+    ]);
+    return { summary, trend, topProducts };
+  }
+
+  function applyAnalytics(data: {
+    summary: SalesSummary | null;
+    trend: SalesTrend | null;
+    topProducts: TopProduct[] | null;
+  }) {
+    if (data.summary) setSummary(data.summary);
+    if (data.trend) setTrend(data.trend);
+    if (data.topProducts) setTopProducts(data.topProducts);
+  }
+
   async function loadAnalytics() {
     if (!storeId) return;
     setLoading(true);
     try {
-      const headers = { credentials: "include" };
-      
-      const [summaryRes, trendRes, productsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}${API_PREFIX}/stores/${storeId}/analytics/summary?period=${period}`, { headers }),
-        fetch(`${API_BASE_URL}${API_PREFIX}/stores/${storeId}/analytics/trend?period=${period}`, { headers }),
-        fetch(`${API_BASE_URL}${API_PREFIX}/stores/${storeId}/analytics/top-products?limit=10`, { headers }),
-      ]);
-
-      const [summaryData, trendData, productsData] = await Promise.all([
-        summaryRes.json(),
-        trendRes.json(),
-        productsRes.json(),
-      ]);
-
-      if (summaryRes.ok) setSummary(summaryData.data);
-      if (trendRes.ok) setTrend(trendData.data);
-      if (productsRes.ok) setTopProducts(productsData.data);
+      applyAnalytics(await fetchAnalytics(storeId, period));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Gagal memuat analytics");
     } finally {
@@ -83,7 +101,20 @@ export function AnalyticsPanel() {
   }
 
   React.useEffect(() => {
-    if (storeId) loadAnalytics();
+    if (!storeId) return;
+    // Muat analytics lewat callback promise: setState hanya di callback
+    // `.then`, bukan langsung di badan effect (react-hooks/set-state-in-effect).
+    let cancelled = false;
+    void fetchAnalytics(storeId, period)
+      .then((data) => {
+        if (!cancelled) applyAnalytics(data);
+      })
+      .catch(() => {
+        if (!cancelled) setMessage("Gagal memuat analytics");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [storeId, period]);
 
   return (

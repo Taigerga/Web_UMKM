@@ -7,11 +7,13 @@ import { listAccessibleStores } from "@/lib/dashboard-data";
 import type { StoreSummary } from "@/lib/dashboard-data";
 import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
 
+type Order = { id: string; items?: unknown[] };
+
 export function OrdersPanel() {
   const session = useSession();
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
   const [storeId, setStoreId] = React.useState<string | null>(null);
-  const [orders, setOrders] = React.useState<any[]>([]);
+  const [orders, setOrders] = React.useState<Order[]>([]);
   const [message, setMessage] = React.useState<string | null>(null);
   const [customerCode, setCustomerCode] = React.useState("C1");
   const [customerName, setCustomerName] = React.useState("Ridho");
@@ -45,8 +47,21 @@ export function OrdersPanel() {
   }, [session.status]);
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    if (!storeId) return;
+    // Muat order lewat callback promise: setState hanya di callback `.then`,
+    // bukan langsung di badan effect (react-hooks/set-state-in-effect).
+    let cancelled = false;
+    void api(`/stores/${storeId}/orders`, "GET")
+      .then((items) => {
+        if (!cancelled) setOrders(items as Order[]);
+      })
+      .catch(() => {
+        if (!cancelled) setMessage("Gagal memuat order");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
