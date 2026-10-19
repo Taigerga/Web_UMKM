@@ -10,6 +10,7 @@ import { deriveNavRole, navForRole } from "@/lib/dashboard-nav";
 import type { NavItem } from "@/lib/dashboard-nav";
 
 import { useSession } from "./session-provider";
+import { NotificationBell } from "./notification-bell";
 
 /**
  * Sidebar dashboard, dengan menu per peran.
@@ -157,11 +158,14 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       aria-current={isActive ? "page" : undefined}
       className={
         isActive
-          ? "flex items-center rounded-lg bg-neutral-wash px-3 py-2 text-sm font-medium text-navy"
-          : "flex items-center rounded-lg px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-neutral-wash hover:text-ink"
+          ? "flex items-center justify-between gap-2 rounded-lg bg-neutral-wash px-3 py-2 text-sm font-medium text-navy"
+          : "flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-neutral-wash hover:text-ink"
       }
     >
-      {item.label}
+      <span className="truncate">{item.label}</span>
+      {/* Badge belum dibaca hanya di item Notifikasi; selalu dirender agar
+          angka muncul kapan pun berubah, bukan hanya saat aktif. */}
+      {item.key === "notifikasi" ? <NotificationBell /> : null}
     </Link>
   );
 }
