@@ -5,7 +5,10 @@ import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/u
 import { useSession } from "@/components/dashboard/session-provider";
 import { listAccessibleStores } from "@/lib/dashboard-data";
 import type { StoreSummary } from "@/lib/dashboard-data";
+import { resolveActiveStore } from "@/lib/dashboard-nav";
 import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
+import { SalesTrendChart } from "./charts/sales-trend-chart";
+import { TopProductsChart } from "./charts/top-products-chart";
 
 type SalesSummary = {
   totalSales: number;
@@ -49,7 +52,8 @@ export function AnalyticsPanel() {
     void listAccessibleStores()
       .then((items) => {
         setStores(items);
-        if (items.length > 0) setStoreId(items[0].id);
+        const active = resolveActiveStore(items, null);
+        setStoreId(active?.id ?? null);
       })
       .catch(() => setMessage("Gagal memuat toko"));
   }, [session.status, session.profile]);
@@ -210,6 +214,18 @@ export function AnalyticsPanel() {
         </Card>
       </div>
 
+      {/* Grafik produk terlaris (tabel di bawah tetap ada untuk detail) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Produk Terlaris - Jumlah Item Terjual</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TopProductsChart
+            data={topProducts.map((p) => ({ name: p.sku, totalQty: p.totalQty, totalRevenue: p.totalRevenue }))}
+          />
+        </CardContent>
+      </Card>
+
       {/* Top Products */}
       <Card>
         <CardHeader>
@@ -242,6 +258,16 @@ export function AnalyticsPanel() {
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Grafik tren (tabel di bawah tetap ada untuk nilai per tanggal) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tren Penjualan Harian</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SalesTrendChart data={trend.map((t) => ({ date: t.date, sales: t.sales }))} />
         </CardContent>
       </Card>
 

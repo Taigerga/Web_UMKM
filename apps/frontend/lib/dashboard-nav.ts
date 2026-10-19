@@ -194,3 +194,26 @@ export function canManageStore(
   if (storeId === null || stores == null) return false;
   return stores.some((store) => store.id === storeId && store.role === "OWNER");
 }
+
+/**
+ * Toko aktif yang BOLEH dibaca, dari daftar toko user.
+ *
+ * Review Focus #5: chart yang memanggil backend dengan `storeId` lain (atau
+ * langsung toko pertama) menampilkan data toko yang bukan pilihan user, dan
+ * bisa jadi bukan toko yang jadi keanggotaannya. Helper ini menegakkan:
+ * pilihan user dipakai hanya kalau tercantum di daftar toko miliknya,
+ * default toko pertama dari daftar itu, dan `null` kalau tidak punya toko.
+ * Lisensi penuh tetap di backend (`@StoreAccess`) - helper ini mencegah UI
+ * meminta data yang berhaknya tidak ada.
+ */
+export function resolveActiveStore(
+  stores: readonly { id: string; role: string }[],
+  activeStoreId: string | null,
+): { id: string; role: string } | null {
+  if (stores.length === 0) return null;
+  if (activeStoreId !== null) {
+    const requested = stores.find((store) => store.id === activeStoreId);
+    if (requested) return requested;
+  }
+  return stores[0];
+}

@@ -5,6 +5,7 @@ import {
   deriveNavRole,
   navForRole,
   navigableNavItems,
+  resolveActiveStore,
   toPlatformRole,
 } from "@/lib/dashboard-nav";
 
@@ -102,5 +103,31 @@ describe("deriveNavRole", () => {
   it("null dan peran tak dikenal menghasilkan null", () => {
     expect(deriveNavRole(null)).toBeNull();
     expect(deriveNavRole({ role: "pemilik", stores: [] })).toBeNull();
+  });
+});
+
+describe("resolveActiveStore", () => {
+  const stores = [
+    { id: "s1", role: "STAFF" },
+    { id: "s2", role: "OWNER" },
+  ];
+
+  it("pilihan user dipakai kalau tercantum di toko miliknya", () => {
+    expect(resolveActiveStore(stores, "s2")).toEqual({ id: "s2", role: "OWNER" });
+  });
+
+  it("pilihan di luar keanggotaan JANGAN dipakai - jatuh ke toko pertama", () => {
+    // Toko "s3" bukan keanggotaanya; memakai id itu berarti chart meminta
+    // data milik orang lain (backend memang menolaknya).
+    expect(resolveActiveStore(stores, "s3")).toEqual({ id: "s1", role: "STAFF" });
+  });
+
+  it("default toko pertama bila belum memilih", () => {
+    expect(resolveActiveStore(stores, null)).toEqual({ id: "s1", role: "STAFF" });
+  });
+
+  it("null kalau user tidak punya toko", () => {
+    expect(resolveActiveStore([], "s1")).toBeNull();
+    expect(resolveActiveStore([], null)).toBeNull();
   });
 });

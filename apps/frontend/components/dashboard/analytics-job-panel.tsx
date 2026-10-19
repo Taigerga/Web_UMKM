@@ -5,7 +5,20 @@ import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/u
 import { useSession } from "@/components/dashboard/session-provider";
 import { listAccessibleStores } from "@/lib/dashboard-data";
 import type { StoreSummary } from "@/lib/dashboard-data";
+import { resolveActiveStore } from "@/lib/dashboard-nav";
 import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
+import {
+  toAnomalyChart,
+  toBasketChart,
+  toChurnChart,
+  toForecastChart,
+  toSegmentChart,
+} from "@/lib/chart-data";
+import { AnomalyScatter } from "./charts/anomaly-scatter";
+import { BasketLiftChart } from "./charts/basket-lift-chart";
+import { ChurnDonut } from "./charts/churn-donut";
+import { ForecastChart } from "./charts/forecast-chart";
+import { SegmentDonut } from "./charts/segment-donut";
 
 type JobType = "forecast" | "segmentation" | "basket" | "churn" | "anomaly";
 
@@ -31,6 +44,32 @@ type JobResult = {
   completedAt?: string | null;
 };
 
+/**
+ * Peta hasil job ke visual yang tepat sesuai jenis analisisnya.
+ *
+ * Pemetaan bentuk data lewat `lib/chart-data.ts` (teruji). Tiap chart
+ * menangani empty state sendiri - jadi hasil kosong tetap jujur ditampilkan,
+ * bukan grafik hantu.
+ */
+function JobResultChart({ jobType, result }: { jobType: string; result: unknown }) {
+  if (jobType === "forecast") {
+    return <ForecastChart data={toForecastChart(result)} />;
+  }
+  if (jobType === "segmentation") {
+    return <SegmentDonut data={toSegmentChart(result)} />;
+  }
+  if (jobType === "basket") {
+    return <BasketLiftChart data={toBasketChart(result)} />;
+  }
+  if (jobType === "churn") {
+    return <ChurnDonut data={toChurnChart(result)} />;
+  }
+  if (jobType === "anomaly") {
+    return <AnomalyScatter data={toAnomalyChart(result)} />;
+  }
+  return null;
+}
+
 export function AnalyticsJobPanel() {
   const session = useSession();
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
@@ -46,7 +85,8 @@ export function AnalyticsJobPanel() {
     void listAccessibleStores()
       .then((items) => {
         setStores(items);
-        if (items.length > 0) setStoreId(items[0].id);
+        const active = resolveActiveStore(items, null);
+        setStoreId(active?.id ?? null);
       })
       .catch(() => setMessage("Gagal memuat toko"));
   }, [session.status, session.profile]);
@@ -187,11 +227,17 @@ export function AnalyticsJobPanel() {
               </div>
             )}
             {job.status === "completed" && Boolean(job.result) && (
-              <div className="mt-4">
-                <div className="text-sm font-medium mb-2">Hasil:</div>
-                <pre className="bg-gray-50 border rounded p-3 text-xs overflow-auto max-h-96">
-{JSON.stringify(job.result, null, 2)}
-                </pre>
+              <div className="mt-4 space-y-3">
+                <div className="text-sm font-medium">Hasil:</div>
+                <JobResultChart jobType={job.jobType} result={job.result} />
+                <details>
+                  <summary className="cursor-pointer text-xs text-ink-muted">
+                    Lihat keterapan mentah (JSON)
+                  </summary>
+                  <pre className="bg-gray-50 border rounded p-3 text-xs overflow-auto max-h-96 mt-2">
+                    {JSON.stringify(job.result, null, 2)}
+                  </pre>
+                </details>
               </div>
             )}
           </CardContent>
