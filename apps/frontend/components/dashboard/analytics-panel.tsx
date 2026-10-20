@@ -163,11 +163,16 @@ export function AnalyticsPanel() {
           </div>
 
         <Button onClick={loadAnalytics} disabled={loading}>
-          {loading ? "Loading..." : "Refresh"}
+          {loading ? "Memuat..." : "Refresh"}
         </Button>
       </div>
 
-      {/* KPI Cards */}
+      {/*
+        KPI: selama summary belum datang tampilkan "—", BUKAN "Rp 0".
+        Nol adalah jawaban SAH kalau periode memang tanpa penjualan, tapi
+        tampil sebagai nilai awal sebelum fetch selesai membuat pengguna
+        hal ini terbaca sebagai bug "semua nol" (laporan pengguna 20 Okt).
+      */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -177,7 +182,7 @@ export function AnalyticsPanel() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {summary ? formatRupiah(summary.totalSales) : "Rp 0"}
+              {summary !== null ? formatRupiah(summary.totalSales) : <span className="text-ink-muted">—</span>}
             </div>
           </CardContent>
         </Card>
@@ -189,7 +194,9 @@ export function AnalyticsPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary?.totalOrders || 0}</div>
+            <div className="text-2xl font-bold">
+              {summary !== null ? summary.totalOrders : <span className="text-ink-muted">—</span>}
+            </div>
           </CardContent>
         </Card>
 
@@ -201,7 +208,7 @@ export function AnalyticsPanel() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {summary ? formatRupiah(summary.avgOrderValue) : "Rp 0"}
+              {summary !== null ? formatRupiah(summary.avgOrderValue) : <span className="text-ink-muted">—</span>}
             </div>
           </CardContent>
         </Card>
@@ -213,7 +220,9 @@ export function AnalyticsPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary?.totalItems || 0}</div>
+            <div className="text-2xl font-bold">
+              {summary !== null ? summary.totalItems : <span className="text-ink-muted">—</span>}
+            </div>
           </CardContent>
         </Card>
       </div>
