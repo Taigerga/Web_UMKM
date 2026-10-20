@@ -77,6 +77,15 @@ Laporan: unggah `demo-toko-2bulan.csv` (988 baris) kelamaan; KPI ringkasan tampi
 - **Bug tambahan — kartu dataset hilang setelah reload** (`2470af7`): panel Data hanya menyimpan dataset yang baru diunggah di state. `listStoreDatasets()` membaca `GET /stores/:id/datasets` saat mount; dataset terbaru ditautkan otomatis ke kartu aksi validasi/commit/rollback.
 - **Verifikasi akhir (sweep browser)**: login demo-toko → unggah + validasi + commit `demo-toko-2bulan.csv` (IMPORTED, 988 baris, cepat) → /dashboard/orders berpager "25.913 order total — halaman 1 dari 1296" → /dashboard/analytics KPI terisi (Rp 49,3 jt / 275 pesanan / Rp 179.338 / 649 item) + grafik produk terlaris → kelima job ML COMPLETED → konsol tanpa 429/401 baru. Backend test 107/107, frontend 140/140, build kedua-duanya hijau.
 
+## Hasil analisis persist per model + insight terbaca manusia (20 Okt 2026)
+
+Laporan pengguna: hasil analisis hilang saat halaman dimuat ulang; pindah model ikut mengganti isi panel; database menampilkan UUID produk yang tidak bisa dibaca.
+
+- **Hasil sebenarnya sudah tersimpan** di `ml_jobs.result` sejak awal - yang hilang hanya tampilannya: panel hanya memegang job terakhir di state React. `listAnalyticsJobs` membaca `GET /analytics/jobs` saat mount; `pickLatestCompleted` (`lib/analysis-history.ts`, teruji) memilih job completed termutakhir per model (`market-basket` sebuah kunci basket); polling selesai langsung mengisi slot modelnya. Ganti dropdown = pindah yang dilihat, hasil model lain tidak diganti (commit `c317fd8`).
+- **Insight terbaca manusia**: `chartInsightText` (teruji) menerjemahkan angka hasil ke kalimat bisnis Indonesia - basket: "Pasangan terkuat A → B muncul bersama di 2,2% transaksi, 1,7× lebih sering dari kebetulan"; juga untuk segmen (porsi omzet), churn (risiko tinggi dari total), anomali (lompatan vs penurunan), forecast (total + rata-rata harian).
+- **UUID di basket** (`e646c8d`): `basketInput` kini mengirim label "Nama (SKU)" sebagai item transaksi; FP-Growth mengembalikan label apa adanya, jadi batang grafik berbunyi "Keripik Singkong 250g (P5)" - bukan `a9cdd44d-...`.
+- Terbukti di browser: hasil tersimpan terpulihkan setelah muat-ulang (tiap model di slot masing-masing), job basket baru menampilkan nama produk + kalimat insight, struktur kartu status terpisah untuk job running/failed.
+
 ## Verifikasi yang sudah dijalankan (19-20 Okt 2026)
 | Perintah | Hasil |
 |---|---|
