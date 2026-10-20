@@ -1,0 +1,989 @@
+order_id,order_date,customer_code,customer_name,product_code,product_name,category,qty,unit,unit_price,total_price,channel
+ORD-1,2026-09-01,C20,Tia,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-1,2026-09-01,C20,Tia,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-1,2026-09-01,C20,Tia,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-1,2026-09-01,C20,Tia,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-2,2026-09-01,C25,Zahra,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,online
+ORD-2,2026-09-01,C25,Zahra,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-2,2026-09-01,C25,Zahra,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-2,2026-09-01,C25,Zahra,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-3,2026-09-01,C1,Ridho,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-3,2026-09-01,C1,Ridho,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-4,2026-09-01,C16,Oki,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-4,2026-09-01,C16,Oki,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-5,2026-09-01,C24,Yoga,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-5,2026-09-01,C24,Yoga,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-5,2026-09-01,C24,Yoga,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,online
+ORD-6,2026-09-02,C1,Ridho,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,online
+ORD-7,2026-09-02,C1,Ridho,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-7,2026-09-02,C1,Ridho,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,online
+ORD-7,2026-09-02,C1,Ridho,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-8,2026-09-02,C22,Vina,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-8,2026-09-02,C22,Vina,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-9,2026-09-02,C1,Ridho,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-10,2026-09-02,C7,Fajar,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-10,2026-09-02,C7,Fajar,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,online
+ORD-10,2026-09-02,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,offline
+ORD-10,2026-09-02,C7,Fajar,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-11,2026-09-02,C8,Gita,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-11,2026-09-02,C8,Gita,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-11,2026-09-02,C8,Gita,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-12,2026-09-03,C12,Kirana,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,offline
+ORD-12,2026-09-03,C12,Kirana,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-12,2026-09-03,C12,Kirana,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-13,2026-09-03,C2,Siti,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-14,2026-09-03,C15,Nadia,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,online
+ORD-14,2026-09-03,C15,Nadia,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-14,2026-09-03,C15,Nadia,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-14,2026-09-03,C15,Nadia,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-15,2026-09-03,C9,Hendra,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-16,2026-09-03,C21,Umar,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-16,2026-09-03,C21,Umar,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,online
+ORD-17,2026-09-03,C9,Hendra,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-18,2026-09-04,C7,Fajar,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,online
+ORD-19,2026-09-04,C25,Zahra,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-20,2026-09-04,C12,Kirana,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-20,2026-09-04,C12,Kirana,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-20,2026-09-04,C12,Kirana,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-20,2026-09-04,C12,Kirana,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-21,2026-09-04,C3,Budi,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-21,2026-09-04,C3,Budi,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-21,2026-09-04,C3,Budi,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-22,2026-09-04,C14,Maya,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-23,2026-09-04,C12,Kirana,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-24,2026-09-05,C17,Putri,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,offline
+ORD-24,2026-09-05,C17,Putri,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-24,2026-09-05,C17,Putri,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-25,2026-09-05,C8,Gita,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-25,2026-09-05,C8,Gita,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-25,2026-09-05,C8,Gita,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-26,2026-09-05,C2,Siti,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-26,2026-09-05,C2,Siti,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-26,2026-09-05,C2,Siti,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-27,2026-09-05,C19,Salim,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-28,2026-09-05,C13,Lutfi,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,offline
+ORD-29,2026-09-05,C22,Vina,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-29,2026-09-05,C22,Vina,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-29,2026-09-05,C22,Vina,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-30,2026-09-05,C24,Yoga,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-30,2026-09-05,C24,Yoga,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-31,2026-09-06,C25,Zahra,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-31,2026-09-06,C25,Zahra,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-31,2026-09-06,C25,Zahra,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-31,2026-09-06,C25,Zahra,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-32,2026-09-06,C24,Yoga,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-32,2026-09-06,C24,Yoga,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-32,2026-09-06,C24,Yoga,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-33,2026-09-06,C5,Andra,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-34,2026-09-06,C1,Ridho,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-34,2026-09-06,C1,Ridho,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-34,2026-09-06,C1,Ridho,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-35,2026-09-06,C13,Lutfi,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-36,2026-09-06,C25,Zahra,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-36,2026-09-06,C25,Zahra,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-37,2026-09-06,C5,Andra,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-38,2026-09-06,C9,Hendra,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-38,2026-09-06,C9,Hendra,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-38,2026-09-06,C9,Hendra,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,offline
+ORD-39,2026-09-06,C21,Umar,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-39,2026-09-06,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-39,2026-09-06,C21,Umar,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-39,2026-09-06,C21,Umar,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-40,2026-09-07,C8,Gita,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,online
+ORD-40,2026-09-07,C8,Gita,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-40,2026-09-07,C8,Gita,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,online
+ORD-41,2026-09-07,C6,Dewi,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-41,2026-09-07,C6,Dewi,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-41,2026-09-07,C6,Dewi,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-42,2026-09-07,C18,Rani,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-43,2026-09-07,C9,Hendra,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,online
+ORD-43,2026-09-07,C9,Hendra,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-44,2026-09-07,C3,Budi,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-44,2026-09-07,C3,Budi,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-44,2026-09-07,C3,Budi,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,online
+ORD-45,2026-09-07,C20,Tia,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-45,2026-09-07,C20,Tia,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-45,2026-09-07,C20,Tia,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-45,2026-09-07,C20,Tia,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-46,2026-09-08,C22,Vina,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-46,2026-09-08,C22,Vina,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-47,2026-09-08,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-47,2026-09-08,C20,Tia,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,online
+ORD-48,2026-09-08,C19,Salim,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-48,2026-09-08,C19,Salim,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-48,2026-09-08,C19,Salim,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-48,2026-09-08,C19,Salim,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,online
+ORD-49,2026-09-08,C5,Andra,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-49,2026-09-08,C5,Andra,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,offline
+ORD-50,2026-09-08,C19,Salim,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-50,2026-09-08,C19,Salim,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-51,2026-09-08,C19,Salim,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,online
+ORD-51,2026-09-08,C19,Salim,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-51,2026-09-08,C19,Salim,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-51,2026-09-08,C19,Salim,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-52,2026-09-08,C19,Salim,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-52,2026-09-08,C19,Salim,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-52,2026-09-08,C19,Salim,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,offline
+ORD-53,2026-09-09,C8,Gita,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-54,2026-09-09,C20,Tia,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,online
+ORD-54,2026-09-09,C20,Tia,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-54,2026-09-09,C20,Tia,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-54,2026-09-09,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-55,2026-09-09,C17,Putri,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-56,2026-09-09,C5,Andra,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-56,2026-09-09,C5,Andra,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-56,2026-09-09,C5,Andra,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-57,2026-09-10,C5,Andra,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,online
+ORD-57,2026-09-10,C5,Andra,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,online
+ORD-57,2026-09-10,C5,Andra,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-57,2026-09-10,C5,Andra,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-58,2026-09-10,C4,Sari,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-58,2026-09-10,C4,Sari,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-58,2026-09-10,C4,Sari,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,online
+ORD-59,2026-09-10,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,online
+ORD-60,2026-09-10,C14,Maya,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-61,2026-09-11,C2,Siti,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-61,2026-09-11,C2,Siti,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-61,2026-09-11,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,online
+ORD-62,2026-09-11,C21,Umar,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,online
+ORD-62,2026-09-11,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,online
+ORD-62,2026-09-11,C21,Umar,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,online
+ORD-63,2026-09-11,C5,Andra,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,online
+ORD-63,2026-09-11,C5,Andra,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-64,2026-09-11,C1,Ridho,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,online
+ORD-64,2026-09-11,C1,Ridho,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-65,2026-09-11,C1,Ridho,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,online
+ORD-65,2026-09-11,C1,Ridho,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-65,2026-09-11,C1,Ridho,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-66,2026-09-11,C18,Rani,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-66,2026-09-11,C18,Rani,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-67,2026-09-12,C12,Kirana,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-67,2026-09-12,C12,Kirana,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,online
+ORD-68,2026-09-12,C13,Lutfi,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,online
+ORD-69,2026-09-12,C17,Putri,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,online
+ORD-69,2026-09-12,C17,Putri,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,online
+ORD-70,2026-09-12,C13,Lutfi,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-71,2026-09-12,C8,Gita,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-71,2026-09-12,C8,Gita,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-71,2026-09-12,C8,Gita,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-72,2026-09-12,C9,Hendra,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-72,2026-09-12,C9,Hendra,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-73,2026-09-12,C6,Dewi,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,online
+ORD-73,2026-09-12,C6,Dewi,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-73,2026-09-12,C6,Dewi,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-73,2026-09-12,C6,Dewi,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-74,2026-09-12,C15,Nadia,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-75,2026-09-12,C17,Putri,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-75,2026-09-12,C17,Putri,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-76,2026-09-13,C20,Tia,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-76,2026-09-13,C20,Tia,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,online
+ORD-76,2026-09-13,C20,Tia,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-77,2026-09-13,C21,Umar,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-77,2026-09-13,C21,Umar,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-77,2026-09-13,C21,Umar,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-78,2026-09-13,C5,Andra,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,online
+ORD-78,2026-09-13,C5,Andra,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,online
+ORD-79,2026-09-13,C19,Salim,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,offline
+ORD-80,2026-09-13,C4,Sari,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-80,2026-09-13,C4,Sari,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,online
+ORD-81,2026-09-13,C21,Umar,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-81,2026-09-13,C21,Umar,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-81,2026-09-13,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-82,2026-09-13,C22,Vina,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-82,2026-09-13,C22,Vina,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-82,2026-09-13,C22,Vina,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-82,2026-09-13,C22,Vina,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-83,2026-09-14,C22,Vina,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,online
+ORD-84,2026-09-14,C23,Wulan,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-84,2026-09-14,C23,Wulan,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-85,2026-09-14,C12,Kirana,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-85,2026-09-14,C12,Kirana,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-85,2026-09-14,C12,Kirana,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-86,2026-09-14,C20,Tia,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,online
+ORD-86,2026-09-14,C20,Tia,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,online
+ORD-87,2026-09-15,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-87,2026-09-15,C21,Umar,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-87,2026-09-15,C21,Umar,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-87,2026-09-15,C21,Umar,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-88,2026-09-15,C4,Sari,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,online
+ORD-88,2026-09-15,C4,Sari,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-89,2026-09-15,C10,Indah,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-89,2026-09-15,C10,Indah,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,online
+ORD-89,2026-09-15,C10,Indah,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-89,2026-09-15,C10,Indah,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-90,2026-09-15,C5,Andra,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-91,2026-09-15,C2,Siti,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-91,2026-09-15,C2,Siti,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-91,2026-09-15,C2,Siti,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,online
+ORD-92,2026-09-15,C22,Vina,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-92,2026-09-15,C22,Vina,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-92,2026-09-15,C22,Vina,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,online
+ORD-93,2026-09-15,C12,Kirana,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-93,2026-09-15,C12,Kirana,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-93,2026-09-15,C12,Kirana,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-94,2026-09-16,C11,Joko,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-94,2026-09-16,C11,Joko,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-95,2026-09-16,C9,Hendra,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,online
+ORD-95,2026-09-16,C9,Hendra,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-95,2026-09-16,C9,Hendra,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-95,2026-09-16,C9,Hendra,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-96,2026-09-16,C10,Indah,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-96,2026-09-16,C10,Indah,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-96,2026-09-16,C10,Indah,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-96,2026-09-16,C10,Indah,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-97,2026-09-16,C16,Oki,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-97,2026-09-16,C16,Oki,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-98,2026-09-16,C12,Kirana,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-98,2026-09-16,C12,Kirana,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-98,2026-09-16,C12,Kirana,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,offline
+ORD-98,2026-09-16,C12,Kirana,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,online
+ORD-99,2026-09-16,C3,Budi,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-99,2026-09-16,C3,Budi,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,online
+ORD-99,2026-09-16,C3,Budi,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-99,2026-09-16,C3,Budi,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-100,2026-09-16,C12,Kirana,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-100,2026-09-16,C12,Kirana,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-100,2026-09-16,C12,Kirana,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-100,2026-09-16,C12,Kirana,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-101,2026-09-17,C9,Hendra,P1,Teh Botol 350ml,Minuman,20,botol,5000,100000,offline
+ORD-101,2026-09-17,C9,Hendra,P3,Gula Aren 500g,Bahan,12,kemasan,15000,180000,offline
+ORD-102,2026-09-17,C16,Oki,P5,Keripik Singkong 250g,Makanan,29,pack,8000,232000,online
+ORD-102,2026-09-17,C16,Oki,P2,Kopi Bubuk Arabika 100g,Minuman,28,pack,18000,504000,online
+ORD-103,2026-09-17,C7,Fajar,P3,Gula Aren 500g,Bahan,25,kemasan,15000,375000,offline
+ORD-103,2026-09-17,C7,Fajar,P8,Beras Premium 5kg,Bahan,27,karung,72000,1944000,offline
+ORD-104,2026-09-17,C8,Gita,P8,Beras Premium 5kg,Bahan,14,karung,72000,1008000,online
+ORD-105,2026-09-17,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,25,pack,18000,450000,online
+ORD-105,2026-09-17,C2,Siti,P5,Keripik Singkong 250g,Makanan,21,pack,8000,168000,offline
+ORD-105,2026-09-17,C2,Siti,P1,Teh Botol 350ml,Minuman,29,botol,5000,145000,online
+ORD-106,2026-09-17,C9,Hendra,P4,Kacang Panggang 200g,Makanan,21,kemasan,12000,252000,online
+ORD-107,2026-09-17,C8,Gita,P6,Susu UHT 1L,Minuman,29,kotak,17000,493000,offline
+ORD-107,2026-09-17,C8,Gita,P3,Gula Aren 500g,Bahan,18,kemasan,15000,270000,online
+ORD-107,2026-09-17,C8,Gita,P5,Keripik Singkong 250g,Makanan,27,pack,8000,216000,online
+ORD-107,2026-09-17,C8,Gita,P9,Roti Tawar Klasik,Makanan,30,pack,14000,420000,online
+ORD-108,2026-09-17,C1,Ridho,P1,Teh Botol 350ml,Minuman,29,botol,5000,145000,offline
+ORD-109,2026-09-17,C21,Umar,P10,Air Mineral 1500ml,Minuman,25,botol,6000,150000,offline
+ORD-109,2026-09-17,C21,Umar,P3,Gula Aren 500g,Bahan,23,kemasan,15000,345000,online
+ORD-109,2026-09-17,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,17,pack,18000,306000,offline
+ORD-109,2026-09-17,C21,Umar,P6,Susu UHT 1L,Minuman,23,kotak,17000,391000,online
+ORD-110,2026-09-17,C7,Fajar,P7,Minyak Goreng 1L,Bahan,17,botol,19000,323000,offline
+ORD-110,2026-09-17,C7,Fajar,P1,Teh Botol 350ml,Minuman,19,botol,5000,95000,offline
+ORD-110,2026-09-17,C7,Fajar,P9,Roti Tawar Klasik,Makanan,25,pack,14000,350000,online
+ORD-110,2026-09-17,C7,Fajar,P3,Gula Aren 500g,Bahan,18,kemasan,15000,270000,offline
+ORD-111,2026-09-17,C1,Ridho,P4,Kacang Panggang 200g,Makanan,16,kemasan,12000,192000,offline
+ORD-111,2026-09-17,C1,Ridho,P2,Kopi Bubuk Arabika 100g,Minuman,23,pack,18000,414000,offline
+ORD-111,2026-09-17,C1,Ridho,P1,Teh Botol 350ml,Minuman,12,botol,5000,60000,offline
+ORD-111,2026-09-17,C1,Ridho,P7,Minyak Goreng 1L,Bahan,27,botol,19000,513000,online
+ORD-112,2026-09-17,C23,Wulan,P2,Kopi Bubuk Arabika 100g,Minuman,18,pack,18000,324000,online
+ORD-112,2026-09-17,C23,Wulan,P5,Keripik Singkong 250g,Makanan,25,pack,8000,200000,online
+ORD-112,2026-09-17,C23,Wulan,P3,Gula Aren 500g,Bahan,29,kemasan,15000,435000,offline
+ORD-113,2026-09-17,C2,Siti,P4,Kacang Panggang 200g,Makanan,21,kemasan,12000,252000,online
+ORD-113,2026-09-17,C2,Siti,P5,Keripik Singkong 250g,Makanan,30,pack,8000,240000,online
+ORD-113,2026-09-17,C2,Siti,P6,Susu UHT 1L,Minuman,25,kotak,17000,425000,offline
+ORD-114,2026-09-17,C13,Lutfi,P1,Teh Botol 350ml,Minuman,20,botol,5000,100000,offline
+ORD-114,2026-09-17,C13,Lutfi,P3,Gula Aren 500g,Bahan,26,kemasan,15000,390000,offline
+ORD-114,2026-09-17,C13,Lutfi,P8,Beras Premium 5kg,Bahan,23,karung,72000,1656000,online
+ORD-115,2026-09-17,C20,Tia,P5,Keripik Singkong 250g,Makanan,15,pack,8000,120000,offline
+ORD-116,2026-09-17,C12,Kirana,P3,Gula Aren 500g,Bahan,27,kemasan,15000,405000,offline
+ORD-116,2026-09-17,C12,Kirana,P4,Kacang Panggang 200g,Makanan,28,kemasan,12000,336000,online
+ORD-116,2026-09-17,C12,Kirana,P1,Teh Botol 350ml,Minuman,19,botol,5000,95000,offline
+ORD-117,2026-09-18,C2,Siti,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-117,2026-09-18,C2,Siti,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-117,2026-09-18,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-118,2026-09-18,C6,Dewi,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-118,2026-09-18,C6,Dewi,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-118,2026-09-18,C6,Dewi,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-118,2026-09-18,C6,Dewi,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-119,2026-09-18,C2,Siti,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-120,2026-09-18,C22,Vina,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-120,2026-09-18,C22,Vina,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-120,2026-09-18,C22,Vina,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-121,2026-09-18,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-121,2026-09-18,C21,Umar,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-122,2026-09-19,C2,Siti,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-122,2026-09-19,C2,Siti,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,offline
+ORD-123,2026-09-19,C13,Lutfi,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-124,2026-09-19,C2,Siti,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-125,2026-09-19,C16,Oki,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,online
+ORD-125,2026-09-19,C16,Oki,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-125,2026-09-19,C16,Oki,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,online
+ORD-125,2026-09-19,C16,Oki,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-126,2026-09-19,C7,Fajar,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-126,2026-09-19,C7,Fajar,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,online
+ORD-126,2026-09-19,C7,Fajar,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-127,2026-09-19,C10,Indah,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-128,2026-09-19,C7,Fajar,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-129,2026-09-19,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-129,2026-09-19,C5,Andra,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-130,2026-09-19,C13,Lutfi,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-130,2026-09-19,C13,Lutfi,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-130,2026-09-19,C13,Lutfi,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-131,2026-09-20,C12,Kirana,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,online
+ORD-131,2026-09-20,C12,Kirana,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-131,2026-09-20,C12,Kirana,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,online
+ORD-131,2026-09-20,C12,Kirana,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-132,2026-09-20,C12,Kirana,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-132,2026-09-20,C12,Kirana,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-133,2026-09-20,C22,Vina,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-133,2026-09-20,C22,Vina,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,online
+ORD-133,2026-09-20,C22,Vina,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-134,2026-09-20,C7,Fajar,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-135,2026-09-20,C4,Sari,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-135,2026-09-20,C4,Sari,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,online
+ORD-135,2026-09-20,C4,Sari,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-136,2026-09-20,C24,Yoga,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-136,2026-09-20,C24,Yoga,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-136,2026-09-20,C24,Yoga,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-137,2026-09-20,C17,Putri,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-138,2026-09-20,C5,Andra,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-138,2026-09-20,C5,Andra,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-138,2026-09-20,C5,Andra,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-138,2026-09-20,C5,Andra,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-139,2026-09-21,C7,Fajar,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,offline
+ORD-139,2026-09-21,C7,Fajar,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-139,2026-09-21,C7,Fajar,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,offline
+ORD-139,2026-09-21,C7,Fajar,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-140,2026-09-21,C21,Umar,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-140,2026-09-21,C21,Umar,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-140,2026-09-21,C21,Umar,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-140,2026-09-21,C21,Umar,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-141,2026-09-21,C2,Siti,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-141,2026-09-21,C2,Siti,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-141,2026-09-21,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,online
+ORD-141,2026-09-21,C2,Siti,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,online
+ORD-142,2026-09-21,C20,Tia,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-142,2026-09-21,C20,Tia,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-142,2026-09-21,C20,Tia,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,offline
+ORD-143,2026-09-21,C2,Siti,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,online
+ORD-144,2026-09-21,C13,Lutfi,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-144,2026-09-21,C13,Lutfi,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-145,2026-09-21,C1,Ridho,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,online
+ORD-146,2026-09-22,C17,Putri,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-146,2026-09-22,C17,Putri,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-147,2026-09-22,C20,Tia,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-148,2026-09-22,C15,Nadia,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-149,2026-09-22,C20,Tia,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-150,2026-09-22,C9,Hendra,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-150,2026-09-22,C9,Hendra,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-151,2026-09-23,C21,Umar,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-151,2026-09-23,C21,Umar,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,online
+ORD-151,2026-09-23,C21,Umar,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-152,2026-09-23,C3,Budi,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-152,2026-09-23,C3,Budi,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-152,2026-09-23,C3,Budi,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-153,2026-09-23,C21,Umar,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-153,2026-09-23,C21,Umar,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,offline
+ORD-154,2026-09-23,C6,Dewi,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-154,2026-09-23,C6,Dewi,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-155,2026-09-23,C2,Siti,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-155,2026-09-23,C2,Siti,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-155,2026-09-23,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-155,2026-09-23,C2,Siti,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-156,2026-09-23,C2,Siti,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-156,2026-09-23,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-157,2026-09-24,C7,Fajar,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-157,2026-09-24,C7,Fajar,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-158,2026-09-24,C21,Umar,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-158,2026-09-24,C21,Umar,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,online
+ORD-158,2026-09-24,C21,Umar,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-158,2026-09-24,C21,Umar,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-159,2026-09-24,C5,Andra,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-159,2026-09-24,C5,Andra,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-159,2026-09-24,C5,Andra,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-160,2026-09-24,C12,Kirana,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-161,2026-09-24,C23,Wulan,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-161,2026-09-24,C23,Wulan,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-161,2026-09-24,C23,Wulan,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-162,2026-09-24,C15,Nadia,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-162,2026-09-24,C15,Nadia,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-163,2026-09-25,C7,Fajar,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-163,2026-09-25,C7,Fajar,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-163,2026-09-25,C7,Fajar,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-164,2026-09-25,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-164,2026-09-25,C5,Andra,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,online
+ORD-165,2026-09-25,C2,Siti,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-165,2026-09-25,C2,Siti,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-165,2026-09-25,C2,Siti,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-166,2026-09-25,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-166,2026-09-25,C7,Fajar,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,online
+ORD-167,2026-09-25,C1,Ridho,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-168,2026-09-25,C20,Tia,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-169,2026-09-26,C5,Andra,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-169,2026-09-26,C5,Andra,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-169,2026-09-26,C5,Andra,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-169,2026-09-26,C5,Andra,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,offline
+ORD-170,2026-09-26,C25,Zahra,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-170,2026-09-26,C25,Zahra,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-170,2026-09-26,C25,Zahra,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,offline
+ORD-171,2026-09-26,C25,Zahra,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-172,2026-09-26,C25,Zahra,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-172,2026-09-26,C25,Zahra,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-173,2026-09-26,C1,Ridho,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-174,2026-09-26,C20,Tia,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-174,2026-09-26,C20,Tia,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,online
+ORD-174,2026-09-26,C20,Tia,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-175,2026-09-26,C12,Kirana,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-175,2026-09-26,C12,Kirana,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-176,2026-09-27,C10,Indah,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-177,2026-09-27,C8,Gita,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-177,2026-09-27,C8,Gita,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-178,2026-09-27,C22,Vina,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-178,2026-09-27,C22,Vina,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-179,2026-09-27,C5,Andra,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-179,2026-09-27,C5,Andra,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-179,2026-09-27,C5,Andra,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-179,2026-09-27,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-180,2026-09-27,C17,Putri,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-180,2026-09-27,C17,Putri,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-181,2026-09-27,C10,Indah,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,online
+ORD-182,2026-09-27,C7,Fajar,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,online
+ORD-182,2026-09-27,C7,Fajar,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,online
+ORD-182,2026-09-27,C7,Fajar,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,online
+ORD-182,2026-09-27,C7,Fajar,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,online
+ORD-183,2026-09-27,C7,Fajar,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-183,2026-09-27,C7,Fajar,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,offline
+ORD-183,2026-09-27,C7,Fajar,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-184,2026-09-27,C20,Tia,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-184,2026-09-27,C20,Tia,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-185,2026-09-27,C8,Gita,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,offline
+ORD-186,2026-09-27,C1,Ridho,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-186,2026-09-27,C1,Ridho,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-186,2026-09-27,C1,Ridho,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,online
+ORD-187,2026-09-27,C22,Vina,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-188,2026-09-28,C10,Indah,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-189,2026-09-28,C21,Umar,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-190,2026-09-28,C3,Budi,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,offline
+ORD-190,2026-09-28,C3,Budi,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,online
+ORD-190,2026-09-28,C3,Budi,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-190,2026-09-28,C3,Budi,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,offline
+ORD-191,2026-09-28,C5,Andra,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,online
+ORD-191,2026-09-28,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-191,2026-09-28,C5,Andra,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,offline
+ORD-192,2026-09-28,C22,Vina,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-193,2026-09-29,C7,Fajar,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-193,2026-09-29,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-194,2026-09-29,C10,Indah,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-194,2026-09-29,C10,Indah,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-194,2026-09-29,C10,Indah,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-195,2026-09-29,C1,Ridho,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,offline
+ORD-196,2026-09-29,C23,Wulan,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-197,2026-09-30,C7,Fajar,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-197,2026-09-30,C7,Fajar,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,online
+ORD-197,2026-09-30,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-198,2026-09-30,C21,Umar,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-199,2026-09-30,C20,Tia,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,online
+ORD-199,2026-09-30,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-200,2026-09-30,C22,Vina,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-201,2026-09-30,C15,Nadia,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-202,2026-09-30,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-202,2026-09-30,C20,Tia,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-202,2026-09-30,C20,Tia,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-202,2026-09-30,C20,Tia,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-203,2026-09-30,C13,Lutfi,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-203,2026-09-30,C13,Lutfi,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,offline
+ORD-204,2026-10-01,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-205,2026-10-01,C17,Putri,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-206,2026-10-01,C23,Wulan,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-207,2026-10-01,C6,Dewi,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-207,2026-10-01,C6,Dewi,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-207,2026-10-01,C6,Dewi,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-208,2026-10-02,C11,Joko,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-209,2026-10-02,C5,Andra,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-209,2026-10-02,C5,Andra,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-209,2026-10-02,C5,Andra,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,online
+ORD-210,2026-10-02,C2,Siti,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-211,2026-10-02,C13,Lutfi,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-211,2026-10-02,C13,Lutfi,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,online
+ORD-212,2026-10-02,C1,Ridho,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-212,2026-10-02,C1,Ridho,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-213,2026-10-03,C20,Tia,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-213,2026-10-03,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-213,2026-10-03,C20,Tia,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,offline
+ORD-214,2026-10-03,C9,Hendra,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-214,2026-10-03,C9,Hendra,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-214,2026-10-03,C9,Hendra,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-215,2026-10-03,C13,Lutfi,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-215,2026-10-03,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-215,2026-10-03,C13,Lutfi,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-216,2026-10-03,C22,Vina,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,online
+ORD-216,2026-10-03,C22,Vina,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-216,2026-10-03,C22,Vina,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-217,2026-10-03,C9,Hendra,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-218,2026-10-03,C21,Umar,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,offline
+ORD-218,2026-10-03,C21,Umar,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-218,2026-10-03,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-219,2026-10-03,C12,Kirana,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-219,2026-10-03,C12,Kirana,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,offline
+ORD-219,2026-10-03,C12,Kirana,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-219,2026-10-03,C12,Kirana,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,online
+ORD-220,2026-10-03,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-220,2026-10-03,C7,Fajar,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-221,2026-10-03,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,offline
+ORD-222,2026-10-03,C21,Umar,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-222,2026-10-03,C21,Umar,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-222,2026-10-03,C21,Umar,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-222,2026-10-03,C21,Umar,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-223,2026-10-03,C7,Fajar,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,online
+ORD-224,2026-10-03,C5,Andra,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-225,2026-10-04,C13,Lutfi,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-225,2026-10-04,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-226,2026-10-04,C21,Umar,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-227,2026-10-04,C13,Lutfi,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,offline
+ORD-227,2026-10-04,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-228,2026-10-04,C5,Andra,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,online
+ORD-228,2026-10-04,C5,Andra,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-228,2026-10-04,C5,Andra,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-229,2026-10-04,C7,Fajar,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-229,2026-10-04,C7,Fajar,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-230,2026-10-04,C25,Zahra,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,offline
+ORD-230,2026-10-04,C25,Zahra,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-231,2026-10-04,C9,Hendra,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-231,2026-10-04,C9,Hendra,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-232,2026-10-05,C2,Siti,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-232,2026-10-05,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-232,2026-10-05,C2,Siti,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-233,2026-10-05,C23,Wulan,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,online
+ORD-233,2026-10-05,C23,Wulan,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-233,2026-10-05,C23,Wulan,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,online
+ORD-234,2026-10-05,C5,Andra,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-234,2026-10-05,C5,Andra,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,online
+ORD-234,2026-10-05,C5,Andra,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-234,2026-10-05,C5,Andra,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-235,2026-10-05,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-235,2026-10-05,C2,Siti,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,online
+ORD-235,2026-10-05,C2,Siti,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-235,2026-10-05,C2,Siti,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-236,2026-10-05,C21,Umar,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-236,2026-10-05,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-236,2026-10-05,C21,Umar,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-236,2026-10-05,C21,Umar,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-237,2026-10-05,C23,Wulan,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,online
+ORD-238,2026-10-06,C5,Andra,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-239,2026-10-06,C1,Ridho,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-239,2026-10-06,C1,Ridho,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-239,2026-10-06,C1,Ridho,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-240,2026-10-06,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-241,2026-10-06,C7,Fajar,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-242,2026-10-06,C23,Wulan,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-242,2026-10-06,C23,Wulan,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-242,2026-10-06,C23,Wulan,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,online
+ORD-243,2026-10-06,C8,Gita,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-244,2026-10-07,C24,Yoga,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-244,2026-10-07,C24,Yoga,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-245,2026-10-07,C2,Siti,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-245,2026-10-07,C2,Siti,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-245,2026-10-07,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-245,2026-10-07,C2,Siti,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-246,2026-10-07,C8,Gita,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-246,2026-10-07,C8,Gita,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-247,2026-10-07,C9,Hendra,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-247,2026-10-07,C9,Hendra,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-248,2026-10-07,C13,Lutfi,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-248,2026-10-07,C13,Lutfi,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,online
+ORD-248,2026-10-07,C13,Lutfi,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,online
+ORD-248,2026-10-07,C13,Lutfi,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-249,2026-10-07,C13,Lutfi,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-249,2026-10-07,C13,Lutfi,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-249,2026-10-07,C13,Lutfi,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-249,2026-10-07,C13,Lutfi,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,offline
+ORD-250,2026-10-07,C20,Tia,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-250,2026-10-07,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-250,2026-10-07,C20,Tia,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-251,2026-10-08,C7,Fajar,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,online
+ORD-251,2026-10-08,C7,Fajar,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-252,2026-10-08,C14,Maya,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-252,2026-10-08,C14,Maya,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,offline
+ORD-252,2026-10-08,C14,Maya,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-253,2026-10-08,C2,Siti,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-253,2026-10-08,C2,Siti,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-253,2026-10-08,C2,Siti,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-254,2026-10-08,C22,Vina,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-255,2026-10-10,C1,Ridho,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-255,2026-10-10,C1,Ridho,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-256,2026-10-10,C6,Dewi,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,online
+ORD-256,2026-10-10,C6,Dewi,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-256,2026-10-10,C6,Dewi,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-256,2026-10-10,C6,Dewi,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-257,2026-10-10,C16,Oki,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,online
+ORD-257,2026-10-10,C16,Oki,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-257,2026-10-10,C16,Oki,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-258,2026-10-10,C4,Sari,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-258,2026-10-10,C4,Sari,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-258,2026-10-10,C4,Sari,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-259,2026-10-10,C3,Budi,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,online
+ORD-259,2026-10-10,C3,Budi,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-259,2026-10-10,C3,Budi,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-260,2026-10-10,C5,Andra,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-261,2026-10-10,C13,Lutfi,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,online
+ORD-261,2026-10-10,C13,Lutfi,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,online
+ORD-261,2026-10-10,C13,Lutfi,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-262,2026-10-10,C18,Rani,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-262,2026-10-10,C18,Rani,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-263,2026-10-10,C5,Andra,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-263,2026-10-10,C5,Andra,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-263,2026-10-10,C5,Andra,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-263,2026-10-10,C5,Andra,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-264,2026-10-11,C20,Tia,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-264,2026-10-11,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-264,2026-10-11,C20,Tia,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,online
+ORD-264,2026-10-11,C20,Tia,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-265,2026-10-11,C25,Zahra,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-265,2026-10-11,C25,Zahra,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-265,2026-10-11,C25,Zahra,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-265,2026-10-11,C25,Zahra,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,online
+ORD-266,2026-10-11,C22,Vina,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-266,2026-10-11,C22,Vina,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,online
+ORD-267,2026-10-11,C9,Hendra,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-267,2026-10-11,C9,Hendra,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-268,2026-10-11,C23,Wulan,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-268,2026-10-11,C23,Wulan,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-268,2026-10-11,C23,Wulan,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-269,2026-10-11,C8,Gita,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-269,2026-10-11,C8,Gita,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-269,2026-10-11,C8,Gita,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-270,2026-10-11,C3,Budi,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-271,2026-10-11,C25,Zahra,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,offline
+ORD-271,2026-10-11,C25,Zahra,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,online
+ORD-271,2026-10-11,C25,Zahra,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-271,2026-10-11,C25,Zahra,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-272,2026-10-11,C17,Putri,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,online
+ORD-273,2026-10-11,C24,Yoga,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-274,2026-10-12,C16,Oki,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-274,2026-10-12,C16,Oki,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,online
+ORD-275,2026-10-12,C15,Nadia,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-276,2026-10-12,C23,Wulan,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-276,2026-10-12,C23,Wulan,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-276,2026-10-12,C23,Wulan,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-277,2026-10-12,C9,Hendra,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-278,2026-10-12,C9,Hendra,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-279,2026-10-12,C15,Nadia,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,online
+ORD-280,2026-10-12,C10,Indah,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,online
+ORD-280,2026-10-12,C10,Indah,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,online
+ORD-280,2026-10-12,C10,Indah,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-281,2026-10-13,C21,Umar,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-281,2026-10-13,C21,Umar,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-281,2026-10-13,C21,Umar,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-282,2026-10-13,C12,Kirana,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-282,2026-10-13,C12,Kirana,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-282,2026-10-13,C12,Kirana,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,online
+ORD-282,2026-10-13,C12,Kirana,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,online
+ORD-283,2026-10-13,C3,Budi,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-283,2026-10-13,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,offline
+ORD-283,2026-10-13,C3,Budi,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-283,2026-10-13,C3,Budi,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,online
+ORD-284,2026-10-13,C23,Wulan,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-284,2026-10-13,C23,Wulan,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,online
+ORD-285,2026-10-14,C2,Siti,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-285,2026-10-14,C2,Siti,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,online
+ORD-285,2026-10-14,C2,Siti,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-286,2026-10-14,C22,Vina,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-286,2026-10-14,C22,Vina,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-287,2026-10-14,C13,Lutfi,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-288,2026-10-14,C8,Gita,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,online
+ORD-288,2026-10-14,C8,Gita,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-289,2026-10-14,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-289,2026-10-14,C3,Budi,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,online
+ORD-290,2026-10-14,C2,Siti,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,online
+ORD-290,2026-10-14,C2,Siti,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-290,2026-10-14,C2,Siti,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-291,2026-10-15,C11,Joko,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-292,2026-10-15,C22,Vina,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,online
+ORD-293,2026-10-15,C7,Fajar,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,online
+ORD-294,2026-10-15,C20,Tia,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-294,2026-10-15,C20,Tia,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-295,2026-10-15,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,online
+ORD-295,2026-10-15,C3,Budi,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-296,2026-10-15,C13,Lutfi,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-297,2026-10-16,C5,Andra,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-297,2026-10-16,C5,Andra,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-297,2026-10-16,C5,Andra,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-297,2026-10-16,C5,Andra,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-298,2026-10-16,C24,Yoga,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-298,2026-10-16,C24,Yoga,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-298,2026-10-16,C24,Yoga,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-298,2026-10-16,C24,Yoga,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-299,2026-10-16,C10,Indah,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-300,2026-10-16,C13,Lutfi,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,online
+ORD-300,2026-10-16,C13,Lutfi,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-300,2026-10-16,C13,Lutfi,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,online
+ORD-300,2026-10-16,C13,Lutfi,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,online
+ORD-301,2026-10-16,C15,Nadia,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-302,2026-10-16,C15,Nadia,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-303,2026-10-17,C15,Nadia,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-303,2026-10-17,C15,Nadia,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-303,2026-10-17,C15,Nadia,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,offline
+ORD-303,2026-10-17,C15,Nadia,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,online
+ORD-304,2026-10-17,C13,Lutfi,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-304,2026-10-17,C13,Lutfi,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-304,2026-10-17,C13,Lutfi,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-305,2026-10-17,C20,Tia,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-306,2026-10-17,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-307,2026-10-17,C22,Vina,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-307,2026-10-17,C22,Vina,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-308,2026-10-17,C12,Kirana,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,online
+ORD-308,2026-10-17,C12,Kirana,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-309,2026-10-17,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-309,2026-10-17,C3,Budi,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-310,2026-10-17,C24,Yoga,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-311,2026-10-17,C18,Rani,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-311,2026-10-17,C18,Rani,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-312,2026-10-18,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-312,2026-10-18,C13,Lutfi,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-312,2026-10-18,C13,Lutfi,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-312,2026-10-18,C13,Lutfi,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-313,2026-10-18,C2,Siti,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-314,2026-10-18,C23,Wulan,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-315,2026-10-18,C21,Umar,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,online
+ORD-315,2026-10-18,C21,Umar,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-315,2026-10-18,C21,Umar,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-315,2026-10-18,C21,Umar,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-316,2026-10-18,C10,Indah,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-316,2026-10-18,C10,Indah,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,online
+ORD-316,2026-10-18,C10,Indah,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,online
+ORD-316,2026-10-18,C10,Indah,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-317,2026-10-18,C20,Tia,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-318,2026-10-18,C18,Rani,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-318,2026-10-18,C18,Rani,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,online
+ORD-319,2026-10-18,C2,Siti,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-319,2026-10-18,C2,Siti,P3,Gula Aren 500g,Bahan,1,kemasan,15000,15000,offline
+ORD-319,2026-10-18,C2,Siti,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-319,2026-10-18,C2,Siti,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-320,2026-10-18,C3,Budi,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-321,2026-10-18,C8,Gita,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-321,2026-10-18,C8,Gita,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-321,2026-10-18,C8,Gita,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,online
+ORD-321,2026-10-18,C8,Gita,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-322,2026-10-18,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-322,2026-10-18,C13,Lutfi,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-323,2026-10-19,C2,Siti,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-323,2026-10-19,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-323,2026-10-19,C2,Siti,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-324,2026-10-19,C6,Dewi,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,online
+ORD-324,2026-10-19,C6,Dewi,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,online
+ORD-324,2026-10-19,C6,Dewi,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-324,2026-10-19,C6,Dewi,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,offline
+ORD-325,2026-10-19,C4,Sari,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,online
+ORD-325,2026-10-19,C4,Sari,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-325,2026-10-19,C4,Sari,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,online
+ORD-326,2026-10-19,C12,Kirana,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-326,2026-10-19,C12,Kirana,P9,Roti Tawar Klasik,Makanan,1,pack,14000,14000,offline
+ORD-327,2026-10-19,C3,Budi,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,online
+ORD-327,2026-10-19,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,online
+ORD-327,2026-10-19,C3,Budi,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-328,2026-10-19,C7,Fajar,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-328,2026-10-19,C7,Fajar,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,online
+ORD-329,2026-10-19,C5,Andra,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-329,2026-10-19,C5,Andra,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-329,2026-10-19,C5,Andra,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-329,2026-10-19,C5,Andra,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-330,2026-10-20,C22,Vina,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-330,2026-10-20,C22,Vina,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-330,2026-10-20,C22,Vina,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,online
+ORD-331,2026-10-20,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-331,2026-10-20,C5,Andra,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,offline
+ORD-331,2026-10-20,C5,Andra,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,online
+ORD-331,2026-10-20,C5,Andra,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-332,2026-10-20,C3,Budi,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-332,2026-10-20,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,offline
+ORD-332,2026-10-20,C3,Budi,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-333,2026-10-20,C20,Tia,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-334,2026-10-20,C22,Vina,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,online
+ORD-334,2026-10-20,C22,Vina,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,online
+ORD-335,2026-10-21,C9,Hendra,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,online
+ORD-336,2026-10-21,C1,Ridho,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-336,2026-10-21,C1,Ridho,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,online
+ORD-336,2026-10-21,C1,Ridho,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-337,2026-10-21,C3,Budi,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-337,2026-10-21,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,online
+ORD-338,2026-10-21,C20,Tia,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-338,2026-10-21,C20,Tia,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-339,2026-10-21,C5,Andra,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-339,2026-10-21,C5,Andra,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-339,2026-10-21,C5,Andra,P8,Beras Premium 5kg,Bahan,1,karung,72000,72000,offline
+ORD-339,2026-10-21,C5,Andra,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,online
+ORD-340,2026-10-21,C6,Dewi,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,offline
+ORD-340,2026-10-21,C6,Dewi,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-340,2026-10-21,C6,Dewi,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,online
+ORD-341,2026-10-21,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-341,2026-10-21,C2,Siti,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-341,2026-10-21,C2,Siti,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-342,2026-10-22,C22,Vina,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-342,2026-10-22,C22,Vina,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-343,2026-10-22,C3,Budi,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-343,2026-10-22,C3,Budi,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-344,2026-10-22,C5,Andra,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-345,2026-10-22,C12,Kirana,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,online
+ORD-345,2026-10-22,C12,Kirana,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-345,2026-10-22,C12,Kirana,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,online
+ORD-346,2026-10-22,C22,Vina,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-346,2026-10-22,C22,Vina,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-347,2026-10-23,C23,Wulan,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,online
+ORD-347,2026-10-23,C23,Wulan,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-347,2026-10-23,C23,Wulan,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-348,2026-10-23,C5,Andra,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-348,2026-10-23,C5,Andra,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-348,2026-10-23,C5,Andra,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,online
+ORD-349,2026-10-23,C2,Siti,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
+ORD-349,2026-10-23,C2,Siti,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-350,2026-10-23,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-350,2026-10-23,C2,Siti,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-350,2026-10-23,C2,Siti,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-350,2026-10-23,C2,Siti,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-351,2026-10-23,C8,Gita,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-351,2026-10-23,C8,Gita,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-351,2026-10-23,C8,Gita,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,offline
+ORD-352,2026-10-23,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-352,2026-10-23,C20,Tia,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-353,2026-10-24,C8,Gita,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-354,2026-10-24,C4,Sari,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-354,2026-10-24,C4,Sari,P4,Kacang Panggang 200g,Makanan,3,kemasan,12000,36000,offline
+ORD-355,2026-10-24,C14,Maya,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-355,2026-10-24,C14,Maya,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-356,2026-10-24,C18,Rani,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-356,2026-10-24,C18,Rani,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,online
+ORD-357,2026-10-24,C5,Andra,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-357,2026-10-24,C5,Andra,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-357,2026-10-24,C5,Andra,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-357,2026-10-24,C5,Andra,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,online
+ORD-358,2026-10-24,C20,Tia,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-358,2026-10-24,C20,Tia,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,online
+ORD-358,2026-10-24,C20,Tia,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-359,2026-10-24,C18,Rani,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-359,2026-10-24,C18,Rani,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-360,2026-10-25,C13,Lutfi,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,offline
+ORD-360,2026-10-25,C13,Lutfi,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,offline
+ORD-361,2026-10-25,C13,Lutfi,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-361,2026-10-25,C13,Lutfi,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-361,2026-10-25,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-362,2026-10-25,C7,Fajar,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-362,2026-10-25,C7,Fajar,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-363,2026-10-25,C7,Fajar,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-363,2026-10-25,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,offline
+ORD-363,2026-10-25,C7,Fajar,P1,Teh Botol 350ml,Minuman,2,botol,5000,10000,online
+ORD-364,2026-10-25,C3,Budi,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-364,2026-10-25,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,online
+ORD-364,2026-10-25,C3,Budi,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-365,2026-10-25,C23,Wulan,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-365,2026-10-25,C23,Wulan,P10,Air Mineral 1500ml,Minuman,3,botol,6000,18000,online
+ORD-365,2026-10-25,C23,Wulan,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-365,2026-10-25,C23,Wulan,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-366,2026-10-25,C1,Ridho,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-367,2026-10-25,C25,Zahra,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,offline
+ORD-367,2026-10-25,C25,Zahra,P2,Kopi Bubuk Arabika 100g,Minuman,2,pack,18000,36000,online
+ORD-367,2026-10-25,C25,Zahra,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-367,2026-10-25,C25,Zahra,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-368,2026-10-25,C2,Siti,P4,Kacang Panggang 200g,Makanan,1,kemasan,12000,12000,offline
+ORD-369,2026-10-25,C5,Andra,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-370,2026-10-26,C3,Budi,P6,Susu UHT 1L,Minuman,27,kotak,17000,459000,online
+ORD-370,2026-10-26,C3,Budi,P9,Roti Tawar Klasik,Makanan,24,pack,14000,336000,online
+ORD-370,2026-10-26,C3,Budi,P4,Kacang Panggang 200g,Makanan,21,kemasan,12000,252000,offline
+ORD-370,2026-10-26,C3,Budi,P3,Gula Aren 500g,Bahan,28,kemasan,15000,420000,offline
+ORD-371,2026-10-26,C9,Hendra,P2,Kopi Bubuk Arabika 100g,Minuman,13,pack,18000,234000,online
+ORD-371,2026-10-26,C9,Hendra,P4,Kacang Panggang 200g,Makanan,13,kemasan,12000,156000,online
+ORD-372,2026-10-26,C10,Indah,P2,Kopi Bubuk Arabika 100g,Minuman,21,pack,18000,378000,offline
+ORD-372,2026-10-26,C10,Indah,P3,Gula Aren 500g,Bahan,22,kemasan,15000,330000,offline
+ORD-372,2026-10-26,C10,Indah,P5,Keripik Singkong 250g,Makanan,15,pack,8000,120000,offline
+ORD-372,2026-10-26,C10,Indah,P10,Air Mineral 1500ml,Minuman,18,botol,6000,108000,offline
+ORD-373,2026-10-26,C3,Budi,P7,Minyak Goreng 1L,Bahan,27,botol,19000,513000,online
+ORD-374,2026-10-26,C5,Andra,P3,Gula Aren 500g,Bahan,15,kemasan,15000,225000,offline
+ORD-375,2026-10-26,C11,Joko,P7,Minyak Goreng 1L,Bahan,15,botol,19000,285000,offline
+ORD-376,2026-10-26,C5,Andra,P9,Roti Tawar Klasik,Makanan,17,pack,14000,238000,online
+ORD-376,2026-10-26,C5,Andra,P5,Keripik Singkong 250g,Makanan,28,pack,8000,224000,online
+ORD-376,2026-10-26,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,12,pack,18000,216000,online
+ORD-376,2026-10-26,C5,Andra,P1,Teh Botol 350ml,Minuman,19,botol,5000,95000,online
+ORD-377,2026-10-26,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,23,pack,18000,414000,offline
+ORD-377,2026-10-26,C5,Andra,P9,Roti Tawar Klasik,Makanan,30,pack,14000,420000,offline
+ORD-377,2026-10-26,C5,Andra,P6,Susu UHT 1L,Minuman,28,kotak,17000,476000,online
+ORD-377,2026-10-26,C5,Andra,P10,Air Mineral 1500ml,Minuman,20,botol,6000,120000,offline
+ORD-378,2026-10-26,C16,Oki,P7,Minyak Goreng 1L,Bahan,15,botol,19000,285000,offline
+ORD-378,2026-10-26,C16,Oki,P4,Kacang Panggang 200g,Makanan,15,kemasan,12000,180000,offline
+ORD-379,2026-10-26,C23,Wulan,P9,Roti Tawar Klasik,Makanan,18,pack,14000,252000,offline
+ORD-379,2026-10-26,C23,Wulan,P1,Teh Botol 350ml,Minuman,18,botol,5000,90000,online
+ORD-379,2026-10-26,C23,Wulan,P4,Kacang Panggang 200g,Makanan,13,kemasan,12000,156000,online
+ORD-380,2026-10-26,C16,Oki,P8,Beras Premium 5kg,Bahan,21,karung,72000,1512000,offline
+ORD-380,2026-10-26,C16,Oki,P10,Air Mineral 1500ml,Minuman,25,botol,6000,150000,offline
+ORD-380,2026-10-26,C16,Oki,P4,Kacang Panggang 200g,Makanan,21,kemasan,12000,252000,offline
+ORD-380,2026-10-26,C16,Oki,P3,Gula Aren 500g,Bahan,25,kemasan,15000,375000,online
+ORD-381,2026-10-26,C2,Siti,P2,Kopi Bubuk Arabika 100g,Minuman,18,pack,18000,324000,offline
+ORD-381,2026-10-26,C2,Siti,P7,Minyak Goreng 1L,Bahan,15,botol,19000,285000,offline
+ORD-382,2026-10-26,C8,Gita,P7,Minyak Goreng 1L,Bahan,18,botol,19000,342000,offline
+ORD-383,2026-10-26,C8,Gita,P2,Kopi Bubuk Arabika 100g,Minuman,28,pack,18000,504000,offline
+ORD-383,2026-10-26,C8,Gita,P8,Beras Premium 5kg,Bahan,21,karung,72000,1512000,offline
+ORD-383,2026-10-26,C8,Gita,P4,Kacang Panggang 200g,Makanan,21,kemasan,12000,252000,online
+ORD-383,2026-10-26,C8,Gita,P1,Teh Botol 350ml,Minuman,26,botol,5000,130000,online
+ORD-384,2026-10-26,C11,Joko,P5,Keripik Singkong 250g,Makanan,22,pack,8000,176000,offline
+ORD-384,2026-10-26,C11,Joko,P9,Roti Tawar Klasik,Makanan,13,pack,14000,182000,offline
+ORD-385,2026-10-26,C7,Fajar,P9,Roti Tawar Klasik,Makanan,22,pack,14000,308000,online
+ORD-385,2026-10-26,C7,Fajar,P6,Susu UHT 1L,Minuman,13,kotak,17000,221000,offline
+ORD-386,2026-10-27,C12,Kirana,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-386,2026-10-27,C12,Kirana,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-386,2026-10-27,C12,Kirana,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-387,2026-10-27,C20,Tia,P8,Beras Premium 5kg,Bahan,5,karung,72000,360000,offline
+ORD-388,2026-10-27,C3,Budi,P7,Minyak Goreng 1L,Bahan,3,botol,19000,57000,offline
+ORD-388,2026-10-27,C3,Budi,P3,Gula Aren 500g,Bahan,3,kemasan,15000,45000,offline
+ORD-388,2026-10-27,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,offline
+ORD-388,2026-10-27,C3,Budi,P5,Keripik Singkong 250g,Makanan,5,pack,8000,40000,online
+ORD-389,2026-10-27,C8,Gita,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-390,2026-10-27,C20,Tia,P10,Air Mineral 1500ml,Minuman,1,botol,6000,6000,online
+ORD-391,2026-10-27,C5,Andra,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,online
+ORD-391,2026-10-27,C5,Andra,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-392,2026-10-28,C3,Budi,P9,Roti Tawar Klasik,Makanan,3,pack,14000,42000,offline
+ORD-392,2026-10-28,C3,Budi,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,offline
+ORD-393,2026-10-28,C13,Lutfi,P3,Gula Aren 500g,Bahan,2,kemasan,15000,30000,offline
+ORD-393,2026-10-28,C13,Lutfi,P2,Kopi Bubuk Arabika 100g,Minuman,3,pack,18000,54000,offline
+ORD-393,2026-10-28,C13,Lutfi,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-393,2026-10-28,C13,Lutfi,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,online
+ORD-394,2026-10-28,C17,Putri,P6,Susu UHT 1L,Minuman,4,kotak,17000,68000,offline
+ORD-394,2026-10-28,C17,Putri,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-394,2026-10-28,C17,Putri,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-395,2026-10-28,C24,Yoga,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,offline
+ORD-395,2026-10-28,C24,Yoga,P7,Minyak Goreng 1L,Bahan,1,botol,19000,19000,online
+ORD-395,2026-10-28,C24,Yoga,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-395,2026-10-28,C24,Yoga,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,offline
+ORD-396,2026-10-29,C22,Vina,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,offline
+ORD-396,2026-10-29,C22,Vina,P1,Teh Botol 350ml,Minuman,4,botol,5000,20000,offline
+ORD-396,2026-10-29,C22,Vina,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-397,2026-10-29,C20,Tia,P9,Roti Tawar Klasik,Makanan,5,pack,14000,70000,online
+ORD-398,2026-10-29,C12,Kirana,P8,Beras Premium 5kg,Bahan,2,karung,72000,144000,online
+ORD-398,2026-10-29,C12,Kirana,P4,Kacang Panggang 200g,Makanan,4,kemasan,12000,48000,offline
+ORD-398,2026-10-29,C12,Kirana,P1,Teh Botol 350ml,Minuman,1,botol,5000,5000,online
+ORD-399,2026-10-29,C23,Wulan,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,online
+ORD-399,2026-10-29,C23,Wulan,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-399,2026-10-29,C23,Wulan,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-400,2026-10-29,C2,Siti,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-401,2026-10-29,C5,Andra,P6,Susu UHT 1L,Minuman,1,kotak,17000,17000,offline
+ORD-401,2026-10-29,C5,Andra,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-401,2026-10-29,C5,Andra,P4,Kacang Panggang 200g,Makanan,5,kemasan,12000,60000,online
+ORD-402,2026-10-30,C8,Gita,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-402,2026-10-30,C8,Gita,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,offline
+ORD-402,2026-10-30,C8,Gita,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,online
+ORD-403,2026-10-30,C3,Budi,P4,Kacang Panggang 200g,Makanan,2,kemasan,12000,24000,offline
+ORD-403,2026-10-30,C3,Budi,P5,Keripik Singkong 250g,Makanan,1,pack,8000,8000,online
+ORD-403,2026-10-30,C3,Budi,P6,Susu UHT 1L,Minuman,5,kotak,17000,85000,offline
+ORD-403,2026-10-30,C3,Budi,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-404,2026-10-30,C16,Oki,P9,Roti Tawar Klasik,Makanan,4,pack,14000,56000,online
+ORD-404,2026-10-30,C16,Oki,P1,Teh Botol 350ml,Minuman,5,botol,5000,25000,offline
+ORD-405,2026-10-30,C1,Ridho,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-406,2026-10-31,C5,Andra,P6,Susu UHT 1L,Minuman,2,kotak,17000,34000,online
+ORD-406,2026-10-31,C5,Andra,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-406,2026-10-31,C5,Andra,P7,Minyak Goreng 1L,Bahan,5,botol,19000,95000,offline
+ORD-407,2026-10-31,C3,Budi,P10,Air Mineral 1500ml,Minuman,5,botol,6000,30000,offline
+ORD-407,2026-10-31,C3,Budi,P7,Minyak Goreng 1L,Bahan,4,botol,19000,76000,offline
+ORD-407,2026-10-31,C3,Budi,P9,Roti Tawar Klasik,Makanan,2,pack,14000,28000,offline
+ORD-407,2026-10-31,C3,Budi,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,offline
+ORD-408,2026-10-31,C1,Ridho,P2,Kopi Bubuk Arabika 100g,Minuman,1,pack,18000,18000,offline
+ORD-408,2026-10-31,C1,Ridho,P10,Air Mineral 1500ml,Minuman,4,botol,6000,24000,offline
+ORD-408,2026-10-31,C1,Ridho,P8,Beras Premium 5kg,Bahan,3,karung,72000,216000,offline
+ORD-408,2026-10-31,C1,Ridho,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,online
+ORD-409,2026-10-31,C24,Yoga,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-409,2026-10-31,C24,Yoga,P7,Minyak Goreng 1L,Bahan,2,botol,19000,38000,offline
+ORD-409,2026-10-31,C24,Yoga,P6,Susu UHT 1L,Minuman,3,kotak,17000,51000,offline
+ORD-410,2026-10-31,C7,Fajar,P3,Gula Aren 500g,Bahan,5,kemasan,15000,75000,offline
+ORD-410,2026-10-31,C7,Fajar,P5,Keripik Singkong 250g,Makanan,4,pack,8000,32000,online
+ORD-410,2026-10-31,C7,Fajar,P2,Kopi Bubuk Arabika 100g,Minuman,5,pack,18000,90000,offline
+ORD-410,2026-10-31,C7,Fajar,P1,Teh Botol 350ml,Minuman,3,botol,5000,15000,online
+ORD-411,2026-10-31,C4,Sari,P3,Gula Aren 500g,Bahan,4,kemasan,15000,60000,offline
+ORD-412,2026-10-31,C3,Budi,P5,Keripik Singkong 250g,Makanan,3,pack,8000,24000,offline
+ORD-413,2026-10-31,C3,Budi,P5,Keripik Singkong 250g,Makanan,2,pack,8000,16000,offline
+ORD-413,2026-10-31,C3,Budi,P2,Kopi Bubuk Arabika 100g,Minuman,4,pack,18000,72000,online
+ORD-413,2026-10-31,C3,Budi,P10,Air Mineral 1500ml,Minuman,2,botol,6000,12000,offline
+ORD-413,2026-10-31,C3,Budi,P8,Beras Premium 5kg,Bahan,4,karung,72000,288000,offline
