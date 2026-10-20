@@ -456,21 +456,28 @@ export type StoreOrder = { id: string; items?: Array<{ id: string }> };
  * tahu harus berhenti di mana; default 20/order per halaman sesuai kontrak
  * `PageQueryDto` modul admin. Sebelum ini endpoint mengembalikan SEMUA
  * order dan panelnya menggulir tanpa ujung setelah unggah dataset besar.
+ *
+ * `apiRequest` membuang amplit `{ data }` dan mengembalikan `data` saja -
+ * `meta.total` akan ikut terbuang. Untuk satu-satunya daftar berpager di
+ * aplikasi ini, amplit lengkap dibaca lewat `sessionFetch`: 401 tetap
+ * di-refresh, 429 GET tetap menunggu `Retry-After`, dan body-nya punya
+ * `{ data, meta }` utuh.
  */
 export type StoreOrderPage = {
   data: StoreOrder[];
   meta: { page: number; pageSize: number; total: number };
 };
 
-export function listStoreOrders(
+export async function listStoreOrders(
   storeId: string,
   page = 1,
   pageSize = 20,
 ): Promise<StoreOrderPage> {
   const query = `?page=${page}&pageSize=${pageSize}`;
-  return sessionRequest<StoreOrderPage>(
+  const response = await sessionFetch(
     `/stores/${encodeURIComponent(storeId)}/orders${query}`,
   );
+  return (await response.json()) as StoreOrderPage;
 }
 
 /**
