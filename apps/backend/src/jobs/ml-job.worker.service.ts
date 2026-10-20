@@ -66,6 +66,31 @@ export class MlJobWorkerService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`job ${job.id} completed`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+
+      // GALAT SEMENTARA bukan akhir job: kalau layanan ML mati sesaat
+      // (uvicorn --reload yang memantau seluruh repo menolak koneksi
+      // beberapa detik setiap kali ada berkas berubah di mana pun -
+      // laporan pengguna 20 Okt "fetch failed terus"), job yang kebetulan
+      // dieksekusi tepat di jendela itu lama tampil gagal permanen padahal
+      // infrastruktur kembali normal detik berikutnya. Antre KEMBALI selama
+      // job masih muda; lewat jendela ini dinyatakan gagal betulan supaya
+      // pengguna melihat keputusan akhir, bukan job mengantre selamanya.
+      // Galat data (ML 400: toko belum layak, jobType tak dikenal) tidak
+      // masuk pola ini - gagalnya tetap segera.
+      const isTransient =
+        /Layanan ML tidak merespons|circuit open|fetch failed|ECONNREFUSED|ETIMEDOUT|aborted|failed: 5\d\d/i.test(msg);
+      const ageMs = job.createdAt ? Date.now() - new Date(job.createdAt).getTime() : Infinity;
+      if (isTransient && ageMs < 5 * 60 * 1000) {
+        await this.prisma.mlJobs.update({
+          where: { id: job.id },
+          data: { status: "queued", workerId: null, startedAt: null },
+        });
+        this.logger.warn(
+          `job ${job.id} galat sementara - antre lagi (umur ${Math.round(ageMs / 1000)} dtk): ${msg}`,
+        );
+        return;
+      }
+
       await this.jobService.fail(job.id, msg);
       this.logger.error(`job ${job.id} failed: ${msg}`);
     }
