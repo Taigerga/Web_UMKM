@@ -134,7 +134,13 @@ export function DataPanel() {
           </select>
         </label>
 
-        {canManage ? (
+        {stores.length === 0 ? (
+          // Daftar toko belum sampai - jangan tampilkan pesan wewenang
+          // sebelum kita tahu peran user di toko ini (owner/staff/kosong).
+          <p className="rounded-lg bg-neutral-wash px-3 py-2 text-xs text-ink-muted">
+            Memuat toko...
+          </p>
+        ) : canManage ? (
           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-accent bg-accent-wash px-4 py-6 text-sm font-medium text-accent transition-colors hover:bg-accent hover:text-white">
             <input
               type="file"

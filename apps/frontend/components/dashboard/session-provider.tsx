@@ -47,8 +47,12 @@ const RETRY_DELAY_MS = 60_000;
 const LOGIN_PATH = "/login";
 
 export type SessionState = {
-  /** `loading` sampai `me()` selesai, lalu `ready`. */
-  status: "loading" | "ready";
+  /**
+   * `loading` sampai `me()` selesai; `ready` HANYA jika profil benar-benar
+   * terbaca; `error` ketika profil gagal dimuat (jaringan/throttle) - bukan
+   * sesi berakhir, karena itu masih bisa dicoba ulang.
+   */
+  status: "loading" | "ready" | "error";
   profile: AuthProfile | null;
   error: ApiError | null;
   /** Muat ulang profil. Dipakai tombol "coba lagi" saat gagal. */
@@ -174,7 +178,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const value = React.useMemo<SessionState>(
     () => ({
-      status: profile.status === "loading" ? "loading" : "ready",
+      /**
+       * `ready` hanya berlaku bila profil benar-benar terbaca. Versi lama
+       * menyamakan "bukan loading" dengan "ready", sehingga `me()` yang
+       * gagal karena galat jaringan/429 meninggalkan provider dalam status
+       * ready dengan `profile === null`: nav menghilang, badge "Memuat..."
+       * selamanya, dan semua panel diam tanpa data sampai dimuat ulang -
+       * persis laporan pengguna 20 Okt. Galat adalah statusnya sendiri,
+       * dengan layar "Coba lagi" di bawah.
+       */
+      status:
+        profile.status === "ready" && profile.data !== null
+          ? "ready"
+          : profile.status === "error"
+            ? "error"
+            : "loading",
       profile: profile.data,
       error: profile.error,
       reload: profile.reload,
@@ -182,6 +200,29 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }),
     [profile.status, profile.data, profile.error, profile.reload, logout],
   );
+
+  // Gagal memuat profil bukan sesi berakhir (token masih sah?) - sediakan
+  // layar coba lagi, bukan halaman kosong dan bukan logout paksa.
+  if (value.status === "error" && value.profile === null) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="font-display text-lg font-semibold text-ink">
+          Gagal memuat sesi
+        </p>
+        <p className="max-w-sm text-sm text-ink-muted">
+          Koneksi ke server terganggu saat membaca profil Anda. Sesi tidak
+          hilang - coba lagi.
+        </p>
+        <button
+          type="button"
+          onClick={profile.reload}
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-accent px-5 text-sm font-medium text-white transition-colors hover:bg-accent-strong"
+        >
+          Coba lagi
+        </button>
+      </main>
+    );
+  }
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
