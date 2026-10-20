@@ -3,23 +3,21 @@
 import * as React from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
-import { listAccessibleStores } from "@/lib/dashboard-data";
-import type { StoreSummary } from "@/lib/dashboard-data";
+import {
+  commitDataset,
+  listAccessibleStores,
+  rollbackDataset,
+  uploadDataset,
+  validateDataset,
+} from "@/lib/dashboard-data";
+import type { DatasetView, StoreSummary } from "@/lib/dashboard-data";
 import { canManageStore } from "@/lib/dashboard-nav";
-import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
-
-type Dataset = {
-  id: string;
-  status: string;
-  rowCount: number;
-  fileName: string;
-};
 
 export function DataPanel() {
   const session = useSession();
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
   const [storeId, setStoreId] = React.useState<string | null>(null);
-  const [dataset, setDataset] = React.useState<Dataset | null>(null);
+  const [dataset, setDataset] = React.useState<DatasetView | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -40,25 +38,15 @@ export function DataPanel() {
       });
   }, [session.status, session.profile]);
 
-  async function request(path: string, method: string, body?: BodyInit | null) {
-    const res = await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
-      method,
-      credentials: "include",
-      body: body ?? null,
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json?.error?.message ?? "Permintaan gagal");
-    return json.data;
-  }
-
+  // Semua request - termasuk unggah multipart - lewat sessionRequest
+  // (lib/dashboard-data.ts). FormData dikirim apa adanya oleh `sendRequest`,
+  // dan 401 tetap diputar dengan refresh + satu kali percobaan ulang.
   async function upload(file: File) {
     if (!storeId) return;
     setBusy(true);
     setMessage(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const data = await request(`/stores/${storeId}/datasets`, "POST", form);
+      const data = await uploadDataset(storeId, file);
       setDataset(data);
       setMessage("Unggah selesai");
     } catch (error) {
@@ -72,7 +60,7 @@ export function DataPanel() {
     if (!storeId || !dataset) return;
     setBusy(true);
     try {
-      const data = await request(`/stores/${storeId}/datasets/${dataset.id}/validate`, "POST");
+      const data = await validateDataset(storeId, dataset.id);
       setDataset(data);
       setMessage("Validasi selesai");
     } catch (error) {
@@ -86,7 +74,7 @@ export function DataPanel() {
     if (!storeId || !dataset) return;
     setBusy(true);
     try {
-      const data = await request(`/stores/${storeId}/datasets/${dataset.id}/commit`, "POST");
+      const data = await commitDataset(storeId, dataset.id);
       setDataset(data);
       setMessage("Dataset dicommit");
     } catch (error) {
@@ -100,7 +88,7 @@ export function DataPanel() {
     if (!storeId || !dataset) return;
     setBusy(true);
     try {
-      const data = await request(`/stores/${storeId}/datasets/${dataset.id}/rollback`, "POST");
+      const data = await rollbackDataset(storeId, dataset.id);
       setDataset(data);
       setMessage("Dataset di-rollback");
     } catch (error) {

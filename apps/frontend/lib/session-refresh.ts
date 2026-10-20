@@ -37,7 +37,7 @@
  * `JwtAuthGuard` yang menjawab 401.
  */
 
-import { AUTH_ERROR_CODES, ApiError, apiRequest } from "./api-client";
+import { AUTH_ERROR_CODES, ApiError, apiRequest, ensureOk, sendRequest } from "./api-client";
 import type { ApiRequestOptions } from "./api-client";
 import { refresh } from "./auth-client";
 import { clearAccessToken, readAccessToken } from "./auth-session";
@@ -206,6 +206,42 @@ export async function sessionRequest<T>(
       ...options,
       accessToken: readAccessToken(),
     });
+  }
+}
+
+/**
+ * Varian {@link sessionRequest} yang mengembalikan `Response` mentah.
+ *
+ * Dibutuhkan oleh satu-satunya pemanggil yang butuh jawaban SELAIN JSON
+ * amplet: unduh laporan (HTML/PDF/CSV), yang membaca `Content-Disposition`
+ * untuk nama berkas lalu menyimpan blob-nya. Selain itu, urutannya sama
+ * persis - refresh proaktif, satu percobaan ulang setelah 401, dan kegagalan
+ * status non-2xx dilempar sebagai `ApiError` oleh `ensureOk` SEBELUM
+ * `Response` sampai ke pemanggil, jadi pemanggil tidak perlu memeriksa
+ * `res.ok` lagi.
+ */
+export async function sessionFetch(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<Response> {
+  await ensureFreshAccessToken();
+
+  try {
+    return await ensureOk(
+      await sendRequest(path, {
+        ...options,
+        accessToken: options.accessToken ?? readAccessToken(),
+      }),
+    );
+  } catch (caught) {
+    if (!isUnauthorized(caught)) throw caught;
+
+    const refreshed = await refreshSession();
+    if (!refreshed) throw caught;
+
+    return ensureOk(
+      await sendRequest(path, { ...options, accessToken: readAccessToken() }),
+    );
   }
 }
 

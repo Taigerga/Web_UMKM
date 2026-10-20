@@ -3,44 +3,28 @@
 import * as React from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
-import { listAccessibleStores } from "@/lib/dashboard-data";
-import type { StoreSummary } from "@/lib/dashboard-data";
+import {
+  getSalesSummary,
+  getSalesTrend,
+  getTopProducts,
+  listAccessibleStores,
+} from "@/lib/dashboard-data";
+import type {
+  SalesSummary,
+  SalesTrend,
+  StoreSummary,
+  TopProduct,
+} from "@/lib/dashboard-data";
 import { resolveActiveStore } from "@/lib/dashboard-nav";
-import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
 import { SalesTrendChart } from "./charts/sales-trend-chart";
 import { TopProductsChart } from "./charts/top-products-chart";
-
-type SalesSummary = {
-  totalSales: number;
-  totalOrders: number;
-  totalItems: number;
-  avgOrderValue: number;
-  avgItemsPerOrder: number;
-  period: string;
-};
-
-type SalesTrend = Array<{
-  date: string;
-  sales: number;
-  orderCount: number;
-  itemCount: number;
-}>;
-
-type TopProduct = {
-  productId: string;
-  sku: string;
-  name: string;
-  totalQty: number;
-  totalRevenue: number;
-  orderCount: number;
-};
 
 export function AnalyticsPanel() {
   const session = useSession();
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
   const [storeId, setStoreId] = React.useState<string | null>(null);
   const [period, setPeriod] = React.useState<"7d" | "30d" | "ytd">("30d");
-  
+
   const [summary, setSummary] = React.useState<SalesSummary | null>(null);
   const [trend, setTrend] = React.useState<SalesTrend>([]);
   const [topProducts, setTopProducts] = React.useState<TopProduct[]>([]);
@@ -59,37 +43,32 @@ export function AnalyticsPanel() {
   }, [session.status, session.profile]);
 
   async function fetchAnalytics(targetStoreId: string, targetPeriod: string) {
-    // Ambil data tanpa menyentuh state React; pemanggil yang men-set state
-    // (effect melalui callback, tombol Refresh melalui loadAnalytics).
-    const headers = { credentials: "include" };
-    const [summaryRes, trendRes, productsRes] = await Promise.all([
-      fetch(`${API_BASE_URL}${API_PREFIX}/stores/${targetStoreId}/analytics/summary?period=${targetPeriod}`, { headers }),
-      fetch(`${API_BASE_URL}${API_PREFIX}/stores/${targetStoreId}/analytics/trend?period=${targetPeriod}`, { headers }),
-      fetch(`${API_BASE_URL}${API_PREFIX}/stores/${targetStoreId}/analytics/top-products?limit=10`, { headers }),
+    // Semua request lewat sessionRequest (satu jalur sesi sesuai catatan
+    // lib/dashboard-data.ts): token terbaru ditempel otomatis dan kegagalan
+    // 401 mentrigger refresh + satu kali percobaan ulang - bukan diam-diam
+    // jatuh ke null seperti fetch mentah sebelumnya, karena `ensureOk`
+    // melempar ApiError yang pesannya bisa ditampilkan.
+    //
+    // `ytd` hanya dipahami endpoint summary; trend menerima `7d|30d|90d`, jadi
+    // periode trend dipetakan ke 90d alih-alih mengirim parameternya apa adanya
+    // (perilaku lama: request trend gagal 400 dan datanya hilang diam-diam).
+    const trendPeriod = targetPeriod === "ytd" ? "90d" : targetPeriod;
+    const [summaryResult, trendResult, productsResult] = await Promise.all([
+      getSalesSummary(targetStoreId, targetPeriod as "7d" | "30d" | "ytd"),
+      getSalesTrend(targetStoreId, trendPeriod as "7d" | "30d" | "90d"),
+      getTopProducts(targetStoreId, 10),
     ]);
-
-    const parse = async (res: Response) => {
-      if (!res.ok) return null;
-      const json: unknown = await res.json();
-      return (json as { data: unknown }).data;
-    };
-
-    const [summary, trend, topProducts] = await Promise.all([
-      parse(summaryRes) as Promise<SalesSummary | null>,
-      parse(trendRes) as Promise<SalesTrend | null>,
-      parse(productsRes) as Promise<TopProduct[] | null>,
-    ]);
-    return { summary, trend, topProducts };
+    return { summaryResult, trendResult, productsResult };
   }
 
   function applyAnalytics(data: {
-    summary: SalesSummary | null;
-    trend: SalesTrend | null;
-    topProducts: TopProduct[] | null;
+    summaryResult?: SalesSummary | null;
+    trendResult?: SalesTrend | null;
+    productsResult?: TopProduct[] | null;
   }) {
-    if (data.summary) setSummary(data.summary);
-    if (data.trend) setTrend(data.trend);
-    if (data.topProducts) setTopProducts(data.topProducts);
+    if (data.summaryResult) setSummary(data.summaryResult);
+    if (data.trendResult) setTrend(data.trendResult);
+    if (data.productsResult) setTopProducts(data.productsResult);
   }
 
   async function loadAnalytics() {
@@ -113,8 +92,10 @@ export function AnalyticsPanel() {
       .then((data) => {
         if (!cancelled) applyAnalytics(data);
       })
-      .catch(() => {
-        if (!cancelled) setMessage("Gagal memuat analytics");
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : "Gagal memuat analytics");
+        }
       });
     return () => {
       cancelled = true;

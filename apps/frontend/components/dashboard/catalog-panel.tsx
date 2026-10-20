@@ -3,39 +3,31 @@
 import * as React from "react";
 import { Button, Input } from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
-import { listAccessibleStores } from "@/lib/dashboard-data";
-import type { StoreSummary } from "@/lib/dashboard-data";
+import {
+  createStoreProduct,
+  listAccessibleStores,
+  listStoreProducts,
+} from "@/lib/dashboard-data";
+import type { StoreProduct, StoreSummary } from "@/lib/dashboard-data";
 import { canManageStore } from "@/lib/dashboard-nav";
-import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
-
-type Product = { id: string; sku: string; name: string };
 
 export function CatalogPanel() {
   const session = useSession();
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
   const [storeId, setStoreId] = React.useState<string | null>(null);
-  const [products, setProducts] = React.useState<Product[]>([]);
+  const [products, setProducts] = React.useState<StoreProduct[]>([]);
   const [sku, setSku] = React.useState("");
   const [name, setName] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
 
   const canManage = canManageStore(stores, storeId);
 
-  async function api(path: string, method: string, body?: unknown) {
-    const res = await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
-      method,
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json?.error?.message ?? "Permintaan gagal");
-    return json.data;
-  }
-
+  // Semua request lewat sessionRequest (lib/dashboard-data.ts): token
+  // ditempel di sana, begitu pula refresh + satu kali percobaan ulang saat
+  // 401 - pesan galat berasal dari ApiError, bukan dari `res.json()` manual.
   const load = React.useCallback(async () => {
     if (!storeId) return;
-    setProducts(await api(`/stores/${storeId}/products`, "GET"));
+    setProducts(await listStoreProducts(storeId));
   }, [storeId]);
 
   React.useEffect(() => {
@@ -52,12 +44,14 @@ export function CatalogPanel() {
     // callback `.then`, bukan langsung di badan effect (aturan
     // react-hooks/set-state-in-effect).
     let cancelled = false;
-    void api(`/stores/${storeId}/products`, "GET")
+    void listStoreProducts(storeId)
       .then((items) => {
-        if (!cancelled) setProducts(items as Product[]);
+        if (!cancelled) setProducts(items);
       })
-      .catch(() => {
-        if (!cancelled) setMessage("Gagal memuat katalog");
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : "Gagal memuat katalog");
+        }
       });
     return () => {
       cancelled = true;
@@ -68,7 +62,7 @@ export function CatalogPanel() {
     event.preventDefault();
     if (!storeId) return;
     try {
-      await api(`/stores/${storeId}/products`, "POST", {
+      await createStoreProduct(storeId, {
         sku,
         name,
         category: "Umum",

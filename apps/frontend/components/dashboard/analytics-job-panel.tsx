@@ -3,10 +3,13 @@
 import * as React from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
-import { listAccessibleStores } from "@/lib/dashboard-data";
-import type { StoreSummary } from "@/lib/dashboard-data";
+import {
+  getAnalyticsJob,
+  listAccessibleStores,
+  startAnalyticsJob,
+} from "@/lib/dashboard-data";
+import type { AnalyticsJob, StoreSummary } from "@/lib/dashboard-data";
 import { resolveActiveStore } from "@/lib/dashboard-nav";
-import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
 import {
   toAnomalyChart,
   toBasketChart,
@@ -29,20 +32,6 @@ const JOB_OPTIONS: { value: JobType; label: string }[] = [
   { value: "churn", label: "Customer Churn Risk" },
   { value: "anomaly", label: "Deteksi Anomali Penjualan" },
 ];
-
-type JobStatus = "queued" | "running" | "completed" | "failed";
-
-type JobResult = {
-  jobId: string;
-  status: JobStatus;
-  jobType: string;
-  result?: unknown;
-  explanation?: string | null;
-  errorMessage?: string | null;
-  createdAt?: string;
-  startedAt?: string | null;
-  completedAt?: string | null;
-};
 
 /**
  * Peta hasil job ke visual yang tepat sesuai jenis analisisnya.
@@ -76,7 +65,7 @@ export function AnalyticsJobPanel() {
   const [storeId, setStoreId] = React.useState<string | null>(null);
   const [jobType, setJobType] = React.useState<JobType>("forecast");
   const [jobId, setJobId] = React.useState<string | null>(null);
-  const [job, setJob] = React.useState<JobResult | null>(null);
+  const [job, setJob] = React.useState<AnalyticsJob | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -97,15 +86,10 @@ export function AnalyticsJobPanel() {
     setMessage(null);
     setJob(null);
     try {
-      const res = await fetch(`${API_BASE_URL}${API_PREFIX}/stores/${storeId}/analytics/run`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobType, parameters: {} }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error?.message ?? "Gagal submit job");
-      const id = data.data.jobId;
+      // sessionRequest menempel token terbaru dan sudah menangani refresh +
+      // satu kali percobaan ulang saat 401 ApiError dilempar dengan pesan
+      // yang bisa dibaca langsung (amplop galat backend).
+      const { jobId: id } = await startAnalyticsJob(storeId, jobType);
       setJobId(id);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Gagal submit");
@@ -129,14 +113,10 @@ export function AnalyticsJobPanel() {
 
     const poll = async () => {
       try {
-        const res = await fetch(
-          `${API_BASE_URL}${API_PREFIX}/stores/${storeId}/analytics/jobs/${jobId}`,
-          { credentials: "include" },
-        );
-        const data = await res.json();
+        const data = await getAnalyticsJob(storeId, jobId);
         if (!active) return;
-        if (res.ok) setJob(data.data);
-        if (data?.data?.status === "completed" || data?.data?.status === "failed") {
+        setJob(data);
+        if (data.status === "completed" || data.status === "failed") {
           stop();
         }
       } catch {

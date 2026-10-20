@@ -112,7 +112,11 @@ type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 export type ApiRequestOptions = {
   method?: HttpMethod;
-  /** Akan di-`JSON.stringify` dan dikirim sebagai `Content-Type: application/json`. */
+  /**
+   * Body JSON (di-`JSON.stringify` lalu dikirim sebagai
+   * `Content-Type: application/json`), atau `FormData` (dikirim apa adanya;
+   * browser yang menghitung boundary multipart-nya).
+   */
   body?: unknown;
   /**
    * Access token untuk header `Authorization`.
@@ -200,19 +204,33 @@ function readErrorBody(body: unknown): {
 }
 
 /**
- * Permintaan JSON ke backend, mengembalikan isi `data` saja.
+ * Satu permintaan HTTP ke backend, jawabannya dikembalikan mentah.
  *
- * Amplop `{ data }` dibuang di sini supaya pemanggil tidak perlu mengulang
- * `response.data.data` di setiap tempat.
+ * Semua keputusan transport berkumpul di sini - header `Accept`,
+ * `credentials: "include"`, `cache: "no-store"`, normalisasi token - supaya
+ * `apiRequest` dan lapisan sesi (`sessionFetch`) tidak saling bergeser:
+ * titik keluar kedua yang mengulang fetch secara manual akan kehilangan salah
+ * satu keputusan itu saat salah satu diubah.
+ *
+ * Status HTTP TIDAK diperiksa di sini. Pemeriksaan status milik `ensureOk`
+ * atau pemanggil yang memang butuh `Response` mentah (mis. laporan berkas).
  */
-export async function apiRequest<T>(
+export async function sendRequest(
   path: string,
   options: ApiRequestOptions = {},
-): Promise<T> {
+): Promise<Response> {
   const { method = "GET", body, accessToken, signal } = options;
 
   const headers = new Headers({ Accept: "application/json" });
-  if (body !== undefined) headers.set("Content-Type", "application/json");
+
+  // FormData (unggah dataset) memakai boundary multipart yang dihitung
+  // browser. Menyetel `Content-Type: application/json` di atasnya justru
+  // menghancurkan perду biat request, sehingga hanya body JSON yang diberi
+  // header itu dan FormData dikirim apa adanya.
+  const isFormData = body instanceof FormData;
+  if (!isFormData && body !== undefined) {
+    headers.set("Content-Type", "application/json");
+  }
 
   // Token dinormalisasi DI SINI, bukan hanya di pemanggil. String berisi spasi
   // itu `true` di JavaScript, jadi `if (accessToken)` akan tetap men-set
@@ -222,14 +240,17 @@ export async function apiRequest<T>(
   const token = normalizeToken(accessToken);
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
+    return await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
       method,
       headers,
       // Tanpa ini browser membuang `Set-Cookie` dan sesi tidak pernah tersimpan.
       credentials: "include",
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(isFormData
+        ? { body }
+        : body !== undefined
+          ? { body: JSON.stringify(body) }
+          : {}),
       ...(signal ? { signal } : {}),
       // R-7: request ini tidak boleh dilayani dari cache mana pun.
       cache: "no-store",
@@ -242,28 +263,51 @@ export async function apiRequest<T>(
       details: cause instanceof Error ? [cause.message] : [],
     });
   }
+}
 
-  if (!response.ok) {
-    // 204 dan body kosong adalah jawaban yang sah (logout). Bentuknya tidak
-    // selalu JSON, jadi dibaca lewat teks lalu diparse bila bisa.
-    const raw = await response.text();
-    let parsed: unknown = null;
-    if (raw.length > 0) {
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        parsed = null;
-      }
+/**
+ * Lempar `ApiError` kalau jawaban tidak `ok`, sebelum pemanggil sempat
+ * membaca `Response` yang sebenarnya jawaban galat.
+ *
+ * Kalau `ok`, `Response` dikembalikan UTUH tanpa menyentuh body-nya - body
+ * bisa berupa JSON amplop `{ data }`, bisa juga berkas HTML/PDF/CSV milik
+ * laporan, dan pengguna di sisi pemanggil.
+ */
+export async function ensureOk(response: Response): Promise<Response> {
+  if (response.ok) return response;
+
+  // 204 dan body kosong adalah jawaban yang sah (logout). Bentuknya tidak
+  // selalu JSON, jadi dibaca lewat teks lalu diparse bila bisa.
+  const raw = await response.text();
+  let parsed: unknown = null;
+  if (raw.length > 0) {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
     }
-    const { code, message, details } = readErrorBody(parsed);
-    throw new ApiError({
-      status: response.status,
-      code,
-      message,
-      details,
-      retryAfterSeconds: readRetryAfter(response.headers),
-    });
   }
+  const { code, message, details } = readErrorBody(parsed);
+  throw new ApiError({
+    status: response.status,
+    code,
+    message,
+    details,
+    retryAfterSeconds: readRetryAfter(response.headers),
+  });
+}
+
+/**
+ * Permintaan JSON ke backend, mengembalikan isi `data` saja.
+ *
+ * Amplop `{ data }` dibuang di sini supaya pemanggil tidak perlu mengulang
+ * `response.data.data` di setiap tempat.
+ */
+export async function apiRequest<T>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<T> {
+  const response = await ensureOk(await sendRequest(path, options));
 
   // Logout mengembalikan 204 tanpa body. Tidak ada `data` yang perlu dibaca.
   if (response.status === 204) return undefined as T;

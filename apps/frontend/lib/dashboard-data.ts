@@ -20,8 +20,10 @@
  * `apiRequest` tidak tahu apa-apa soal sesi, dan R-41 butuh penyambungan
  * refresh di setiap request dashboard. `sessionRequest` di
  * `lib/session-refresh.ts` adalah lapisan itu, dan semua pemanggil di file
- * ini memakainya. Tidak ada satu pun fetch langsung ke backend yang keluar
- * dari titik ini - kalau nanti ada, berarti ada jalur yang R-41 bisa terlewat.
+ * ini memakainya - varian `sessionFetch` hanya untuk unduhan laporan yang
+ * butuh `Response` mentah (berkas, bukan JSON amplet). Tidak ada satu pun
+ * fetch langsung ke backend yang keluar dari titik ini - kalau nanti ada,
+ * berarti ada jalur yang R-41 bisa terlewat.
  *
  * ## Kenapa tidak ada paginasi di UI
  *
@@ -35,7 +37,7 @@
  * diam-diam.
  */
 
-import { sessionRequest } from "./session-refresh";
+import { sessionFetch, sessionRequest } from "./session-refresh";
 
 export type StoreRole = "OWNER" | "STAFF";
 
@@ -341,4 +343,275 @@ export function markAllNotificationsRead(storeId?: string): Promise<number> {
     `/notifications/read-all${suffix ? `?${suffix}` : ""}`,
     { method: "POST" },
   ).then((result) => result.updated);
+}
+
+/* ------------------------------------------------------------------ */
+/* Produk dan order toko                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Satu produk katalog - bentuk `products.service.ts` sebagaimana dipakai UI:
+ * `id`, `sku`, `name`. Kalau service nanti menambah field (kategori, unit,
+ * harga), tambah di sini - bukan di komponen.
+ */
+export type StoreProduct = { id: string; sku: string; name: string };
+
+/**
+ * `GET /stores/:storeId/products` - katalog produk toko.
+ */
+export function listStoreProducts(storeId: string): Promise<StoreProduct[]> {
+  return sessionRequest<StoreProduct[]>(
+    `/stores/${encodeURIComponent(storeId)}/products`,
+  );
+}
+
+/**
+ * `POST /stores/:storeId/products` - tambah produk.
+ *
+ * Wewenang OWNER/ADMIN (`@Roles`); `canManageStore` memutuskan UI-nya
+ * sebelum tombol ini dirender.
+ */
+export function createStoreProduct(
+  storeId: string,
+  input: { sku: string; name: string; category: string; unit: string },
+): Promise<StoreProduct> {
+  return sessionRequest<StoreProduct>(
+    `/stores/${encodeURIComponent(storeId)}/products`,
+    { method: "POST", body: input },
+  );
+}
+
+/**
+ * Satu order toko sebagaimana dipakai UI: `id` + `items` untuk hitungan
+ * "N item". Backend `include: { items: true, customer: true }` - field lain
+ * ditambah di sini (bukan di komponen) kalau UI mulai memakainya.
+ */
+export type StoreOrder = { id: string; items?: Array<{ id: string }> };
+
+/**
+ * `GET /stores/:storeId/orders` - daftar order toko.
+ */
+export function listStoreOrders(storeId: string): Promise<StoreOrder[]> {
+  return sessionRequest<StoreOrder[]>(
+    `/stores/${encodeURIComponent(storeId)}/orders`,
+  );
+}
+
+/**
+ * `POST /stores/:storeId/orders/manual` - input penjualan harian.
+ *
+ * PROMT §5.3/§5.4: STAFF juga boleh; endpoint meng-upsert pelanggan lewat
+ * `customerCode`, jadi `customerName` baru dipakai saat pelanggan belum ada.
+ */
+export function createManualOrder(
+  storeId: string,
+  input: {
+    customerCode: string;
+    customerName: string;
+    orderDate: string;
+    channel: "online" | "offline";
+    items: Array<{ productSku: string; qty: number; price: number }>;
+  },
+): Promise<StoreOrder> {
+  return sessionRequest<StoreOrder>(
+    `/stores/${encodeURIComponent(storeId)}/orders/manual`,
+    { method: "POST", body: input },
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Dataset toko (unggah/validasi/commit/rollback)                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Status dataset yang dipakai UI. Backend punya siklus lebih banyak
+ * (`tech-analisa` -> `UPLOADED` -> `VALIDATED` -> `COMMITTED`); UI hanya
+ * menampilkan string statusnya apa adanya.
+ */
+export type DatasetView = {
+  id: string;
+  status: string;
+  rowCount: number;
+  fileName: string;
+};
+
+/**
+ * `POST /stores/:storeId/datasets` - unggah berkas dataset (multipart).
+ *
+ * Wewenang OWNER/ADMIN di backend; tombolnya disembunyikan untuk STAFF supaya
+ * UI tidak menawarkan aksi yang pasti dijawab 403 (backend tetap penegak).
+ * `FormData` dikirim apa adanya lewat `sessionRequest` - content-type
+ * multipart dengan boundary dihitung browser, bukan manual.
+ */
+export function uploadDataset(storeId: string, file: File): Promise<DatasetView> {
+  const body = new FormData();
+  body.append("file", file);
+  return sessionRequest<DatasetView>(
+    `/stores/${encodeURIComponent(storeId)}/datasets`,
+    { method: "POST", body },
+  );
+}
+
+/** `POST /stores/:storeId/datasets/:datasetId/validate`. */
+export function validateDataset(
+  storeId: string,
+  datasetId: string,
+): Promise<DatasetView> {
+  return sessionRequest<DatasetView>(
+    `/stores/${encodeURIComponent(storeId)}/datasets/${encodeURIComponent(datasetId)}/validate`,
+    { method: "POST" },
+  );
+}
+
+/** `POST /stores/:storeId/datasets/:datasetId/commit`. */
+export function commitDataset(
+  storeId: string,
+  datasetId: string,
+): Promise<DatasetView> {
+  return sessionRequest<DatasetView>(
+    `/stores/${encodeURIComponent(storeId)}/datasets/${encodeURIComponent(datasetId)}/commit`,
+    { method: "POST" },
+  );
+}
+
+/** `POST /stores/:storeId/datasets/:datasetId/rollback`. */
+export function rollbackDataset(
+  storeId: string,
+  datasetId: string,
+): Promise<DatasetView> {
+  return sessionRequest<DatasetView>(
+    `/stores/${encodeURIComponent(storeId)}/datasets/${encodeURIComponent(datasetId)}/rollback`,
+    { method: "POST" },
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Analitik per toko                                                   */
+/* ------------------------------------------------------------------ */
+
+/** Periode ringkasan analitik; `90d` hanya milik trend, `ytd` hanya summary. */
+export type SalesPeriod = "7d" | "30d" | "ytd";
+
+/**
+ * Copy `SalesSummary` dari `apps/backend/src/analytics/analytics.service.ts`
+ * (`GET /stores/:storeId/analytics/summary`).
+ */
+export type SalesSummary = {
+  totalSales: number;
+  totalOrders: number;
+  totalItems: number;
+  avgOrderValue: number;
+  avgItemsPerOrder: number;
+  period: "7d" | "30d" | "ytd";
+};
+
+/** Deret penjualan harian - copy `SalesTrend` dari service yang sama. */
+export type SalesTrend = Array<{
+  date: string;
+  sales: number;
+  orderCount: number;
+  itemCount: number;
+}>;
+
+/** Copy `TopProduct` dari `analytics.service.ts`. */
+export type TopProduct = {
+  productId: string;
+  sku: string;
+  name: string;
+  totalQty: number;
+  totalRevenue: number;
+  orderCount: number;
+};
+
+/** `GET /stores/:storeId/analytics/summary?period=`. */
+export function getSalesSummary(
+  storeId: string,
+  period: SalesPeriod,
+): Promise<SalesSummary> {
+  return sessionRequest<SalesSummary>(
+    `/stores/${encodeURIComponent(storeId)}/analytics/summary?period=${period}`,
+  );
+}
+
+/**
+ * `GET /stores/:storeId/analytics/trend`.
+ *
+ * Catatan kontrak backend: query `period` di sini menerima `7d|30d|90d`,
+ * BUKAN daftar yang sama dengan summary (`7d|30d|ytd`) - tipenya sengaja
+ * dipisah, bukan dipinjam.
+ */
+export function getSalesTrend(
+  storeId: string,
+  period: "7d" | "30d" | "90d",
+): Promise<SalesTrend> {
+  return sessionRequest<SalesTrend>(
+    `/stores/${encodeURIComponent(storeId)}/analytics/trend?period=${period}`,
+  );
+}
+
+/** `GET /stores/:storeId/analytics/top-products?limit=`. */
+export function getTopProducts(storeId: string, limit = 10): Promise<TopProduct[]> {
+  return sessionRequest<TopProduct[]>(
+    `/stores/${encodeURIComponent(storeId)}/analytics/top-products?limit=${limit}`,
+  );
+}
+
+/**
+ * Job analitik ML satu toko - bentuknya seperti `data` dari
+ * `GET /stores/:storeId/analytics/jobs/:jobId` di `analytics.controller.ts`.
+ */
+export type AnalyticsJob = {
+  jobId: string;
+  status: string;
+  jobType: string;
+  result?: unknown;
+  explanation?: string | null;
+  errorMessage?: string | null;
+  createdAt?: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+};
+
+/**
+ * `POST /stores/:storeId/analytics/run`.
+ *
+ * Jawaban 202 berisi `jobId` untuk dipol; pengiriman analisis asinkron
+ * berarti halaman boleh ditutup tanpa kehilangan proses (hasil tersimpan
+ * di database).
+ */
+export function startAnalyticsJob(
+  storeId: string,
+  jobType: string,
+): Promise<{ jobId: string; status: string }> {
+  return sessionRequest<{ jobId: string; status: string }>(
+    `/stores/${encodeURIComponent(storeId)}/analytics/run`,
+    { method: "POST", body: { jobType, parameters: {} } },
+  );
+}
+
+/**
+ * `GET /stores/:storeId/analytics/jobs/:jobId` - dipol dengan interval.
+ *
+ * Setiap tick adalah `sessionRequest` utuh: token dibaca ulang dan
+ * direfresh bila perlu, jadi job panjang tidak mati di tengah karena access
+ * token kedaluwarsa.
+ */
+export function getAnalyticsJob(
+  storeId: string,
+  jobId: string,
+): Promise<AnalyticsJob> {
+  return sessionRequest<AnalyticsJob>(
+    `/stores/${encodeURIComponent(storeId)}/analytics/jobs/${encodeURIComponent(jobId)}`,
+  );
+}
+
+/**
+ * Unduh laporan (`GET /stores/:storeId/reports/...`).
+ *
+ * Response-nya berkas HTML/PDF/CSV, bukan amplet JSON, jadi `Response`
+ * mentahnya yang dikembalikan lewat `sessionFetch` - pemanggil membaca
+ * `Content-Disposition` untuk nama berkas lalu menyimpan blob-nya.
+ */
+export function downloadStoreReport(path: string): Promise<Response> {
+  return sessionFetch(path);
 }

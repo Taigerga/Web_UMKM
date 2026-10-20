@@ -3,9 +3,12 @@
 import * as React from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
-import { listAccessibleStores } from "@/lib/dashboard-data";
-import type { StoreSummary } from "@/lib/dashboard-data";
-import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
+import {
+  downloadStoreReport,
+  listAccessibleStores,
+  listStoreProducts,
+} from "@/lib/dashboard-data";
+import type { StoreProduct, StoreSummary } from "@/lib/dashboard-data";
 import { ALLOWED_FORMATS, reportPath } from "@/lib/report-format";
 import type { ReportFormat, ReportType } from "@/lib/report-format";
 
@@ -24,7 +27,7 @@ export function ReportsPanel() {
     const allowed = ALLOWED_FORMATS[next];
     setFormat((current) => (allowed.includes(current) ? current : allowed[0]));
   }
-  const [products, setProducts] = React.useState<Array<{ id: string; sku: string; name: string }>>([]);
+  const [products, setProducts] = React.useState<StoreProduct[]>([]);
   const [selectedProductId, setSelectedProductId] = React.useState<string>("");
 
   const [loading, setLoading] = React.useState(false);
@@ -45,20 +48,16 @@ export function ReportsPanel() {
     // Muat produk untuk laporan forecast lewat callback promise: setState
     // hanya di callback, bukan langsung di badan effect.
     let cancelled = false;
-    void fetch(`${API_BASE_URL}${API_PREFIX}/stores/${storeId}/products`, {
-      credentials: "include",
-    })
-      .then(async (res) => {
-        const json: unknown = await res.json();
-        const items = (json as { data?: unknown }).data;
+    void listStoreProducts(storeId)
+      .then((items) => {
         if (cancelled) return;
-        setProducts(Array.isArray(items) ? (items as Array<{ id: string; sku: string; name: string }>) : []);
-        if (Array.isArray(items) && items.length > 0) {
-          setSelectedProductId((items[0] as { id: string }).id);
-        }
+        setProducts(items);
+        if (items.length > 0) setSelectedProductId(items[0].id);
       })
       .catch((error: unknown) => {
-        console.error("Gagal memuat produk:", error);
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : "Gagal memuat produk");
+        }
       });
     return () => {
       cancelled = true;
@@ -77,17 +76,14 @@ export function ReportsPanel() {
       }
 
       const path = reportPath(storeId, reportType, format, { productId: selectedProductId });
-      const res = await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
-        credentials: "include",
-      });
+      // sessionFetch melempar ApiError dengan pesan baca-manusia untuk semua
+      // status non-2xx (termasuk 401 setelah refresh sekali gagal), jadi
+      // pemanggil tidak memeriksa `res.ok` secara manual.
+      const res = await downloadStoreReport(path);
 
-      if (!res.ok) {
-        throw new Error("Gagal generate laporan");
-      }
-
-      // Get filename from headers or create default
+      // Nama berkas dari `Content-Disposition`, atau default per format.
       const contentDisposition = res.headers.get("content-disposition");
-      let filename = "laporan.html";
+      let filename = `laporan.${format}`;
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="(.+?)"/);
         if (match) filename = match[1];

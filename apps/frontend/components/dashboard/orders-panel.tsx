@@ -3,17 +3,18 @@
 import * as React from "react";
 import { Button, Input } from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
-import { listAccessibleStores } from "@/lib/dashboard-data";
-import type { StoreSummary } from "@/lib/dashboard-data";
-import { API_BASE_URL, API_PREFIX } from "@/lib/api-client";
-
-type Order = { id: string; items?: unknown[] };
+import {
+  createManualOrder,
+  listAccessibleStores,
+  listStoreOrders,
+} from "@/lib/dashboard-data";
+import type { StoreOrder, StoreSummary } from "@/lib/dashboard-data";
 
 export function OrdersPanel() {
   const session = useSession();
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
   const [storeId, setStoreId] = React.useState<string | null>(null);
-  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [orders, setOrders] = React.useState<StoreOrder[]>([]);
   const [message, setMessage] = React.useState<string | null>(null);
   const [customerCode, setCustomerCode] = React.useState("C1");
   const [customerName, setCustomerName] = React.useState("Ridho");
@@ -21,21 +22,12 @@ export function OrdersPanel() {
   const [qty, setQty] = React.useState("1");
   const [price, setPrice] = React.useState("3000");
 
-  async function api(path: string, method: string, body?: unknown) {
-    const res = await fetch(`${API_BASE_URL}${API_PREFIX}${path}`, {
-      method,
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json?.error?.message ?? "Permintaan gagal");
-    return json.data;
-  }
-
+  // Semua request lewat sessionRequest (lib/dashboard-data.ts): token
+  // ditempel di sana, begitu pula refresh + satu kali percobaan ulang saat
+  // 401 - pesan galat berasal dari ApiError, bukan dari `res.json()` manual.
   const load = React.useCallback(async () => {
     if (!storeId) return;
-    setOrders(await api(`/stores/${storeId}/orders`, "GET"));
+    setOrders(await listStoreOrders(storeId));
   }, [storeId]);
 
   React.useEffect(() => {
@@ -51,12 +43,14 @@ export function OrdersPanel() {
     // Muat order lewat callback promise: setState hanya di callback `.then`,
     // bukan langsung di badan effect (react-hooks/set-state-in-effect).
     let cancelled = false;
-    void api(`/stores/${storeId}/orders`, "GET")
+    void listStoreOrders(storeId)
       .then((items) => {
-        if (!cancelled) setOrders(items as Order[]);
+        if (!cancelled) setOrders(items);
       })
-      .catch(() => {
-        if (!cancelled) setMessage("Gagal memuat order");
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : "Gagal memuat order");
+        }
       });
     return () => {
       cancelled = true;
@@ -70,10 +64,13 @@ export function OrdersPanel() {
       // Customer dibuat/upsert otomatis oleh endpoint order manual dari
       // customerCode, jadi tidak perlu POST /customers di sini. Itu juga
       // membuat formulir ini aman dipakai pegawai (input harian, PROMT §5.3).
-      await api(`/stores/${storeId}/orders/manual`, "POST", {
+      // orderDate memakai tanggal hari ini, bukan tanggal tulisan tangan -
+      // ini formulir input harian, dan tanggal tetap yang memicu filter
+      // periode di analytics.
+      await createManualOrder(storeId, {
         customerCode,
         customerName,
-        orderDate: "2026-01-01",
+        orderDate: new Date().toISOString().slice(0, 10),
         channel: "online",
         items: [{ productSku: sku, qty: Number(qty), price: Number(price) }],
       });
