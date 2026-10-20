@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import { StoreAccess } from "../common/decorators/store-access.decorator.js";
 import { Role } from "../common/types/prisma-enums.js";
 import { Roles } from "../common/decorators/roles.decorator.js";
+import { PageQueryDto } from "../common/dto/response.dto.js";
 import { OrdersService } from "./orders.service.js";
 
 @Controller("stores/:storeId/orders")
@@ -10,8 +11,8 @@ export class OrdersController {
 
   @Get()
   @StoreAccess()
-  async list(@Param("storeId") storeId: string) {
-    return { data: await this.service.list(storeId) };
+  async list(@Param("storeId") storeId: string, @Query() query: PageQueryDto) {
+    return this.service.list(storeId, query.page, query.pageSize);
   }
 
   @Post("manual")

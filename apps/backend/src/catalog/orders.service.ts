@@ -5,12 +5,29 @@ import { PrismaService } from "../database/prisma.service.js";
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(storeId: string) {
-    return this.prisma.orders.findMany({
-      where: { storeId },
-      include: { items: true, customer: true },
-      orderBy: { createdAt: "desc" },
-    });
+  /**
+   * Daftar order, TIDAK lagi tanpa batas: versi lama mengembalikan SEMUA
+   * order milik toko (termasuk hasil unggah dataset berjumlah ratusan) dan
+   * frontend merendernya selembar panjang tanpa awal-akhir (laporan 20 Okt,
+   * bug #4). Sekarang ikut kontrak paginasi yang sama dengan modul admin -
+   * `PageQueryDto` memaksa `page >= 1` dan `pageSize <= 100`, serta meta
+   * `total` supaya frontend bisa merender pager-nya.
+   */
+  async list(storeId: string, page = 1, pageSize = 20) {
+    const [orders, total] = await Promise.all([
+      this.prisma.orders.findMany({
+        where: { storeId },
+        include: { items: true, customer: true },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.orders.count({ where: { storeId } }),
+    ]);
+    return {
+      data: orders,
+      meta: { page, pageSize: Math.min(pageSize, 100), total },
+    };
   }
 
   async createManual(storeId: string, body: any) {

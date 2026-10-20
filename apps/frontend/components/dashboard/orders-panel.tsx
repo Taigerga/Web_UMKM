@@ -17,13 +17,15 @@ import {
   listAccessibleStores,
   listStoreOrders,
 } from "@/lib/dashboard-data";
-import type { StoreOrder, StoreSummary } from "@/lib/dashboard-data";
+import type { StoreOrder, StoreOrderPage, StoreSummary } from "@/lib/dashboard-data";
 
 export function OrdersPanel() {
   const session = useSession();
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
   const [storeId, setStoreId] = React.useState<string | null>(null);
   const [orders, setOrders] = React.useState<StoreOrder[]>([]);
+  const [meta, setMeta] = React.useState<StoreOrderPage["meta"] | null>(null);
+  const [page, setPage] = React.useState(1);
   const [message, setMessage] = React.useState<string | null>(null);
   const [customerCode, setCustomerCode] = React.useState("C1");
   const [customerName, setCustomerName] = React.useState("Ridho");
@@ -36,8 +38,14 @@ export function OrdersPanel() {
   // 401 - pesan galat berasal dari ApiError, bukan dari `res.json()` manual.
   const load = React.useCallback(async () => {
     if (!storeId) return;
-    setOrders(await listStoreOrders(storeId));
-  }, [storeId]);
+    try {
+      const result = await listStoreOrders(storeId, page);
+      setOrders(result.data);
+      setMeta(result.meta);
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : "Gagal memuat order");
+    }
+  }, [storeId, page]);
 
   React.useEffect(() => {
     if (session.status !== "ready") return;
@@ -52,9 +60,12 @@ export function OrdersPanel() {
     // Muat order lewat callback promise: setState hanya di callback `.then`,
     // bukan langsung di badan effect (react-hooks/set-state-in-effect).
     let cancelled = false;
-    void listStoreOrders(storeId)
-      .then((items) => {
-        if (!cancelled) setOrders(items);
+    void listStoreOrders(storeId, page)
+      .then((result) => {
+        if (!cancelled) {
+          setOrders(result.data);
+          setMeta(result.meta);
+        }
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -64,7 +75,14 @@ export function OrdersPanel() {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, page]);
+
+  // Ganti toko mengembalikan pembaca ke halaman pertama - nomor halaman
+  // dari toko sebelumnya tidak punya arti untuk toko yang baru.
+  function changeStore(next: string): void {
+    setStoreId(next);
+    setPage(1);
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -105,7 +123,7 @@ export function OrdersPanel() {
             Toko
             <select
               value={storeId ?? ""}
-              onChange={(e) => setStoreId(e.target.value)}
+              onChange={(e) => changeStore(e.target.value)}
               className="h-10 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink focus-visible:border-accent"
             >
               {stores.map((store) => (
@@ -182,6 +200,12 @@ export function OrdersPanel() {
       <Card>
         <CardHeader>
           <CardTitle>Order Terbaru</CardTitle>
+          {meta !== null && meta.total > 0 ? (
+            <CardDescription>
+              {meta.total} order total — halaman {meta.page} dari{" "}
+              {Math.max(1, Math.ceil(meta.total / meta.pageSize))}
+            </CardDescription>
+          ) : null}
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
@@ -206,6 +230,34 @@ export function OrdersPanel() {
               ))}
             </ul>
           )}
+
+          {/*
+            Pager: hasil unggah dataset bisa berisi ratusan order; tanpa
+            halaman, daftar terasa tidak berujung (laporan 20 Okt, bug #4).
+            Batas halaman dihitung dari `meta.total`, jadi tombolnya mati
+            otomatis di tepi.
+          */}
+          {meta !== null && meta.total > meta.pageSize ? (
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <Button
+                variant="outline"
+                disabled={meta.page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Sebelumnya
+              </Button>
+              <span className="text-xs text-ink-muted">
+                Halaman {meta.page} / {Math.max(1, Math.ceil(meta.total / meta.pageSize))}
+              </span>
+              <Button
+                variant="outline"
+                disabled={meta.page >= Math.ceil(meta.total / meta.pageSize)}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Berikutnya
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

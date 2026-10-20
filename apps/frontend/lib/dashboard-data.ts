@@ -450,11 +450,26 @@ export function createStoreProduct(
 export type StoreOrder = { id: string; items?: Array<{ id: string }> };
 
 /**
- * `GET /stores/:storeId/orders` - daftar order toko.
+ * `GET /stores/:storeId/orders` - daftar order toko, berhalaman.
+ *
+ * Backend mengembalikan fitur `meta.total`, jadi pager di panel Pesanan
+ * tahu harus berhenti di mana; default 20/order per halaman sesuai kontrak
+ * `PageQueryDto` modul admin. Sebelum ini endpoint mengembalikan SEMUA
+ * order dan panelnya menggulir tanpa ujung setelah unggah dataset besar.
  */
-export function listStoreOrders(storeId: string): Promise<StoreOrder[]> {
-  return sessionRequest<StoreOrder[]>(
-    `/stores/${encodeURIComponent(storeId)}/orders`,
+export type StoreOrderPage = {
+  data: StoreOrder[];
+  meta: { page: number; pageSize: number; total: number };
+};
+
+export function listStoreOrders(
+  storeId: string,
+  page = 1,
+  pageSize = 20,
+): Promise<StoreOrderPage> {
+  const query = `?page=${page}&pageSize=${pageSize}`;
+  return sessionRequest<StoreOrderPage>(
+    `/stores/${encodeURIComponent(storeId)}/orders${query}`,
   );
 }
 
