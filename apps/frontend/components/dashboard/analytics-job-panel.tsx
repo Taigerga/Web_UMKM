@@ -6,10 +6,13 @@ import { useSession } from "@/components/dashboard/session-provider";
 import {
   getAnalyticsJob,
   listAccessibleStores,
+  listAnalyticsJobs,
   startAnalyticsJob,
 } from "@/lib/dashboard-data";
 import type { AnalyticsJob, StoreSummary } from "@/lib/dashboard-data";
+import { pickLatestCompleted } from "@/lib/analysis-history";
 import { resolveActiveStore } from "@/lib/dashboard-nav";
+import { chartInsightText } from "@/lib/chart-data";
 import {
   toAnomalyChart,
   toBasketChart,
@@ -68,6 +71,14 @@ export function AnalyticsJobPanel() {
   const [job, setJob] = React.useState<AnalyticsJob | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
+  /**
+   * Hasil tersimpan per model - dipulihkan dari database saat mount, jadi
+   * muat-ulang halaman TIDAK lagi mengosongkan semua hasil (laporan 20 Okt).
+   * Kecil kemungkinan kalau panelnya hanya di state React, teks
+   * "hasil tersimpan dan dapat dilihat kembali" di sekitar tombol menjadi
+   * tidak benar.
+   */
+  const [saved, setSaved] = React.useState<Record<string, AnalyticsJob>>({});
 
   const profileId = session.profile?.id;
   React.useEffect(() => {
@@ -80,6 +91,24 @@ export function AnalyticsJobPanel() {
       })
       .catch(() => setMessage("Gagal memuat toko"));
   }, [session.status, profileId]);
+
+  // Pulihkan hasil tersimpan dari `GET /analytics/jobs` tiap berganti toko:
+  // hasil termutakhir yang completed tiap model, siap ditampilkan walau job
+  // itu dijalankan berbulan lalu di sesi lain.
+  React.useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    void listAnalyticsJobs(storeId, 50)
+      .then((items) => {
+        if (!cancelled) setSaved(pickLatestCompleted(items));
+      })
+      .catch(() => {
+        if (!cancelled) setMessage("Gagal memuat riwayat analisis");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
 
   async function submit() {
     if (!storeId) return;
@@ -119,6 +148,11 @@ export function AnalyticsJobPanel() {
         setJob(data);
         if (data.status === "completed" || data.status === "failed") {
           stop();
+          // Setelah selesai, hasilnya langsung mengisi slot model itu -
+          // panel tidak menunggu muat-ulang untuk menampilkannya.
+          if (data.status === "completed") {
+            setSaved((prev) => ({ ...prev, [data.jobType]: data }));
+          }
         }
       } catch {
         if (active) setMessage("Gagal polling status");
@@ -133,6 +167,18 @@ export function AnalyticsJobPanel() {
       stop();
     };
   }, [jobId, storeId]);
+
+  // Job yang dipol ditampilkan hanya kalau modelnya sedang dipilih - kalau
+  // tidak, panel menampilkan hasil tersimpan model yang dipilih (supaya
+  // pindah dropdown tidak menyembunyikan hasil model lain).
+  const live = job && job.jobType === jobType ? job : null;
+  const livePending = live && (live.status === "queued" || live.status === "running") ? live : null;
+  const liveFailed = live && live.status === "failed" ? live : null;
+  const liveCompleted = live && live.status === "completed" ? live : null;
+  const savedJob = saved[jobType] ?? null;
+  const shownResult = liveCompleted ?? savedJob;
+  const resultType: string | null = shownResult ? shownResult.jobType : null;
+  const optionLabel = JOB_OPTIONS.find((o) => o.value === jobType)?.label ?? jobType;
 
   return (
     <div className="space-y-6">
@@ -169,61 +215,86 @@ export function AnalyticsJobPanel() {
             </Button>
           </div>
           <p className="text-sm text-ink-muted">
-            Sistem akan memproses analisis secara asynchronous. Anda dapat menutup halaman; hasil tersimpan dan dapat dilihat kembali.
+            Sistem akan memproses analisis secara asynchronous. Hasil tersimpan di database dan tidak hilang saat halaman dimuat ulang.
           </p>
         </CardContent>
       </Card>
 
-      {job && (
+      {livePending && (
         <Card>
           <CardHeader>
-            <CardTitle>Status Job: {job.jobType}</CardTitle>
+            <CardTitle>Analisis sedang dijalankan</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm">
-              <span className="font-medium">Job ID: </span>{job.jobId}
-            </div>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">Status:</span>
-              <span
-                className={`text-xs px-2 py-1 rounded ${
-                  job.status === "completed"
-                    ? "bg-positive-wash text-positive"
-                    : job.status === "failed"
-                      ? "bg-critical-wash text-critical"
-                      : "bg-neutral-wash text-ink-muted"
-                }`}
-              >
-                {job.status}
+              <span className="text-xs px-2 py-1 rounded bg-neutral-wash text-ink-muted animate-pulse">
+                {livePending.status}
+              </span>
+              <span className="text-sm text-ink-muted">
+                Job {livePending.jobId.slice(0, 8)}… - menunggu hasil tiap 2 detik
               </span>
             </div>
-            {job.explanation && (
-              <div className="bg-accent-wash border border-accent/40 text-ink px-4 py-3 rounded-lg text-sm">
-                {job.explanation}
-              </div>
-            )}
-            {job.errorMessage && (
-              <div className="bg-critical-wash border border-critical/30 text-critical px-4 py-3 rounded-lg text-sm">
-                {job.errorMessage}
-              </div>
-            )}
-            {job.status === "completed" && Boolean(job.result) && (
-              <div className="mt-4 space-y-3">
-                <div className="text-sm font-medium">Hasil:</div>
-                <JobResultChart jobType={job.jobType} result={job.result} />
-                <details>
-                  <summary className="cursor-pointer text-xs text-ink-muted">
-                    Lihat keterapan mentah (JSON)
-                  </summary>
-                  <pre className="bg-paper border border-line rounded p-3 text-xs overflow-auto max-h-96 mt-2">
-                    {JSON.stringify(job.result, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
+
+      {liveFailed && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Analisis gagal dijalankan</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-critical-wash border border-critical/30 text-critical px-4 py-3 rounded-lg text-sm">
+              {liveFailed.errorMessage ?? "Galat tidak diketahui"}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Hasil: dari job yang baru selesai ATAU yang tersimpan dari sesi lama. */}
+      {shownResult && resultType ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Hasil: {JOB_OPTIONS.find((o) => o.value === resultType)?.label ?? resultType}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {shownResult.completedAt && (
+              <p className="text-xs text-ink-muted">
+                Dihitung pada{" "}
+                {new Date(shownResult.completedAt).toLocaleString("id-ID", {
+                  dateStyle: "long",
+                  timeStyle: "short",
+                  timeZone: "Asia/Jakarta",
+                })}
+              </p>
+            )}
+            {chartInsightText(resultType, shownResult.result) && (
+              <div className="bg-accent-wash border border-accent/40 text-ink px-4 py-3 rounded-lg text-sm">
+                {chartInsightText(resultType, shownResult.result)}
+              </div>
+            )}
+            <JobResultChart jobType={resultType} result={shownResult.result} />
+            <details>
+              <summary className="cursor-pointer text-xs text-ink-muted">
+                Lihat keterapan mentah (JSON)
+              </summary>
+              <pre className="bg-paper border border-line rounded p-3 text-xs overflow-auto max-h-96 mt-2">
+                {JSON.stringify(shownResult.result, null, 2)}
+              </pre>
+            </details>
+          </CardContent>
+        </Card>
+      ) : !livePending && !liveFailed && !submitting ? (
+        <Card>
+          <CardContent>
+            <p className="text-sm text-ink-muted">
+              Belum ada hasil tersimpan untuk {optionLabel}. Pilih model di atas dan tekan
+              &ldquo;Jalankan Analisis&rdquo; - hasilnya akan tetap ditampilkan di halaman ini setelah
+              selesai, termasuk saat halaman dibuka kembali nanti.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

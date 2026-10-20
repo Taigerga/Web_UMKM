@@ -147,3 +147,85 @@ export function toAnomalyChart(result: unknown): AnomalyPoint[] {
   }
   return out;
 }
+
+/**
+ * Satu kalimat insight per model, dari angka hasil yang SAMA dengan grafik.
+ *
+ * Angka di grafik (lift, persen, jumlah) sulit dibaca bisnis tanpa kalimat
+ * penerjemah - laporan pengguna 20 Okt: "insight market basket kurang jelas,
+ * saya tidak paham". Semua teks di sini murni: masukan bentuk tak dikenal
+ * mengembalikan null dan panel menampilkan grafik saja, bukan karangan.
+ */
+const idNum = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
+
+export function chartInsightText(jobType: string, result: unknown): string | null {
+  const rec = asRecord(result);
+  if (!rec) return null;
+  const meta = asRecord(rec.metadata) ?? {};
+  const n = (key: string): string | null => {
+    const v = num(meta[key]);
+    return v === null ? null : idNum.format(v);
+  };
+
+  if (jobType === "basket") {
+    const rows = toBasketChart(result);
+    const top = rows[0];
+    if (!top) return null;
+    const nTxn = n("n_transactions");
+    const share = idNum.format(Math.round(top.support * 1000) / 10);
+    return (
+      `Dihitung dari ${nTxn ?? "…"} transaksi. Pasangan terkuat "${top.label}" ` +
+      `muncul bersama di sekitar ${share}% transaksi dan terjadi ` +
+      `${idNum.format(top.lift)}× lebih sering dari kebetulan` +
+      (top.lift >= 2
+        ? " - kandidat kuat untuk paket bundling atau promo berpasangan."
+        : " - patut dicoba, ikatannya belum terlalu kuat untuk dikomersialkan.")
+    );
+  }
+
+  if (jobType === "segmentation") {
+    const segments = toSegmentChart(result);
+    const top = segments[0];
+    if (top) {
+      return `Dari ${n("n_customers") ?? "…"} pelanggan: kelompok terbesar "${top.segment}" ` +
+        `berisi ${idNum.format(top.customers)} orang (${idNum.format(top.customerPct)}% pelanggan, ` +
+        `menyumbang ${idNum.format(top.revenuePct)}% omzet).`;
+    }
+    const note = meta.note;
+    return typeof note === "string" ? note : null;
+  }
+
+  if (jobType === "churn") {
+    const rows = toChurnChart(result);
+    const high = rows.find((r) => r.risk === "High");
+    if (!high) return null;
+    const total = rows.reduce((sum, r) => sum + r.count, 0);
+    return `Dari ${idNum.format(total)} pelanggan yang pernah membeli: ` +
+      `${idNum.format(high.count)} berisiko TINGGI berhenti membeli dalam 90 hari ` +
+      "(belum ada transaksi mendekati horizon). Prioritaskan menghubungi mereka.";
+  }
+
+  if (jobType === "anomaly") {
+    const rows = toAnomalyChart(result);
+    if (rows.length === 0) {
+      return "Tidak ada hari dengan lonjakan/penurunan yang menonjol dari pola mingguan - penjualan stabil.";
+    }
+    const spike = rows.filter((r) => r.type === "spike").length;
+    const drop = rows.filter((r) => r.type !== "spike").length;
+    return `${idNum.format(rows.length)} hari menonjol dari pola mingguan: ` +
+      `${idNum.format(spike)} lompatan (jualan jauh di atas biasa) dan ` +
+      `${idNum.format(drop)} penurunan. Periksa tanggalnya - lonjakan mungkin promo, ` +
+      "penurunan mungkin keribetan stok atau toko tutup.";
+  }
+
+  if (jobType === "forecast") {
+    const rows = toForecastChart(result);
+    if (rows.length === 0) return null;
+    const total = rows.reduce((sum, r) => sum + r.predicted, 0);
+    return `Prediksi ${idNum.format(rows.length)} hari ke depan: total sekitar ` +
+      `Rp ${idNum.format(total)} (rata-rata Rp ${idNum.format(total / rows.length)} per hari). ` +
+      "Pita di grafik adalah rentang yakinnya - masih prediksi pola, bukan jaminan.";
+  }
+
+  return null;
+}

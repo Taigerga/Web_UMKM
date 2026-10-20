@@ -704,6 +704,29 @@ export function getAnalyticsJob(
 }
 
 /**
+ * `GET /stores/:storeId/analytics/jobs` - daftar job toko (riwayat).
+ *
+ * Baris kembalian backend adalah baris mentah `ml_jobs` (`id`, bukan
+ * `jobId`) - dipetakan di sini ke bentuk `AnalyticsJob` yang sama dengan
+ * hasil `getAnalyticsJob` supaya pemanggil tidak menangani dua nama.
+ * Dipakai panel analisis untuk menampilkan hasil tersimpan per model
+ * setelah muat-ulang halaman.
+ */
+export function listAnalyticsJobs(
+  storeId: string,
+  limit = 50,
+): Promise<AnalyticsJob[]> {
+  return sessionRequest<{ items: AnalyticsJob[] }>(
+    `/stores/${encodeURIComponent(storeId)}/analytics/jobs?limit=${limit}`,
+  ).then((res) =>
+    res.items.map((row) => ({
+      ...row,
+      jobId: row.jobId ?? (row as unknown as { id: string }).id,
+    })),
+  );
+}
+
+/**
  * Unduh laporan (`GET /stores/:storeId/reports/...`).
  *
  * Response-nya berkas HTML/PDF/CSV, bukan amplet JSON, jadi `Response`
