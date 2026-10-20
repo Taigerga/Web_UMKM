@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AppError } from '../common/errors/app-error.js';
 import { AuthService } from './auth.service.js';
@@ -127,6 +127,14 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth('bearer')
   @UseGuards(JwtAuthGuard)
+  // Endpoint ini dijalankan SEMUA throttler yang terdaftar, termasuk kuota
+  // ketat `auth` (20/menit) yang disengaja untuk login/refresh. Padahal `me`
+  // dipanggil di SETIAP muat-ulang keras dashboard (lapisan profil sesi),
+  // dan tab dev StrictMode menjalankannya dua kali - pengguna yang
+  // berpindah-pindah halaman cepat menghabiskan 20 dan menerima 429 palsu
+  // (laporan 20 Okt, bug #5). Endpoint ini sudah dilindungi bearer token,
+  // jadi kuota ketat auth dilewati; kuota default (600/menit) tetap berlaku.
+  @SkipThrottle({ auth: true })
   @ApiOperation({
     summary: 'User yang sedang login beserta toko yang bisa diakses',
   })
