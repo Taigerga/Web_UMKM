@@ -207,82 +207,144 @@ export class DatasetsService {
     const headers = records.length && records[0] ? Object.keys(records[0] as any) : [];
     const mapping = ((mappingRow?.mappingJson ?? this.inferMapping(headers)) as unknown) as Record<string, string>;
 
-    const grouped = new Map<string, any[]>();
-    for (const record of records) {
-      const row = record as Record<string, string>;
-      const orderKey = (row[mapping.order_id] ?? 'ORD').trim();
-      if (!grouped.has(orderKey)) grouped.set(orderKey, []);
-      const productSku = row[mapping.product_code];
-      const customerCode = row[mapping.customer_code];
+    /**
+     * Commit yang menimpa per-baris: versi lama menjalankan SATU `$transaction`
+     * per baris CSV berisi upsert pelanggan + upsert produk + cek harga
+     * beruntun - unggah 988 baris berarti ~3.000 percakapan MySQL berurutan,
+     * dan commit terasa lama padahal datanya kecil (laporan 20 Okt, bug #1).
+     * Sekarang: (1) parse sekali di memori, (2) satu `$transaction` berisi
+     * upsert per KODE UNIK pelanggan dan per SKU produk (25 + 10, bukan 988),
+     * (3) dua findMany paralel untuk memetakan id, (4) createMany untuk harga
+     * produk yang belum punya, (5) sisipkan order + item per order. Biaya jadi
+     * O(kode unik + jumlah order), bukan O(jumlah baris x 3).
+     */
+    type ParsedRow = {
+      orderKey: string;
+      orderDateRaw: string;
+      customerCode: string;
+      customerName: string | null;
+      productCode: string;
+      productName: string | null;
+      category: string | null;
+      unit: string | null;
+      qty: number;
+      price: number;
+      total: number;
+      channel: string;
+    };
+
+    const parsed: ParsedRow[] = records.map((r0) => {
+      const row = r0 as Record<string, string>;
       const qty = Number(row[mapping.qty]);
       const price = Number(row[mapping.unit_price]);
       const total = Number(mapping.total_price ? row[mapping.total_price] : qty * price);
+      return {
+        orderKey: String(row[mapping.order_id] ?? 'ORD').trim(),
+        orderDateRaw: row[mapping.order_date],
+        customerCode: String(row[mapping.customer_code] ?? '').trim(),
+        customerName: (row[mapping.customer_name] ?? null) as string | null,
+        productCode: String(row[mapping.product_code] ?? '').trim(),
+        productName: (row[mapping.product_name] ?? null) as string | null,
+        category: (row[mapping.category] ?? null) as string | null,
+        unit: (row[mapping.unit] ?? null) as string | null,
+        qty: Number.isFinite(qty) ? qty : 0,
+        price: Number.isFinite(price) ? price : 0,
+        total: Number.isFinite(total) ? total : 0,
+        channel: (row[mapping.channel] ?? '') as string,
+      };
+    });
 
-      const upsertedCustomer = await this.prisma.$transaction(async (tx: any) => {
-        const customer = await tx.customers.upsert({
-          where: { storeId_code: { storeId, code: customerCode } },
-          update: { name: row[mapping.customer_name] ?? customerCode, segment: null },
-          create: { storeId, code: customerCode, name: row[mapping.customer_name] ?? customerCode, segment: null },
+    // Master unik (nilai pertama menang, semantik upsert lama dipertahankan),
+    // tanggal per order dari record pertama, dan baris item dikelompokkan
+    // lewat `order_id` sama - itulah dasar analisis basket di layanan ML.
+    const namesByCode = new Map<string, string>();
+    const skuMeta = new Map<string, { name: string; category: string | null; unit: string | null; price: number }>();
+    const dateByOrder = new Map<string, string>();
+    const groups = new Map<string, ParsedRow[]>();
+    for (const row of parsed) {
+      if (!namesByCode.has(row.customerCode)) {
+        namesByCode.set(row.customerCode, row.customerName ?? row.customerCode);
+      }
+      if (!skuMeta.has(row.productCode)) {
+        skuMeta.set(row.productCode, {
+          name: row.productName ?? row.productCode,
+          category: row.category,
+          unit: row.unit,
+          price: row.price,
         });
-
-        const product = await tx.products.upsert({
-          where: { storeId_sku: { storeId, sku: productSku } },
-          update: {
-            name: row[mapping.product_name] ?? productSku,
-            category: row[mapping.category] ?? null,
-            unit: row[mapping.unit] ?? null,
-          },
-          create: {
-            storeId,
-            sku: productSku,
-            name: row[mapping.product_name] ?? productSku,
-            category: row[mapping.category] ?? null,
-            unit: row[mapping.unit] ?? null,
-          },
-        });
-
-        const priceExists = await tx.productPrices.findFirst({ where: { productId: product.id } });
-        if (!priceExists) {
-          await tx.productPrices.create({
-            data: { productId: product.id, price: Number.isFinite(price) ? price : 0 },
-          });
-        }
-
-        grouped.get(orderKey)!.push({
-          customerId: customer.id,
-          productId: product.id,
-          qty: Number.isFinite(qty) ? qty : 0,
-          price: Number.isFinite(price) ? price : 0,
-          total: Number.isFinite(total) ? total : qty * price,
-          channel: row[mapping.channel] ?? null,
-        });
-
-        return customer.id;
-      });
+      }
+      if (!dateByOrder.has(row.orderKey)) dateByOrder.set(row.orderKey, row.orderDateRaw);
+      if (!groups.has(row.orderKey)) groups.set(row.orderKey, []);
+      groups.get(row.orderKey)!.push(row);
     }
 
-    for (const [orderKey, itemRows] of grouped.entries()) {
-      const first = itemRows[0];
-      const orderTotal = itemRows.reduce((sum, item) => sum + (item.total || 0), 0);
-      const orderRecord = records.find((r: any) => String((r as any)?.[mapping.order_id] ?? '').trim() === orderKey) as
-        | any
-        | undefined;
+    // 1) Upsert master per kode unik - satu transaksi, bukan satu per baris.
+    await this.prisma.$transaction([
+      ...Array.from(namesByCode.entries()).map(([code, name]) =>
+        this.prisma.customers.upsert({
+          where: { storeId_code: { storeId, code } },
+          update: { name, segment: null },
+          create: { storeId, code, name, segment: null },
+        }),
+      ),
+      ...Array.from(skuMeta.entries()).map(([sku, meta]) =>
+        this.prisma.products.upsert({
+          where: { storeId_sku: { storeId, sku } },
+          update: { name: meta.name, category: meta.category, unit: meta.unit },
+          create: { storeId, sku, name: meta.name, category: meta.category, unit: meta.unit },
+        }),
+      ),
+    ]);
+
+    // 2) Petakan id master yang disentuh - dua query paralel, bukan per baris.
+    const [customerRows, productRows] = await Promise.all([
+      this.prisma.customers.findMany({
+        where: { storeId, code: { in: Array.from(namesByCode.keys()) } },
+        select: { id: true, code: true },
+      }),
+      this.prisma.products.findMany({
+        where: { storeId, sku: { in: Array.from(skuMeta.keys()) } },
+        select: { id: true, sku: true },
+      }),
+    ]);
+    const customerIdByCode = new Map(customerRows.map((c: any) => [c.code as string, c.id as string]));
+    const productIdBySku = new Map(productRows.map((p: any) => [p.sku as string, p.id as string]));
+
+    // 3) Harga: hanya produk yang BELUM punya baris harga (semantik lama:
+    // harga pertama dari CSV yang di-commit menang).
+    const priceRows = await this.prisma.productPrices.findMany({
+      where: { productId: { in: Array.from(productIdBySku.values()) } },
+      select: { productId: true },
+    });
+    const priced = new Set(priceRows.map((p: any) => p.productId as string));
+    const missingPrices = Array.from(skuMeta.entries())
+      .map(([sku, meta]) => ({ productId: productIdBySku.get(sku)!, price: meta.price }))
+      .filter((price) => !priced.has(price.productId));
+    if (missingPrices.length > 0) {
+      await this.prisma.productPrices.createMany({ data: missingPrices });
+    }
+
+    // 4) Order + item per `orderKey`. `deleteMany` membuat commit idempoten:
+    // commit dataset yang sama dua kali tidak menduplikasi order, dan
+    // rollback (yang menghapus berdasarkan datasetId) berpasangan sempurna.
+    await this.prisma.orders.deleteMany({ where: { datasetId } });
+    for (const [orderKey, rowItems] of groups.entries()) {
+      const first = rowItems[0];
+      const items = rowItems.map((row) => ({
+        productId: productIdBySku.get(row.productCode) ?? '',
+        qty: row.qty,
+        price: row.price,
+        discount: null,
+      }));
       await this.prisma.orders.create({
         data: {
           storeId,
           datasetId,
-          customerId: first.customerId,
-          orderDate: new Date(orderRecord?.[mapping.order_date] ?? new Date()),
+          customerId: customerIdByCode.get(first.customerCode) ?? '',
+          orderDate: new Date(dateByOrder.get(orderKey) ?? new Date()),
           channel: first.channel,
-          total: orderTotal,
-          items: {
-            create: itemRows.map((item) => ({
-              productId: item.productId,
-              qty: item.qty,
-              price: item.price,
-              discount: null,
-            })),
-          },
+          total: rowItems.reduce((sum, row) => sum + row.total, 0),
+          items: { create: items },
         },
       });
     }
