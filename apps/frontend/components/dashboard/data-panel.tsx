@@ -14,6 +14,7 @@ import { useSession } from "@/components/dashboard/session-provider";
 import {
   commitDataset,
   listAccessibleStores,
+  listStoreDatasets,
   rollbackDataset,
   uploadDataset,
   validateDataset,
@@ -26,6 +27,7 @@ export function DataPanel() {
   const [stores, setStores] = React.useState<StoreSummary[]>([]);
   const [storeId, setStoreId] = React.useState<string | null>(null);
   const [dataset, setDataset] = React.useState<DatasetView | null>(null);
+  const [datasets, setDatasets] = React.useState<DatasetView[]>([]);
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -48,6 +50,30 @@ export function DataPanel() {
         setMessage(error instanceof Error ? error.message : "Gagal memuat toko");
       });
   }, [session.status, profileId]);
+
+  // Muat dataset yang sudah ada untuk toko ini. Tanpa ini, muat-ulang
+  // halaman menghilangkan kartu aksi dataset (
+  // commit/rollback) dari pandangan meski dataset masih ada di server.
+  React.useEffect(() => {
+    if (!storeId || !canManage) return;
+    let cancelled = false;
+    void listStoreDatasets(storeId)
+      .then((items) => {
+        if (cancelled) return;
+        setDatasets(items);
+        // Dataset terbaru ditautkan otomatis ke kartu aksi supaya
+        // melanjutkan validasi/commit tidak perlu mengunggah ulang.
+        setDataset((current) => current ?? items[0] ?? null);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : "Gagal memuat dataset");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, canManage]);
 
   // Semua request - termasuk unggah multipart - lewat sessionRequest
   // (lib/dashboard-data.ts). FormData dikirim apa adanya oleh `sendRequest`,
@@ -73,6 +99,7 @@ export function DataPanel() {
     try {
       const data = await validateDataset(storeId, dataset.id);
       setDataset(data);
+      setDatasets((prev) => prev.map((d) => (d.id === data.id ? data : d)));
       setMessage("Validasi selesai");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Validasi gagal");
@@ -87,6 +114,7 @@ export function DataPanel() {
     try {
       const data = await commitDataset(storeId, dataset.id);
       setDataset(data);
+      setDatasets((prev) => prev.map((d) => (d.id === data.id ? data : d)));
       setMessage("Dataset dicommit");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Commit gagal");
@@ -101,6 +129,7 @@ export function DataPanel() {
     try {
       const data = await rollbackDataset(storeId, dataset.id);
       setDataset(data);
+      setDatasets((prev) => prev.map((d) => (d.id === data.id ? data : d)));
       setMessage("Dataset di-rollback");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Rollback gagal");
@@ -183,6 +212,9 @@ export function DataPanel() {
             </div>
             <p className="text-ink-muted">
               {dataset.rowCount.toLocaleString("id-ID")} baris data
+              {datasets.length > 1
+                ? ` · ${datasets.length} dataset pada toko ini, terbaru ditautkan`
+                : ""}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled={busy} onClick={() => void validate()}>

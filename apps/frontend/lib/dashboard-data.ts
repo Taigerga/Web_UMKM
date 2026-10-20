@@ -528,6 +528,21 @@ export function uploadDataset(storeId: string, file: File): Promise<DatasetView>
   );
 }
 
+/**
+ * `GET /stores/:storeId/datasets` - daftar dataset toko.
+ *
+ * Panel Data dahulu hanya menyimpan dataset yang BARU diunggah di state;
+ * satu muat-ulang halaman dan kartu aksi (validasi/commit/rollback)
+ * menghilang, padahal dataset itu masih ada di server (teramati saat
+ * sweep 20 Okt). Panel sekarang membaca daftar ini saat mount dan
+ * menautkan aksi ke dataset terbaru.
+ */
+export function listStoreDatasets(storeId: string): Promise<DatasetView[]> {
+  return sessionRequest<DatasetView[]>(
+    `/stores/${encodeURIComponent(storeId)}/datasets`,
+  );
+}
+
 /** `POST /stores/:storeId/datasets/:datasetId/validate`. */
 export function validateDataset(
   storeId: string,
