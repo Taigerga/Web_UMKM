@@ -15,6 +15,20 @@ import { NotificationBell } from "./notification-bell";
 /**
  * Sidebar dashboard, dengan menu per peran.
  *
+ * ## Kenapa `lg:sticky lg:top-0 lg:h-dvh`, bukan `lg:h-full`
+ *
+ * `h-full` (height: 100%) di anak dari shell `min-h-screen` TIDAK berfungsi:
+ * tinggi parent tak pasti (hanya min-height), jadi persentase itu jatuh ke
+ * `auto` dan sidebar menyusut mengikuti isinya. Gejalanya persis celah yang
+ * dilaporkan pengguna: kolom merah sisi hanya setengah layar, dan tombol
+ * "Keluar" menggantung di kiri-tengah halaman panjang.
+ *
+ * `sticky + top-0 + h-dvh` membuat sidebar tingginya SELALU satu viewport,
+ * tetap melekat di layar saat konten panjang di-gulir, dan `flex-1` pada
+ * menu mendorong blok profil + tombol Keluar ke dasar kolom. `h-dvh` (bukan
+ * `h-screen`) dipilih agar tingginya benar di mobile browser ketika URL bar
+ * profil menyusut; di desktop keduanya identik.
+ *
  * ## Yang terjadi ketika profil belum selesai dimuat
  *
  * Menu disembunyikan dan diganti skeleton. Alternatifnya - merender menu
@@ -53,7 +67,7 @@ export function Sidebar() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 border-b border-line bg-surface px-5 py-4 lg:h-full lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0 lg:px-4 lg:py-6">
+    <div className="flex w-full flex-col gap-6 border-b border-line bg-surface px-5 py-4 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0 lg:px-4 lg:py-6">
       <div className="flex items-center justify-between gap-3 lg:block">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <span
@@ -71,7 +85,15 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav aria-label="Menu dashboard" className="flex-1">
+      {/*
+        Menu `flex-1` mendorong blok profil + Keluar ke dasar sidebar -
+        di desktop itulah "Keluar di kiri-bawah" yang diharapkan, dan menu
+        yang panjang menggulir sendiri tanpa menggulirkan halaman.
+      */}
+      <nav
+        aria-label="Menu dashboard"
+        className="flex-1 lg:overflow-y-auto lg:overscroll-contain"
+      >
         {status === "loading" ? (
           <NavSkeleton />
         ) : (
