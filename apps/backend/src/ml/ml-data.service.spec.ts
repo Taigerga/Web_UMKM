@@ -76,11 +76,12 @@ describe("MlDataService", () => {
     ]);
   });
 
-  it("basketInput: baris order-item tanpa produk dilewati", async () => {
+  /** Label item basket = "Nama (SKU)" supaya insight terbaca manusia. */
+  it("basketInput: label item nama+sku; item tanpa produk dilewati", async () => {
     prismaMock.orderItems.findMany.mockResolvedValue([
-      { orderId: "o1", productId: "p1" },
-      { orderId: "o1", productId: null },
-      { orderId: "o2", productId: "p2" },
+      { orderId: "o1", productId: "p1", product: { name: "Kopi Nusantara", sku: "P1" } },
+      { orderId: "o1", productId: null, product: null },
+      { orderId: "o2", productId: "p2", product: { name: "", sku: "P2" } },
     ]);
 
     const result = await service.basketInput("s1");
@@ -89,8 +90,9 @@ describe("MlDataService", () => {
       expect.objectContaining({ where: { order: { storeId: "s1" } } }),
     );
     expect(result.transactions).toEqual([
-      { order_id: "o1", product: "p1" },
-      { order_id: "o2", product: "p2" },
+      { order_id: "o1", product: "Kopi Nusantara (P1)" },
+      // Nama kosong jatuh ke SKU - label tetap tidak pernah kosong.
+      { order_id: "o2", product: "P2 (P2)" },
     ]);
   });
 });

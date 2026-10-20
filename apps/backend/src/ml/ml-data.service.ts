@@ -143,16 +143,34 @@ export class MlDataService {
     return { customers: MlDataService.rfmRows(orders) };
   }
 
-  /** `POST /basket/run` - baris (orderId, productId) toko; item tanpa produk dilewati. */
+  /**
+   * `POST /basket/run` - baris (orderId, produk) toko.
+   *
+   * Item dikirim sebagai "Nama (SKU)", bukan id produk mentah: FP-Growth
+   * mengembalikan label pada aturan asosiasinya apa adanya, dan versi lama
+   * - UUID - tampil di batang grafik bundling sehingga pengguna tidak bisa
+   * membaca insight (laporan 20 Okt). SKU disertakan memisahkan dua produk
+   * yang kebetulan bernama sama.
+   */
   async basketInput(storeId: string): Promise<BasketInput> {
     const items = await this.prisma.orderItems.findMany({
       where: { order: { storeId } },
-      select: { orderId: true, productId: true },
+      select: {
+        orderId: true,
+        productId: true,
+        product: { select: { name: true, sku: true } },
+      },
     });
     return {
       transactions: items
-        .filter((i) => i.productId !== null)
-        .map((i) => ({ order_id: i.orderId, product: i.productId as string })),
+        .filter((i) => i.product)
+        .map((i) => {
+          const product = i.product as { name: string; sku: string };
+          return {
+            order_id: i.orderId,
+            product: `${product.name || product.sku} (${product.sku})`,
+          };
+        }),
     };
   }
 }
