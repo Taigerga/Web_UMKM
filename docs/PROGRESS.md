@@ -17,7 +17,7 @@ Terakhir diperbarui: 20 Oktober 2026.
 | Sub-plan 7b | `reportExports` + `GET /reports/:id/download` | Ditunda (lihat bawah) |
 | Tahap 12 | Dokumentasi & deployment final | Belum |
 | Reskin frontend + fix 401 (20 Okt) | Tahap 1-5 | Selesai dikerjakan (lihat bawah) |
-| Reskin frontend | Tahap 6: landing didesain ulang | Menunggu persetujuan wireframe |
+| Reskin frontend | Tahap 6: landing didesain ulang | Selesai dikerjakan (20 Okt) |
 
 ## Selesai dikerjakan
 - Phase 1: fondasi multi-tenant, auth, RBAC, StoreScopeGuard tenant isolation.
@@ -61,6 +61,7 @@ Latar: laporan pengguna — (1) console penuh 401 Unauthorized, (2) tombol "Kelu
 - **Kerapian panel** (audit visual per halaman via dev server + browser, login demo-toko): wadah Card ber-token (sebelumnya `rounded border` polos = `currentColor` di Tailwind v4 → garis hitam gemuk), input berlabel grid 2-3 kolom (Pola `invite-member-form`), unggah dataset jadi dropzone, KPI rupiah ringkas (`formatRupiah`: ≥1 jt → "Rp 1,2 jt", di bawahnya utuh), tabel detail produk/tren dilipat ke `<details>` di kartu grafiknya (kartu duplikat dihapus), empty state jujur di katalog/pesanan/tabel, pesan status ber-token positif/kritis, radio laporan `accent-accent`.
 - **Verifikasi**: lint 0 error; test 130/130; build pass; sweep 10 halaman dashboard via browser: TIDAK ada 401 dan tidak ada galat console (galat parse yang terekam bersifat sementara saat file sedang diedit, dev server kini melaporkan 0 error).
 - Commit: `263dfbc` (sessionRequest), `29a80b5` (sidebar sticky), `4b3b0c4` (palet + token chart), `2c7065d` (kerapian panel).
+- **Tahap 6 — landing di-desain ulang** (wireframe disetujui pengguna, lalu dikode): copy kedaluwarsa dibenahi (klaim "Direncanakan Fase 2/3-4", "belum ada dashboard/unggah/ML" diganti status jujur "Aktif di dasbor" — Fase 2-4 sudah selesai), grid Fitur ML ditustrukturkan (kartu peramalan membentang 2 kolom dengan mini-chart SVG berlabel data contoh + 4 kartu + kartu jujur "Cara membaca hasil model"), Cara kerja jadi langkah bernomor besar ber-hairline (bukan kartu), Manfaat jadi teks editorial tanpa kartu, bagian Privasi gelap kontrasnya dinaikkan (`text-white/75`) dengan 4 ikon SVG stroke yang digambar sendiri, grafik pratinjau memakai `var(--chart-primary)` (bukan balok hijau-hitam), dan CTA band penutup baru di atas footer ("Mulai dari buku kas Anda."). Momen animasi TUNGAAL halaman: baris buku kas hero masuk staggered (`.ledger-row-in` di globals.css, hormat `prefers-reduced-motion`); animasi ini butuh prop `rowClassName` baru di `Table` (pure-per-row). Lint/test/build hijau.
 
 ## Verifikasi yang sudah dijalankan (19-20 Okt 2026)
 | Perintah | Hasil |

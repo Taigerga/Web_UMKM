@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
 
 import { Benefits } from "@/components/landing/benefits";
+import { CtaBand } from "@/components/landing/cta-band";
 import { DashboardPreview } from "@/components/landing/dashboard-preview";
 import { Faq } from "@/components/landing/faq";
 import { Footer } from "@/components/landing/footer";
@@ -52,6 +53,7 @@ export default async function LandingPage() {
         <Benefits />
         <Privacy />
         <Faq />
+        <CtaBand />
       </main>
       <Footer />
     </>

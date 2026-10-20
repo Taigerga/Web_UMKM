@@ -31,6 +31,12 @@ export type TableProps<T> = {
   /** Lebar minimum tabel. Kosongkan kalau tabelmu muat di layar sempit. */
   minWidth?: string;
   emptyState?: React.ReactNode;
+  /**
+   * Kelas tambahan per baris (fungsi murni dari baris + indeks). Dipakai
+   * misalnya oleh landing untuk animasi stagger buku kas; default-nya tidak
+   * mengubah apa pun.
+   */
+  rowClassName?: (row: T, index: number) => string;
 };
 
 const alignClass = {
@@ -47,6 +53,7 @@ export function Table<T>({
   className,
   minWidth,
   emptyState,
+  rowClassName,
 }: TableProps<T>) {
   if (rows.length === 0 && emptyState) {
     return <>{emptyState}</>;
@@ -77,7 +84,13 @@ export function Table<T>({
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={rowKey(row, index)} className="border-b border-line last:border-b-0">
+            <tr
+              key={rowKey(row, index)}
+              className={cn(
+                "border-b border-line last:border-b-0",
+                rowClassName?.(row, index),
+              )}
+            >
               {columns.map((column) => (
                 <td
                   key={column.key}

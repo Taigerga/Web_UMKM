@@ -94,7 +94,7 @@ export function DashboardPreview() {
       tone="surface"
       eyebrow="Pratinjau"
       title="Satu layar untuk kas, produk, dan pola belanja"
-      description="Semua angka di bagian ini berasal dari dataset sintetis. Bentuk layouthnya akan berubah setelah integrasi analitik dan model pada Fase 3–4; yang ditampilkan sekarang adalah arah produk, bukan keluaran model yang sudah jadi."
+      description="Angka di bagian ini contoh dari dataset sintetis. Bentuk layar, tabel, dan grafiknya persis seperti yang Anda baca setelah masuk — di sana setiap angka digantikan data toko Anda sendiri."
     >
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <SampleFigure
@@ -110,9 +110,14 @@ export function DashboardPreview() {
                 {/* Wrapper ini yang memberi tinggi definite, sehingga persentase
                     pada batang terukur terhadap area grafik, bukan terhadap 0. */}
                 <div className="flex w-full flex-1 items-end">
+                  {/* Warna batang memakai token chart (zaitun) yang sama dengan
+                      grafik di dalam dasbor, bukan hijau-hitam solid. */}
                   <div
-                    className="w-full rounded-t bg-forest"
-                    style={{ height: `${(week.value / MAX_WEEKLY) * 100}%` }}
+                    className="w-full rounded-t"
+                    style={{
+                      height: `${(week.value / MAX_WEEKLY) * 100}%`,
+                      backgroundColor: "var(--chart-primary)",
+                    }}
                   />
                 </div>
                 <span className="text-center text-xs text-ink-muted">{week.label}</span>

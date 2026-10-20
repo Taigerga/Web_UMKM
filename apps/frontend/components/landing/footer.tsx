@@ -13,7 +13,7 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-1">
             <span className="font-display text-lg font-semibold tracking-tight">BisnisInsight</span>
-            <p className="max-w-xs text-sm leading-relaxed text-forest-line">
+            <p className="max-w-xs text-sm leading-relaxed text-white/70">
               Analisis penjualan untuk pemilik UMKM Indonesia.
             </p>
           </div>
@@ -52,8 +52,9 @@ export function Footer() {
             <p className="text-xs font-semibold tracking-[0.18em] text-accent-light uppercase">
               Status
             </p>
-            <p className="text-sm leading-relaxed text-forest-line">
-              Fase 1 — fondasi. Autentikasi dan dashboard aktif sedang dibangun.
+            <p className="text-sm leading-relaxed text-white/75">
+              Dasbor analitik aktif: unggah data penjualan, baca laporan, dan
+              jalankan lima model ML per toko.
             </p>
           </div>
         </div>

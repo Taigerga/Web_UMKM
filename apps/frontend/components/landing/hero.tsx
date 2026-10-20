@@ -65,7 +65,7 @@ export function Hero() {
           </Badge>
 
           <h1 className="font-display text-4xl leading-[1.08] font-semibold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-            Data penjualan Anda sudah tercatat. tinggal dibaca.
+            Data penjualan Anda sudah tercatat. Tinggal dibaca.
           </h1>
 
           <p className="max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">
@@ -84,9 +84,9 @@ export function Hero() {
           </div>
 
           <p className="text-sm text-ink-muted">
-            Pendaftaran dibuka bertahap pada Fase 1.{" "}
-            <a href="#faq" className="font-medium text-accent underline underline-offset-4">
-              Baca detailnya
+            Daftar gratis, unggah berkas pertama Anda hari ini.{" "}
+            <a href="#cara-kerja" className="font-medium text-accent underline underline-offset-4">
+              Baca alurnya
             </a>
             .
           </p>
@@ -124,6 +124,7 @@ function HeroLedger() {
           columns={LEDGER_COLUMNS}
           rows={LEDGER_ROWS}
           rowKey={(row) => `${row.date}-${row.item}`}
+          rowClassName={() => "ledger-row-in"}
           minWidth="min-w-[26rem]"
         />
 
