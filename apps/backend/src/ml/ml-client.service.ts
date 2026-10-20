@@ -4,6 +4,26 @@ import { ConfigService } from "@nestjs/config";
 
 type MlResult = any;
 
+/**
+ * Terjemahkan galat jaringan mentah menjadi pesan yang bisa ditindaklanjuti.
+ *
+ * undici melempar `TypeError: fetch failed` tanpa menyebut tujuan - pesan itu
+ * lama tampil di dasbor persis begitu, dan pengguna tidak bisa tahu bahwa
+ * yang mati adalah service Python (laporan 20 Okt, bug #3). Pesan human
+ * dari sini menggantikannya di `errorMessage` job; log masih menyimpan
+ * galat asli untuk pengembang.
+ */
+function humanizeMlError(e: unknown, baseUrl: string, attempt: number): Error {
+  const isNetwork = e instanceof TypeError && /fetch/i.test(e.message);
+  const detail = e instanceof Error ? e.message : String(e);
+  if (!isNetwork) return e instanceof Error ? e : new Error(detail);
+  return new Error(
+    `Layanan ML tidak merespons di ${baseUrl} (percobaan ke-${attempt}). ` +
+      "Minta pemilik server menyalakannya: " +
+      "python -m uvicorn app.main:app --app-dir services/ml --port 8000",
+  );
+}
+
 @Injectable()
 export class MlClientService {
   private readonly logger = new Logger(MlClientService.name);
@@ -44,7 +64,7 @@ export class MlClientService {
         return json;
       } catch (e) {
         clearTimeout(timer);
-        lastErr = e instanceof Error ? e : new Error(String(e));
+        lastErr = humanizeMlError(e, this.baseUrl(), attempt + 1);
         this.logger.warn(`ML call attempt ${attempt + 1} failed: ${lastErr.message}`);
       }
     }
