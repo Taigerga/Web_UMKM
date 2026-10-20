@@ -6,17 +6,38 @@ import { PrismaService } from "../database/prisma.service.js";
 export class MlJobService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Buat job baru - atau kembalikan job yang SAMA MASIH HIDUP (queued/running)
+   * untuk mencegah submit ganda.
+   *
+   * Versi lama membuat kunci otomatis `storeId:jobType:{}` dan dedupe-nya
+   * berlaku FOREVER: job forecast yang sudah completed/failed menahan kunci
+   * itu, sehingga klik "Jalankan Analisis" berikutnya tanpa membuat job baru
+   * - selamanya mengembalikan job lama. Job "fetch failed" milik pengguna
+   * 20 Okt tampak macet gagal persis karena ini, walau worker dan layanan ML
+   * sudah sehat. Sekarang: kunci otomatis hanya mencegah job kembar yang
+   * masih antre/berjalan; job selesai atau gagal tidak lagi menghalangi
+   * job baru (kunci disimpan NULL - MySQL mengizinkan banyak NULL di index
+   * unik). Kunci EKSPLISIT dari pemanggil tetap ikut semantik idempotensi
+   * klasik: kunci yang sama mengembalikan job yang sama apa pun statusnya.
+   */
   async createJob(storeId: string, jobType: string, inputParams: any = {}, idempotencyKey?: string) {
-    const key = idempotencyKey ?? `${storeId}:${jobType}:${JSON.stringify(inputParams ?? {})}`;
-    const existing = await this.prisma.mlJobs.findUnique({ where: { idempotencyKey: key } });
-    if (existing) return existing;
+    if (idempotencyKey) {
+      const existing = await this.prisma.mlJobs.findUnique({ where: { idempotencyKey } });
+      if (existing) return existing;
+    } else {
+      const active = await this.prisma.mlJobs.findFirst({
+        where: { storeId, jobType, status: { in: ["queued", "running"] } },
+      });
+      if (active) return active;
+    }
     return this.prisma.mlJobs.create({
       data: {
         storeId,
         jobType,
         status: "queued",
         inputParams: inputParams ?? {},
-        idempotencyKey: key,
+        idempotencyKey: idempotencyKey ?? null,
       },
     });
   }
