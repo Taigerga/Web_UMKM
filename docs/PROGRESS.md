@@ -1,6 +1,6 @@
 # Progress BisnisInsight
 
-Terakhir diperbarui: 19 Oktober 2026.
+Terakhir diperbarui: 20 Oktober 2026.
 
 ## Ringkasan status
 | Tahap | Nama | Status |
@@ -16,6 +16,8 @@ Terakhir diperbarui: 19 Oktober 2026.
 | Sub-plan 9 | E2E 15 langkah + skrip QA | Selesai (19 Okt) |
 | Sub-plan 7b | `reportExports` + `GET /reports/:id/download` | Ditunda (lihat bawah) |
 | Tahap 12 | Dokumentasi & deployment final | Belum |
+| Reskin frontend + fix 401 (20 Okt) | Tahap 1-5 | Selesai dikerjakan (lihat bawah) |
+| Reskin frontend | Tahap 6: landing didesain ulang | Menunggu persetujuan wireframe |
 
 ## Selesai dikerjakan
 - Phase 1: fondasi multi-tenant, auth, RBAC, StoreScopeGuard tenant isolation.
@@ -50,7 +52,17 @@ Rencana: `docs/superpowers/plans/2026-10-16-phase5-gap-closure.md`.
 - Skrip QA: `apps/backend/scripts/migrate-from-zero.ps1` (drop + create + `prisma migrate deploy -Seed` opsional; gagal-aman hanya untuk database test) dan `backup-restore.ps1` (mysqldump `--single-transaction`, restore drop/create/konfirmasi). Keduanya SUDAH dijalankan: from-zero → e2e 208/208 hijau; backup → restore → verifikasi 22 tabel + e2e auth 48/48 hijau.
 - `docs/development-guide.md` memuat cara pakai kedua skrip.
 
-## Verifikasi yang sudah dijalankan (19 Okt 2026)
+## Reskin frontend + fix 401 (20 Okt 2026)
+Latar: laporan pengguna — (1) console penuh 401 Unauthorized, (2) tombol "Keluar" menggantung di kiri-tengah karena sidebar "hanya setengah", (3) dashboard terasa sempit. Semua murni perbaikan frontend; backend tidak disentuh.
+
+- **Akar 401**: enam panel (`analytics-panel`, `analytics-job-panel`, `catalog-panel`, `data-panel`, `orders-panel`, `reports-panel`) melakukan `fetch()` langsung dengan `credentials: "include"` saja, padahal `JwtAuthGuard` backend hanya membaca header `Authorization: Bearer` (`apps/backend/src/auth/jwt.strategy.ts`) — cookie `bi_at` TIDAK dibaca guard. Semua request itu selalu 401 dan `parse()` diam-diam membuang `!ok`, jadi datanya kosong tanpa pesan. Fix: refactor penuh ke `sessionRequest`/`sessionFetch` (`lib/session-refresh.ts`) dengan helper per endpoint di `lib/dashboard-data.ts`; `api-client.ts` pecah jadi `sendRequest` + `ensureOk` dan kini menerima `FormData` (unggah dataset). Test baru `single-api-lane.test.ts` mengunci aturan "satu jalur keluar ke backend".
+- **Sidebar sticky**: `lg:h-full` tak berarti di anak shell `min-h-screen` (persentase jatuh ke `auto`, sidebar menyusut mengikuti isi). Diganti `lg:sticky lg:top-0 lg:h-dvh`; menu `flex-1` mendorong profil + "Keluar" ke kiri-bawah, menu panjang menggulir sendiri. Rail gelap `bg-forest` (hijau hutan), aktif `bg-forest-soft` + `text-accent-light`.
+- **Reskin token** (`app/globals.css`): palet hangat/hijau non-neon — `paper #f5f4ea`, `surface #fdfcf7`, keluarga `forest` (pengganti navy, nama token diganti ikut nilai), aksen zaitun `#3f6212` (teks ~5.2:1) + `accent-light` sage untuk permukaan gelap, `line-strong #6f7466` (≥3:1, WCAG 1.4.11). Neon `#22d3ee` dan semua gradient dekoratif dihapus. Chart memakai `var(--chart-*)` serupa desain (zaitun/teal/amber/abu). saturasi rendah, satu fitur pembeda, `prefers-reduced-motion` dihormati. Pass rename token sempat mojibake-kan em-dash (PowerShell membaca BOM-less sebagai ANSI) — dipulihkan.
+- **Kerapian panel** (audit visual per halaman via dev server + browser, login demo-toko): wadah Card ber-token (sebelumnya `rounded border` polos = `currentColor` di Tailwind v4 → garis hitam gemuk), input berlabel grid 2-3 kolom (Pola `invite-member-form`), unggah dataset jadi dropzone, KPI rupiah ringkas (`formatRupiah`: ≥1 jt → "Rp 1,2 jt", di bawahnya utuh), tabel detail produk/tren dilipat ke `<details>` di kartu grafiknya (kartu duplikat dihapus), empty state jujur di katalog/pesanan/tabel, pesan status ber-token positif/kritis, radio laporan `accent-accent`.
+- **Verifikasi**: lint 0 error; test 130/130; build pass; sweep 10 halaman dashboard via browser: TIDAK ada 401 dan tidak ada galat console (galat parse yang terekam bersifat sementara saat file sedang diedit, dev server kini melaporkan 0 error).
+- Commit: `263dfbc` (sessionRequest), `29a80b5` (sidebar sticky), `4b3b0c4` (palet + token chart), `2c7065d` (kerapian panel).
+
+## Verifikasi yang sudah dijalankan (19-20 Okt 2026)
 | Perintah | Hasil |
 |---|---|
 | `apps/backend` `npm run build` | Pass |
@@ -58,7 +70,7 @@ Rencana: `docs/superpowers/plans/2026-10-16-phase5-gap-closure.md`.
 | `apps/backend` `npm run test:e2e` | Pass — 208/208 (15 file, termasuk full-flow; ML service hidup) |
 | `apps/backend` `npm run lint` | Pass |
 | `apps/frontend` `npm run build` | Pass |
-| `apps/frontend` `npm test` | Pass — 128/128 (16 file) |
+| `apps/frontend` `npm test` | Pass — 130/130 (17 file, termasuk `single-api-lane`) |
 | `apps/frontend` `npm run lint` | Pass — 0 error |
 | `services/ml` `python -m pytest -q` | Pass — 12/12 |
 | `migrate-from-zero.ps1` → e2e penuh | Pass — database test dibangun dari nol |
