@@ -157,7 +157,7 @@ export function ReportsPanel() {
                     value={type.value}
                     checked={reportType === type.value}
                     onChange={(e) => changeReportType(e.target.value as ReportType)}
-                    className="w-4 h-4"
+                    className="h-4 w-4 accent-accent"
                   />
                   <span>{type.label}</span>
                 </label>

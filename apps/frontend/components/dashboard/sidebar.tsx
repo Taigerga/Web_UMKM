@@ -67,16 +67,16 @@ export function Sidebar() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 border-b border-line bg-surface px-5 py-4 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0 lg:px-4 lg:py-6">
+    <div className="flex w-full flex-col gap-6 border-b border-forest-line bg-forest px-5 py-4 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:border-r lg:border-b-0 lg:px-4 lg:py-6">
       <div className="flex items-center justify-between gap-3 lg:block">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-md bg-forest text-sm font-bold text-accent-light"
+            className="flex size-9 items-center justify-center rounded-md bg-accent-light text-sm font-bold text-forest"
           >
             BI
           </span>
-          <span className="font-display text-lg font-semibold tracking-tight text-ink">
+          <span className="font-display text-lg font-semibold tracking-tight text-white">
             BisnisInsight
           </span>
         </Link>
@@ -107,7 +107,7 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="hidden items-center justify-between gap-3 border-t border-line pt-4 lg:flex">
+      <div className="hidden items-center justify-between gap-3 border-t border-forest-line pt-4 lg:flex">
         <UserBadge name={profile?.name} roleLabel={ROLE_LABELS[role ?? ""]} />
         <Button
           variant="outline"
@@ -137,11 +137,11 @@ export function Sidebar() {
 function UserBadge({ name, roleLabel }: { name?: string; roleLabel?: string }) {
   return (
     <div className="flex min-w-0 flex-col">
-      <span className="truncate text-sm font-medium text-ink">
+      <span className="truncate text-sm font-medium text-white">
         {name ?? "Memuat..."}
       </span>
       {roleLabel ? (
-        <span className="text-xs text-ink-muted">{roleLabel}</span>
+        <span className="truncate text-xs text-forest-line">{roleLabel}</span>
       ) : null}
     </div>
   );
@@ -160,7 +160,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
     return (
       <span
         title={item.unavailableReason}
-        className="flex cursor-not-allowed items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-ink-faint"
+        className="flex cursor-not-allowed items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-forest-line"
       >
         <span>{item.label}</span>
         <Badge variant="neutral" size="sm">
@@ -180,8 +180,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       aria-current={isActive ? "page" : undefined}
       className={
         isActive
-          ? "flex items-center justify-between gap-2 rounded-lg bg-neutral-wash px-3 py-2 text-sm font-medium text-forest"
-          : "flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-neutral-wash hover:text-ink"
+          ? "flex items-center justify-between gap-2 rounded-lg bg-forest-soft px-3 py-2 text-sm font-medium text-accent-light"
+          : "flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-forest-line transition-colors hover:bg-forest-soft hover:text-white"
       }
     >
       <span className="truncate">{item.label}</span>
@@ -195,9 +195,9 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 function NavSkeleton() {
   return (
     <div className="flex flex-col gap-2 lg:gap-1" aria-hidden="true">
-      <Skeleton className="h-9 w-full rounded-lg" />
-      <Skeleton className="h-9 w-full rounded-lg" />
-      <Skeleton className="h-9 w-2/3 rounded-lg" />
+      <Skeleton className="h-9 w-full rounded-lg opacity-40" />
+      <Skeleton className="h-9 w-full rounded-lg opacity-40" />
+      <Skeleton className="h-9 w-2/3 rounded-lg opacity-40" />
     </div>
   );
 }

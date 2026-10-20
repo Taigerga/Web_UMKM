@@ -1,7 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Button, Input } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+  Input,
+} from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
 import {
   createStoreProduct,
@@ -77,39 +86,99 @@ export function CatalogPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded border p-4">
-        <select
-          value={storeId ?? ""}
-          onChange={(e) => setStoreId(e.target.value)}
-          className="rounded border bg-background px-3 py-2 text-sm"
-        >
-          {stores.map((store) => (
-            <option key={store.id} value={store.id}>
-              {store.name}
-            </option>
-          ))}
-        </select>
-        {canManage ? (
-          <form onSubmit={createProduct} className="flex flex-col gap-3">
-            <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="SKU" />
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama produk" />
-            <Button type="submit">Tambah produk</Button>
-          </form>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Form tambah produk hanya tersedia untuk pemilik toko.
-          </p>
-        )}
-        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-      </div>
-      <ul className="flex flex-col gap-2">
-        {products.map((product) => (
-          <li key={product.id} className="rounded border p-3 text-sm">
-            {product.sku} · {product.name}
-          </li>
-        ))}
-      </ul>
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Katalog Produk</CardTitle>
+          <CardDescription>
+            SKU di sini dipakai saat menginput penjualan harian dan membaca
+            dataset.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+            Toko
+            <select
+              value={storeId ?? ""}
+              onChange={(e) => setStoreId(e.target.value)}
+              className="h-10 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink focus-visible:border-accent"
+            >
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {canManage ? (
+            <form onSubmit={createProduct} className="grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
+              <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+                SKU
+                <Input
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="mis. P01"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+                Nama produk
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="mis. Kopi bubuk 250 g"
+                />
+              </label>
+              <div className="flex items-end">
+                <Button type="submit">Tambah produk</Button>
+              </div>
+            </form>
+          ) : (
+            <p className="rounded-lg bg-neutral-wash px-3 py-2 text-xs text-ink-muted">
+              Form tambah produk hanya tersedia untuk pemilik toko.
+            </p>
+          )}
+          {message ? (
+            <p
+              role="status"
+              className={
+                message.includes("berhasil") || message.includes("ditambah")
+                  ? "rounded-lg bg-positive-wash px-3 py-2 text-sm text-positive"
+                  : "rounded-lg bg-critical-wash px-3 py-2 text-sm text-critical"
+              }
+            >
+              {message}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Daftar Produk</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {products.length === 0 ? (
+            <EmptyState
+              title="Belum ada produk"
+              description="Tambahkan produk pertama di atas, atau sinkronkan katalog dari dataset yang di-commit."
+            />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {products.map((product) => (
+                <li
+                  key={product.id}
+                  className="flex items-center gap-3 rounded-lg border border-line bg-paper px-3 py-2.5 text-sm"
+                >
+                  <span className="rounded-md bg-neutral-wash px-2 py-0.5 font-mono text-xs text-ink-muted">
+                    {product.sku}
+                  </span>
+                  <span className="text-ink">{product.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

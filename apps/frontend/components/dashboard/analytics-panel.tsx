@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
 import {
   getSalesSummary,
@@ -18,6 +24,22 @@ import type {
 import { resolveActiveStore } from "@/lib/dashboard-nav";
 import { SalesTrendChart } from "./charts/sales-trend-chart";
 import { TopProductsChart } from "./charts/top-products-chart";
+
+/**
+ * Rupiah yang dibaca manusia: nilai >= 1 juta tampil ringkas ("Rp 1,2 jt"),
+ * nilai di bawahnya utuh ("Rp 850.000"). Format ganda ini menjaga KPI tetap
+ * pendek saat nilainya besar tanpa menampilkan "Rp 0,0 jt" yang aneh ketika
+ * belum ada penjualan.
+ */
+function formatRupiah(value: number): string {
+  if (!Number.isFinite(value)) return "Rp 0";
+  if (Math.abs(value) >= 1_000_000) {
+    return `Rp ${(value / 1_000_000).toLocaleString("id-ID", {
+      maximumFractionDigits: 1,
+    })} jt`;
+  }
+  return `Rp ${value.toLocaleString("id-ID", { maximumFractionDigits: 0 })}`;
+}
 
 export function AnalyticsPanel() {
   const session = useSession();
@@ -154,7 +176,7 @@ export function AnalyticsPanel() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              Rp {summary ? (summary.totalSales / 1_000_000).toFixed(1) : "0"}jt
+              {summary ? formatRupiah(summary.totalSales) : "Rp 0"}
             </div>
           </CardContent>
         </Card>
@@ -178,7 +200,7 @@ export function AnalyticsPanel() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              Rp {summary ? (summary.avgOrderValue / 1_000_000).toFixed(1) : "0"}jt
+              {summary ? formatRupiah(summary.avgOrderValue) : "Rp 0"}
             </div>
           </CardContent>
         </Card>
@@ -195,74 +217,70 @@ export function AnalyticsPanel() {
         </Card>
       </div>
 
-      {/* Grafik produk terlaris (tabel di bawah tetap ada untuk detail) */}
+      {/* Produk terlaris: grafik sebagai tampilan utama, tabel detail
+          dilipat ke <details> supaya kartu duplikat tidak menumpuk. */}
       <Card>
         <CardHeader>
-          <CardTitle>Produk Terlaris - Jumlah Item Terjual</CardTitle>
+          <CardTitle>Produk Terlaris — Jumlah Item Terjual</CardTitle>
         </CardHeader>
         <CardContent>
           <TopProductsChart
             data={topProducts.map((p) => ({ name: p.sku, totalQty: p.totalQty, totalRevenue: p.totalRevenue }))}
           />
-        </CardContent>
-      </Card>
-
-      {/* Top Products */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Produk Terlaris</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+          {topProducts.length > 0 ? (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-xs font-medium text-accent">
+                Lihat tabel detail produk
+              </summary>
+              <div className="overflow-x-auto mt-3">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2">SKU</th>
-                  <th className="text-left py-2 px-2">Nama</th>
+                <tr className="border-b border-line text-left text-xs font-medium uppercase tracking-wide text-ink-muted">
+                  <th className="py-2 px-2">SKU</th>
+                  <th className="py-2 px-2">Nama</th>
                   <th className="text-right py-2 px-2">Qty</th>
-                  <th className="text-right py-2 px-2">Revenue</th>
+                  <th className="text-right py-2 px-2">Pendapatan</th>
                   <th className="text-right py-2 px-2">Order</th>
                 </tr>
               </thead>
               <tbody>
                 {topProducts.map((p) => (
-                  <tr key={p.productId} className="border-b hover:bg-neutral-wash">
+                  <tr key={p.productId} className="border-b border-line hover:bg-neutral-wash">
                     <td className="py-2 px-2">{p.sku}</td>
                     <td className="py-2 px-2">{p.name}</td>
                     <td className="text-right py-2 px-2">{p.totalQty}</td>
                     <td className="text-right py-2 px-2">
-                      Rp {(p.totalRevenue / 1_000_000).toFixed(1)}jt
+                      {formatRupiah(p.totalRevenue)}
                     </td>
                     <td className="text-right py-2 px-2">{p.orderCount}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+              </div>
+            </details>
+          ) : null}
         </CardContent>
       </Card>
 
-      {/* Grafik tren (tabel di bawah tetap ada untuk nilai per tanggal) */}
+      {/* Tren penjualan: grafik sebagai tampilan utama, tabel nilai harian
+          dilipat di bawahnya. */}
       <Card>
         <CardHeader>
           <CardTitle>Tren Penjualan Harian</CardTitle>
         </CardHeader>
         <CardContent>
           <SalesTrendChart data={trend.map((t) => ({ date: t.date, sales: t.sales }))} />
-        </CardContent>
-      </Card>
-
-      {/* Trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tren Penjualan</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+          {trend.length > 0 ? (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-xs font-medium text-accent">
+                Lihat tabel nilai harian
+              </summary>
+              <div className="overflow-x-auto mt-3">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2">Tanggal</th>
+                <tr className="border-b border-line text-left text-xs font-medium uppercase tracking-wide text-ink-muted">
+                  <th className="py-2 px-2">Tanggal</th>
                   <th className="text-right py-2 px-2">Penjualan</th>
                   <th className="text-right py-2 px-2">Pesanan</th>
                   <th className="text-right py-2 px-2">Item</th>
@@ -270,10 +288,10 @@ export function AnalyticsPanel() {
               </thead>
               <tbody>
                 {trend.slice(-10).map((t) => (
-                  <tr key={t.date} className="border-b hover:bg-neutral-wash">
+                  <tr key={t.date} className="border-b border-line hover:bg-neutral-wash">
                     <td className="py-2 px-2">{t.date}</td>
                     <td className="text-right py-2 px-2">
-                      Rp {(t.sales / 1_000_000).toFixed(1)}jt
+                      {formatRupiah(t.sales)}
                     </td>
                     <td className="text-right py-2 px-2">{t.orderCount}</td>
                     <td className="text-right py-2 px-2">{t.itemCount}</td>
@@ -281,7 +299,9 @@ export function AnalyticsPanel() {
                 ))}
               </tbody>
             </table>
-          </div>
+              </div>
+            </details>
+          ) : null}
         </CardContent>
       </Card>
     </div>

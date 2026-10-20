@@ -1,7 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Button, Input } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+  Input,
+} from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
 import {
   createManualOrder,
@@ -82,28 +91,123 @@ export function OrdersPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="rounded border p-4">
-        <select value={storeId ?? ""} onChange={(e) => setStoreId(e.target.value)} className="mb-3 rounded border bg-background px-3 py-2 text-sm">
-          {stores.map((store) => <option key={store.id} value={store.id}>{store.name}</option>)}
-        </select>
-        <form onSubmit={submit} className="flex flex-col gap-3">
-          <Input value={customerCode} onChange={(e) => setCustomerCode(e.target.value)} placeholder="Kode pelanggan" />
-          <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama pelanggan" />
-          <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="SKU produk" />
-          <Input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qty" />
-          <Input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Harga" />
-          <Button type="submit">Buat order manual</Button>
-        </form>
-        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-      </div>
-      <ul className="flex flex-col gap-2">
-        {orders.map((order) => (
-          <li key={order.id} className="rounded border p-3 text-sm">
-            {order.id} · {order.items?.length ?? 0} item
-          </li>
-        ))}
-      </ul>
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Input Penjualan Harian</CardTitle>
+          <CardDescription>
+            Catat penjualan hari ini agar ringkasan dan analitik langsung ikut
+            memperhitungkannya.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+            Toko
+            <select
+              value={storeId ?? ""}
+              onChange={(e) => setStoreId(e.target.value)}
+              className="h-10 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink focus-visible:border-accent"
+            >
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <form onSubmit={submit} className="grid gap-3 sm:grid-cols-3">
+            <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+              Kode pelanggan
+              <Input
+                value={customerCode}
+                onChange={(e) => setCustomerCode(e.target.value)}
+                placeholder="mis. C01"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+              Nama pelanggan
+              <Input
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="mis. Ridho"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+              SKU produk
+              <Input
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder="mis. P1"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+              Jumlah
+              <Input
+                type="number"
+                min="1"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+              Harga satuan
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="mis. 3000"
+              />
+            </label>
+            <div className="flex items-end">
+              <Button type="submit">Buat order manual</Button>
+            </div>
+          </form>
+          {message ? (
+            <p
+              role="status"
+              className={
+                message.includes("dibuat")
+                  ? "rounded-lg bg-positive-wash px-3 py-2 text-sm text-positive"
+                  : "rounded-lg bg-critical-wash px-3 py-2 text-sm text-critical"
+              }
+            >
+              {message}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Order Terbaru</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {orders.length === 0 ? (
+            <EmptyState
+              title="Belum ada order"
+              description="Order manual yang Anda buat akan muncul di sini, lengkap dengan jumlah itemnya."
+            />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {orders.map((order) => (
+                <li
+                  key={order.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper px-3 py-2.5 text-sm"
+                >
+                  <span className="font-mono text-xs text-ink-muted">
+                    #{order.id.slice(0, 8)}
+                  </span>
+                  <span className="text-ink">
+                    {order.items?.length ?? 0} item
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

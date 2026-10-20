@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui";
 import { useSession } from "@/components/dashboard/session-provider";
 import {
   commitDataset,
@@ -102,14 +110,18 @@ export function DataPanel() {
     <Card>
       <CardHeader>
         <CardTitle>Unggah Data Toko</CardTitle>
+        <CardDescription>
+          Unggah berkas penjualan (CSV/XLSX), validasi isinya, lalu commit agar
+          seluruh fitur analitik membaca data ini.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <label className="flex flex-col gap-2 text-sm">
-          <span>Toko</span>
+        <label className="flex flex-col gap-1.5 text-sm text-ink-muted">
+          Toko
           <select
             value={storeId ?? ""}
             onChange={(event) => setStoreId(event.target.value)}
-            className="rounded border bg-background px-3 py-2"
+            className="h-10 max-w-xs rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink focus-visible:border-accent"
           >
             {stores.map((store) => (
               <option key={store.id} value={store.id}>
@@ -120,27 +132,49 @@ export function DataPanel() {
         </label>
 
         {canManage ? (
-          <input
-            type="file"
-            accept=".csv,.xlsx"
-            disabled={busy}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void upload(file);
-            }}
-          />
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-accent bg-accent-wash px-4 py-6 text-sm font-medium text-accent transition-colors hover:bg-accent hover:text-white">
+            <input
+              type="file"
+              accept=".csv,.xlsx"
+              disabled={busy}
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void upload(file);
+              }}
+            />
+            {busy ? "Mengunggah..." : "Pilih berkas CSV atau XLSX untuk diunggah"}
+          </label>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="rounded-lg bg-neutral-wash px-3 py-2 text-xs text-ink-muted">
             Unggah, validasi, commit, dan rollback dataset adalah wewenang pemilik toko.
           </p>
         )}
 
-        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+        {message ? (
+          <p
+            role="status"
+            className={
+              message.includes("gagal")
+                ? "rounded-lg bg-critical-wash px-3 py-2 text-sm text-critical"
+                : "rounded-lg bg-positive-wash px-3 py-2 text-sm text-positive"
+            }
+          >
+            {message}
+          </p>
+        ) : null}
 
         {canManage && dataset ? (
-          <div className="flex flex-col gap-3 rounded border p-3 text-sm">
-            <p>{dataset.fileName} ({dataset.rowCount} baris)</p>
-            <p>Status: {dataset.status}</p>
+          <div className="flex flex-col gap-3 rounded-lg border border-line bg-neutral-wash p-4 text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="font-medium text-ink">{dataset.fileName}</p>
+              <Badge variant="accent" size="sm">
+                {dataset.status}
+              </Badge>
+            </div>
+            <p className="text-ink-muted">
+              {dataset.rowCount.toLocaleString("id-ID")} baris data
+            </p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled={busy} onClick={() => void validate()}>
                 Validasi
@@ -148,7 +182,7 @@ export function DataPanel() {
               <Button size="sm" variant="outline" disabled={busy} onClick={() => void commit()}>
                 Commit
               </Button>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => void rollback()}>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => void rollback()}>
                 Rollback
               </Button>
             </div>
