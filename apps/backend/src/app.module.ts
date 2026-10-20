@@ -25,7 +25,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
 import { StoreScopeGuard } from './stores/guards/store-scope.guard.js';
 
 /**
- * Rate limit global default: 300 request / menit per IP.
+ * Rate limit global default: 600 request / menit per IP.
  *
  * Endpoint auth TIDAK pakai nilai ini. `AuthController` memberi nama
  * throttler sendiri (`auth`) dengan batas jauh lebih ketat, dan karena
@@ -33,9 +33,16 @@ import { StoreScopeGuard } from './stores/guards/store-scope.guard.js';
  * request, kedua batas sama-sama berlaku pada endpoint auth. Polanya
  * "ketat + longgar" itu disengaja: batas ketat menahan percobaan brute force,
  * batas default menjaga agar satu klien tidak bisa menguras kuota global.
+ *
+ * Kenapa 600, bukan 300: satu tab dashboard yang wajar melepaskan beberapa
+ * request per halaman (sesi, daftar toko, panel), efek dev StrictMode
+ * menjalankan mount dua kali, dan satu ML job di-poll tiap 2 detik selama
+ * berjalan. Pengguna satu orang yang berpindah halaman dengan cepat
+ * sempat menumpuk di atas 300 dan dilindungi oleh 429 - itu false positive,
+ * bukan penyalahgunaan. Kuota auth yang ketat tidak diubah.
  */
 export const DEFAULT_THROTTLE_OPTIONS = [
-  { name: 'default', ttl: 60_000, limit: 300 },
+  { name: 'default', ttl: 60_000, limit: 600 },
 ];
 
 /** Batas ketat untuk seluruh endpoint auth. */

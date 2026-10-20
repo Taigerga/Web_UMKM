@@ -21,6 +21,8 @@
  *    Kalau request kedua juga 401, error itu dilempar apa adanya - bukan
  *    diputar lagi. Refresh yang tidak berhasil berarti sesi memang sudah
  *    tidak berlaku, dan memutarinya hanya menambah beban pada backend.
+ *    Aturan setengahnya: 429 pada GET boleh ditunggu dan diputar SATU KALI
+ *    (lihat `isThrottledRead`) - mutasi tidak pernah diputar otomatis.
  * 3. **Refresh yang gagal tidak selalu berarti logout.** Hanya kode galat
  *    yang berarti "sesi benar-benar tidak ada lagi"
  *    (`SESSION_INVALID`, `REFRESH_TOKEN_MISSING`, `ACCOUNT_DISABLED`) yang
@@ -165,6 +167,36 @@ function isUnauthorized(caught: unknown): boolean {
 }
 
 /**
+ * 429 THROTTLED pada request baca. Retry-otomatis HANYA untuk GET: mencoba
+ * ulang mutasi (POST/PUT/DELETE) berisiko dobel - order ganda, commit ganda.
+ *
+ * Ini menutup sisa pengalaman "Terlalu banyak permintaan" yang masih muncul
+ * sesekali: throttle per menciptakan burst (tab sebelumnya + navigasi cepat),
+ * dan jawaban 429 membawa `Retry-After`. Menunggu sesuai header lalu memutar
+ * request baca sekali membuat pengguna tidak melihat galat untuk gangguan
+ * yang sebenarnya sudah lewat sebelum tombol "coba lagi" sempat ditekan.
+ * SATU percobaan saja, seperti aturan 401: kalau masih 429 berarti kuota
+ * benar-benar habis, dan memutar terus justru memperjar kuota habis.
+ */
+function isThrottledRead(caught: unknown, options: ApiRequestOptions): boolean {
+  const method = (options.method ?? "GET").toUpperCase();
+  return (
+    caught instanceof ApiError &&
+    caught.status === 429 &&
+    method === "GET"
+  );
+}
+
+/** Tunggu sesuai `Retry-After`, dibatasi agar UI tidak membeku berjam-jam. */
+async function waitBeforeThrottledRetry(caught: unknown): Promise<void> {
+  const seconds =
+    caught instanceof ApiError && caught.retryAfterSeconds !== null
+      ? Math.min(Math.max(caught.retryAfterSeconds, 1), 10)
+      : 1;
+  await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
+/**
  * Request API yang memakai sesi, dengan penyambungan auto-refresh.
  *
  * Ini satu-satunya jalan keluar dari Client Component dashboard ke backend.
@@ -195,6 +227,13 @@ export async function sessionRequest<T>(
       accessToken: options.accessToken ?? readAccessToken(),
     });
   } catch (caught) {
+    if (isThrottledRead(caught, options)) {
+      await waitBeforeThrottledRetry(caught);
+      return await apiRequest<T>(path, {
+        ...options,
+        accessToken: readAccessToken(),
+      });
+    }
     if (!isUnauthorized(caught)) throw caught;
 
     const refreshed = await refreshSession();
@@ -234,6 +273,12 @@ export async function sessionFetch(
       }),
     );
   } catch (caught) {
+    if (isThrottledRead(caught, options)) {
+      await waitBeforeThrottledRetry(caught);
+      return ensureOk(
+        await sendRequest(path, { ...options, accessToken: readAccessToken() }),
+      );
+    }
     if (!isUnauthorized(caught)) throw caught;
 
     const refreshed = await refreshSession();
