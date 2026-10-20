@@ -148,8 +148,57 @@ export const MAX_PAGE_SIZE = 100;
  * parameter apa pun yang dikirim klien, jadi tidak ada `storeId` yang bisa
  * dicoba untuk menyasar toko orang lain.
  */
+/**
+ * Cache singkat untuk hasil `GET /stores`.
+ *
+ * Setiap halaman dashboard memanggil `listAccessibleStores` untuk memilih
+ * toko aktifnya, dan di dev React StrictMode menjalankan efek mount dua
+ * kali - tanpa cache ini, membuka beberapa halaman dengan cepat berarti
+ * mengulang request yang data jawabannya sama persis. Bergabung dengan
+ * throttler backend (300 request/menit per IP, lihat `app.module.ts`),
+ * pengulangan itu yang dulu tampak sebagai 429 Too Many Requests di console.
+ *
+ * Dua penyelamat yang saling melengkapi:
+ * - **Single flight**: permintaan yang masih berjalan dibagi ke semua
+ *   pemanggil - effect ganda StrictMode dan dua panel yang mount bersamaan
+ *   menerima SATU request.
+ * - **TTL 15 detik**: halaman yang dibuka ulang dalam sepersekian detik
+ *   memakai jawaban yang sudah ada. Daftar toko yang bisa diakses praktis
+ *   tidak berubah dalam 15 detik; di luar itu, keputusan toko aktif justru
+ *   harus berbasis data yang murah diperbarui.
+ *
+ * Mutasi yang mengubah isi daftar (`createStore`, `acceptInvitation`)
+ * memanggil `invalidateAccessibleStores` supaya pembacaan berikutnya
+ * benar-benar kembali ke backend.
+ */
+const STORES_CACHE_TTL_MS = 15_000;
+
+let storesCache: { at: number; value: StoreSummary[] } | null = null;
+let storesInFlight: Promise<StoreSummary[]> | null = null;
+
+export function invalidateAccessibleStores(): void {
+  storesCache = null;
+  storesInFlight = null;
+}
+
 export function listAccessibleStores(): Promise<StoreSummary[]> {
-  return sessionRequest<StoreSummary[]>("/stores");
+  if (storesCache && Date.now() - storesCache.at < STORES_CACHE_TTL_MS) {
+    return Promise.resolve(storesCache.value);
+  }
+
+  // `??=` menjamin semua pemanggil yang bertumpuk berbagi promise yang
+  // sama. `.finally` mengosongkannya dijalankan, sukses maupun gagal -
+  // kalau gagal, pemanggil berikutnya berhak mencoba lagi ke backend.
+  storesInFlight ??= sessionRequest<StoreSummary[]>("/stores")
+    .then((value) => {
+      storesCache = { at: Date.now(), value };
+      return value;
+    })
+    .finally(() => {
+      storesInFlight = null;
+    });
+
+  return storesInFlight;
 }
 
 /**
@@ -169,7 +218,14 @@ export function createStore(input: {
       ? { name: input.name }
       : { name: input.name, city: input.city };
 
-  return sessionRequest<CreatedStore>("/stores", { method: "POST", body });
+  return sessionRequest<CreatedStore>("/stores", { method: "POST", body }).then(
+    (created) => {
+      // Toko baru langsung masuk daftar aksesible user ini - cache daftar
+      // toko yang masih menyimpan snapshot lama harus dibuang.
+      invalidateAccessibleStores();
+      return created;
+    },
+  );
 }
 
 /**
@@ -233,7 +289,12 @@ export function acceptInvitation(token: string): Promise<AcceptedInvitation> {
   return sessionRequest<AcceptedInvitation>(
     `/invitations/${encodeURIComponent(token)}/accept`,
     { method: "POST" },
-  );
+  ).then((accepted) => {
+    // Menerima undangan menambah keanggotaan - daftar toko aksesible user
+    // ini berubah, jadi snapshot cache-nya sudah tidak sah.
+    invalidateAccessibleStores();
+    return accepted;
+  });
 }
 
 /** `GET /admin/users` - khusus ADMIN. */

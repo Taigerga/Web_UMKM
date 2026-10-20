@@ -69,8 +69,9 @@ export function AnalyticsJobPanel() {
   const [submitting, setSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
+  const profileId = session.profile?.id;
   React.useEffect(() => {
-    if (session.status !== "ready" || !session.profile) return;
+    if (session.status !== "ready" || !profileId) return;
     void listAccessibleStores()
       .then((items) => {
         setStores(items);
@@ -78,7 +79,7 @@ export function AnalyticsJobPanel() {
         setStoreId(active?.id ?? null);
       })
       .catch(() => setMessage("Gagal memuat toko"));
-  }, [session.status, session.profile]);
+  }, [session.status, profileId]);
 
   async function submit() {
     if (!storeId) return;

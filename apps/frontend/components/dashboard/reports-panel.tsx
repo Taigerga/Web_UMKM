@@ -33,15 +33,16 @@ export function ReportsPanel() {
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
+  const profileId = session.profile?.id;
   React.useEffect(() => {
-    if (session.status !== "ready" || !session.profile) return;
+    if (session.status !== "ready" || !profileId) return;
     void listAccessibleStores()
       .then((items) => {
         setStores(items);
         if (items.length > 0) setStoreId(items[0].id);
       })
       .catch(() => setMessage("Gagal memuat toko"));
-  }, [session.status, session.profile]);
+  }, [session.status, profileId]);
 
   React.useEffect(() => {
     if (!storeId) return;

@@ -34,8 +34,11 @@ export function DataPanel() {
   // tidak menawarkan aksi yang pasti dijawab 403 - backend tetap penegak.
   const canManage = canManageStore(stores, storeId);
 
+  // Deps: id profil (stabil), bukan objek `session.profile` - identitas
+  // objek bisa berubah tanpa datanya berubah, dan itu memicu refetch /stores.
+  const profileId = session.profile?.id;
   React.useEffect(() => {
-    if (session.status !== "ready" || !session.profile) return;
+    if (session.status !== "ready" || !profileId) return;
     void listAccessibleStores()
       .then((items) => {
         setStores(items);
@@ -44,7 +47,7 @@ export function DataPanel() {
       .catch((error) => {
         setMessage(error instanceof Error ? error.message : "Gagal memuat toko");
       });
-  }, [session.status, session.profile]);
+  }, [session.status, profileId]);
 
   // Semua request - termasuk unggah multipart - lewat sessionRequest
   // (lib/dashboard-data.ts). FormData dikirim apa adanya oleh `sendRequest`,
