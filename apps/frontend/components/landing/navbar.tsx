@@ -17,7 +17,7 @@ export function Navbar() {
         <Link href="/" className="flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="flex size-8 items-center justify-center rounded-md bg-navy text-sm font-bold text-accent"
+            className="flex size-8 items-center justify-center rounded-md bg-forest text-sm font-bold text-accent-light"
           >
             BI
           </span>

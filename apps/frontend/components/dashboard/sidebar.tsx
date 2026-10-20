@@ -72,7 +72,7 @@ export function Sidebar() {
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-md bg-navy text-sm font-bold text-accent"
+            className="flex size-9 items-center justify-center rounded-md bg-forest text-sm font-bold text-accent-light"
           >
             BI
           </span>
@@ -180,7 +180,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       aria-current={isActive ? "page" : undefined}
       className={
         isActive
-          ? "flex items-center justify-between gap-2 rounded-lg bg-neutral-wash px-3 py-2 text-sm font-medium text-navy"
+          ? "flex items-center justify-between gap-2 rounded-lg bg-neutral-wash px-3 py-2 text-sm font-medium text-forest"
           : "flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-neutral-wash hover:text-ink"
       }
     >

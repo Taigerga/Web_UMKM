@@ -111,7 +111,7 @@ export function DashboardPreview() {
                     pada batang terukur terhadap area grafik, bukan terhadap 0. */}
                 <div className="flex w-full flex-1 items-end">
                   <div
-                    className="w-full rounded-t bg-navy"
+                    className="w-full rounded-t bg-forest"
                     style={{ height: `${(week.value / MAX_WEEKLY) * 100}%` }}
                   />
                 </div>
@@ -176,7 +176,7 @@ function KpiTile({
           "flex size-9 shrink-0 items-center justify-center rounded-lg",
           direction === "warn"
             ? "bg-caution-wash text-caution"
-            : "bg-accent-wash text-accent-deep",
+            : "bg-accent-wash text-accent",
         )}
       >
         <Icon className="size-4" />

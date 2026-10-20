@@ -4,55 +4,84 @@
  * BisnisInsight — design tokens.
  *
  * Seluruh warna terkumpul di sini. Komponen di `components/ui/` hanya
- * mengacu ke token lewat utility class Tailwind (`bg-navy`, `text-accent-deep`),
- * tidak pernah menulis hex langsung.
+ * mengacu ke token lewat utility class Tailwind (`bg-forest`, `text-accent`),
+ * tidak pernah menulis hex langsung — serangkaian test (single-api-lane dst.)
+ * dan review manual menjaga itu; hex baru boleh muncul hanya di sini.
  *
- * Dark mode TIDAK ada di Fase 1. Blok `prefers-color-scheme: dark` dari
- * template create-next-app sengaja dihapus: pembalikan otomatis menghasilkan
- * kontras yang tidak terkontrol pada komponen baru.
+ * ## Reskin 2026: dari navy-neon ke hangat/hijau
+ *
+ * Palet lama (navy sisi + aksen cyan neon `#22d3ee`) terasa "AI-slop" di mata
+ * pemilik project: warna neon membakar aksen di setiap permukaan, dan navy
+ * industrial bukan bahasa kemitraan UMKM lokal. Palet baru sengaja menenang:
+ *
+ * - kertas hangat dengan under-tone hijau (`paper`), bukan cream oker
+ * - `forest` sebagai keluarga gelap (sidebar, tombol utama) — hijau hutan,
+ *   BUKAN hitam pekat `#0B0B0B` yang jadi tanda khas template AI
+ * - aksen tunggal zaitun (`accent`) yang redup — tanpa neon, tanpa gradient
+ * - `accent-light` (sage muda) HANYA untuk aksen di atas permukaan gelap;
+ *   zaitun gelap di atas `forest` tidak cukup kontras
+ * - satu warna hangat kedua (kurkuma `caution`) hanya muncul sebagai state
+ *   peringatan, bukan dekorasi
+ *
+ * Dark mode TIDAK ada di Fase 1. `prefers-color-scheme: dark` sengaja tidak
+ * dipasang: pembalikan otomatis menghasilkan kontras yang tidak terkontrol
+ * pada komponen baru, dan palet hangat ini dirancang untuk permukaan terang.
  */
 
 @theme {
-  /* --- Brand ------------------------------------------------------------ */
-  --color-navy: #0b1b3a;
-  --color-navy-deep: #071227;
-  --color-navy-soft: #16294d;
-  --color-navy-line: #2b3f66;
+  /* --- Brand: keluarga gelap kehijauan (pengganti navy) ----------------- */
+  /* Permukaan gelap utama: rel sidebar, kartu gelap, tombol primary.       */
+  --color-forest: #1b2c21;
+  /* Keadaan hover di atas forest. */
+  --color-forest-soft: #2b4133;
+  /* Lapisan paling dalam (aktif, dasar footer). */
+  --color-forest-deep: #12201b;
+  /* Garis halus DAN teks redup di atas permukaan forest. Nilainya lebih
+     nyata daripada padanannya dulu (`#2b3f66` yang nyaris tidak terbaca
+     sebagai teks) supaya footer & meta gelap tetap terbaca. */
+  --color-forest-line: #4a5f50;
 
-  /* Aksen cyan. `accent` dipakai sebagai isian/garis (kontras tinggi di
-     navy), `accent-deep` dipakai sebagai teks aksen di atas kertas terang
-     karena cyan terang tidak terbaca di background putih. */
-  --color-accent: #22d3ee;
-  --color-accent-deep: #0e7490;
-  --color-accent-wash: #ecfeff;
+  /* --- Aksen zaitun ----------------------------------------------------- */
+  /* Aksen di atas permukaan TERANG: teks aksen, garis fokus, isian ringan.
+     Kontras teks ~5.2:1 di atas putih - cukup untuk teks kecil menurut WCAG
+     AA, jadi token inilah pekerja utama, bukan `accent-light`. */
+  --color-accent: #3f6212;
+  /* Hover/press aksen di atas terang (tombol primary-accent, batas fokus
+     yang lebih tebal). */
+  --color-accent-strong: #2f4b0e;
+  /* Aksen di atas permukaan GELAP (logo chip, footer, kartu forest).
+     Zaitun gelap di atas forest gagal kontras; sage muda ini bukan neon. */
+  --color-accent-light: #c3d9a5;
+  /* Latar aksen tipis di atas terang: halaman menu aktif, wash badge. */
+  --color-accent-wash: #eef1e2;
 
   /* --- Netral / kertas -------------------------------------------------- */
-  --color-paper: #f4f6f8;
-  --color-surface: #ffffff;
-  --color-line: #e0e5ec;
+  --color-paper: #f5f4ea;
+  --color-surface: #fdfcf7;
+  --color-line: #e5e3d8;
   /* Garis batas kontrol form. Nilai INI adalah perbaikan aksesibilitas, bukan
-     pilihan rasa: `--color-line-strong` sebelumnya `#C6CEDB` yang hanya 1.58:1
-     di atas putih, dan dipakai `Input`/`Select`/`Textarea` untuk batas kontrol.
-     WCAG 1.4.11 menuntut 3:1 untuk batas komponen non-teks yang dibutuhkan
-     untuk mengenali kontrol. Nilai sekarang 3.60:1 di `--color-surface`
-     (tempat form auth diletakkan) dan 3.32:1 di `--color-paper`. */
-  --color-line-strong: #7c87a0;
-  /* State hover untuk batas kontrol. Token ini ada karena hover lama memakai
-     `line-strong/80`: opasitas 80% menurunkan kontras ke 2.66:1 dan
-     membatalkan seluruh perbaikan di atas tepat saat kursor masuk ke field. */
-  --color-line-strong-hover: #6e7a96;
-  --color-ink: #0b1b3a;
-  --color-ink-muted: #55607a;
-  --color-ink-faint: #7d879b;
+     pilihan rasa: WCAG 1.4.11 menuntut 3:1 untuk batas komponen non-teks.
+     #6f7466 memberi ~4.5:1 di atas `--color-surface` dan ~4.3:1 di atas
+     `--color-paper`, jauh di atas syarat - hover-nya lebih gelap lagi supaya
+     pembacaan "field ini aktif" tidak menurunkan kontras (pelajaran dari
+     versi sebelumnya yang hover-nya justru melemahkan garis). */
+  --color-line-strong: #6f7466;
+  --color-line-strong-hover: #61665a;
+  --color-ink: #1a2a22;
+  --color-ink-muted: #57604f;
+  --color-ink-faint: #7e8577;
 
   /* --- Status (dipakai Badge) ------------------------------------------- */
+  /* positive zamrud sengaja beda keluarga dari aksen zaitun agar state
+     "berhasil" tidak tertukar dengan elemen interaktif aksen. */
   --color-positive: #0f7b53;
-  --color-positive-wash: #ecfdf5;
+  --color-positive-wash: #ecf7ef;
+  /* amber kurkuma - satu-satunya warm kedua, milik state, bukan dekor. */
   --color-caution: #96601a;
   --color-caution-wash: #fffaeb;
   --color-critical: #b42318;
-  --color-critical-wash: #fef3f2;
-  --color-neutral-wash: #f1f3f7;
+  --color-critical-wash: #fdf3f1;
+  --color-neutral-wash: #f0efe4;
 
   /* --- Tipografi -------------------------------------------------------- */
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
@@ -60,9 +89,33 @@
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
   /* --- Radius & shadow -------------------------------------------------- */
-  --radius-card: 0.75rem;
-  --shadow-card: 0 1px 2px rgb(11 27 58 / 0.05);
-  --shadow-lift: 0 12px 32px -12px rgb(11 27 58 / 0.28);
+  /* Radius kartu dinaikkan dari 0.75rem ke 1rem: sudut yang lebih lapang
+     membuang kesan "form pemerintah", cocok untuk permukaan hangat. */
+  --radius-card: 1rem;
+  /* Bayangan memakai warna tinta HIJAU, bukan navy-biru lama, supaya
+     "memberat" konsisten dengan palet. */
+  --shadow-card: 0 1px 2px rgb(26 42 34 / 0.06);
+  --shadow-lift: 0 12px 32px -12px rgb(20 33 27 / 0.3);
+}
+
+/*
+ * Token chart (Recharts). Recharts menulis warna langsung ke atribut SVG
+ * (bukan utility class Tailwind), jadi mereka membaca `var(--chart-*)` dari
+ * sini - artinya palet grafik punya SATU tempat kebenaran yang sama dengan
+ * token di atas. Seri: zaitun, teal damai, amber, abu, zamrud - semua
+ * redup, tanpa neon.
+ */
+:root {
+  --chart-grid: #ddd9c7;
+  --chart-primary: #3f6212;
+  --chart-secondary: #a5b76c;
+  --chart-teal: #23766f;
+  --chart-amber: #b97a14;
+  --chart-clay: #8c4a29;
+  --chart-gray: #6e7261;
+  --chart-faint: #9b9e92;
+  --chart-red: #b42318;
+  --chart-green: #0f7b53;
 }
 
 :root {
@@ -108,7 +161,7 @@ body {
 
 /* Fokus keyboard terlihat di seluruh komponen, bukan hanya di link. */
 :focus-visible {
-  outline: 2px solid var(--color-accent-deep);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 

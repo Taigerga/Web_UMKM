@@ -37,7 +37,7 @@ export function Input({
         inputVariants.size[size],
         invalid
           ? "border-critical focus-visible:outline-critical"
-          : "border-line-strong hover:border-line-strong-hover focus-visible:border-accent-deep",
+          : "border-line-strong hover:border-line-strong-hover focus-visible:border-accent",
         className,
       )}
       {...props}
@@ -59,7 +59,7 @@ export function Textarea({ className, invalid = false, rows = 4, ...props }: Tex
         "placeholder:text-ink-faint transition-colors duration-150",
         invalid
           ? "border-critical focus-visible:outline-critical"
-          : "border-line-strong focus-visible:border-accent-deep",
+          : "border-line-strong focus-visible:border-accent",
         className,
       )}
       {...props}
@@ -79,7 +79,7 @@ export function Select({ className, size = "md", ...props }: SelectProps) {
     <select
       className={cn(
         "w-full rounded-lg border border-line-strong bg-surface text-ink",
-        "transition-colors duration-150 focus-visible:border-accent-deep",
+        "transition-colors duration-150 focus-visible:border-accent",
         inputVariants.size[size],
         className,
       )}

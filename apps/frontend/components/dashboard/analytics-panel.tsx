@@ -105,39 +105,39 @@ export function AnalyticsPanel() {
   return (
     <div className="space-y-6">
       {message && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-critical-wash border border-critical/30 text-critical px-4 py-3 rounded-lg">
           {message}
         </div>
       )}
 
-      <div className="flex gap-4 items-center">
-        <select
-          value={storeId || ""}
-          onChange={(e) => setStoreId(e.target.value || null)}
-          className="border rounded px-3 py-2"
-        >
-          {stores.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-4 items-center">
+          <select
+            value={storeId || ""}
+            onChange={(e) => setStoreId(e.target.value || null)}
+            className="border-line-strong rounded-lg bg-surface px-3 py-2 text-sm"
+          >
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
 
-        <div className="flex gap-2">
-          {(["7d", "30d", "ytd"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-2 rounded text-sm ${
-                period === p
-                  ? "bg-blue-600 text-white"
-                  : "border border-gray-300 bg-white hover:bg-gray-50"
-              }`}
-            >
-              {p === "7d" ? "7 hari" : p === "30d" ? "30 hari" : "YTD"}
-            </button>
-          ))}
-        </div>
+          <div className="flex gap-2">
+            {(["7d", "30d", "ytd"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`rounded-lg px-3 py-2 text-sm transition-colors ${
+                  period === p
+                    ? "bg-accent text-white"
+                    : "border border-line bg-surface text-ink hover:bg-neutral-wash"
+                }`}
+              >
+                {p === "7d" ? "7 hari" : p === "30d" ? "30 hari" : "YTD"}
+              </button>
+            ))}
+          </div>
 
         <Button onClick={loadAnalytics} disabled={loading}>
           {loading ? "Loading..." : "Refresh"}
@@ -148,7 +148,7 @@ export function AnalyticsPanel() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-ink-muted">
               Total Penjualan
             </CardTitle>
           </CardHeader>
@@ -161,7 +161,7 @@ export function AnalyticsPanel() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-ink-muted">
               Total Pesanan
             </CardTitle>
           </CardHeader>
@@ -172,7 +172,7 @@ export function AnalyticsPanel() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-ink-muted">
               Nilai Rata-rata
             </CardTitle>
           </CardHeader>
@@ -185,7 +185,7 @@ export function AnalyticsPanel() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-ink-muted">
               Total Item
             </CardTitle>
           </CardHeader>
@@ -226,7 +226,7 @@ export function AnalyticsPanel() {
               </thead>
               <tbody>
                 {topProducts.map((p) => (
-                  <tr key={p.productId} className="border-b hover:bg-gray-50">
+                  <tr key={p.productId} className="border-b hover:bg-neutral-wash">
                     <td className="py-2 px-2">{p.sku}</td>
                     <td className="py-2 px-2">{p.name}</td>
                     <td className="text-right py-2 px-2">{p.totalQty}</td>
@@ -270,7 +270,7 @@ export function AnalyticsPanel() {
               </thead>
               <tbody>
                 {trend.slice(-10).map((t) => (
-                  <tr key={t.date} className="border-b hover:bg-gray-50">
+                  <tr key={t.date} className="border-b hover:bg-neutral-wash">
                     <td className="py-2 px-2">{t.date}</td>
                     <td className="text-right py-2 px-2">
                       Rp {(t.sales / 1_000_000).toFixed(1)}jt

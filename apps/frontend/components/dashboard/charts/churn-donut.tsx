@@ -12,9 +12,9 @@ export type ChurnChartPoint = {
 };
 
 const RISK_COLORS: Record<string, string> = {
-  Low: "#34d399",
-  Medium: "#f59e0b",
-  High: "#ef4444",
+  Low: "var(--chart-green)",
+  Medium: "var(--chart-amber)",
+  High: "var(--chart-red)",
 };
 
 /**
@@ -55,7 +55,7 @@ export function ChurnDonut({ data }: { data: ChurnChartPoint[] }) {
           {data
             .filter((d) => d.count > 0)
             .map((row) => (
-              <Cell key={row.risk} fill={RISK_COLORS[row.risk] ?? "#94a3b8"} />
+              <Cell key={row.risk} fill={RISK_COLORS[row.risk] ?? "var(--chart-faint)"} />
             ))}
         </Pie>
       </PieChart>

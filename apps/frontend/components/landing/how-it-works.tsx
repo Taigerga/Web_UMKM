@@ -44,7 +44,7 @@ export function HowItWorks() {
             <div className="flex items-center justify-between">
               <span
                 aria-hidden="true"
-                className="flex size-9 items-center justify-center rounded-lg bg-navy text-accent"
+                className="flex size-9 items-center justify-center rounded-lg bg-forest text-accent-light"
               >
                 <step.icon className="size-4" />
               </span>

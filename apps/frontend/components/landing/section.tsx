@@ -22,7 +22,7 @@ export function Section({
   title: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
-  tone?: "paper" | "surface" | "navy";
+  tone?: "paper" | "surface" | "forest";
   className?: string;
 }) {
   return (
@@ -31,17 +31,17 @@ export function Section({
       className={cn(
         "border-t border-line py-16 sm:py-20 lg:py-24",
         tone === "surface" && "bg-surface",
-        tone === "navy" && "border-navy-line bg-navy text-white",
+        tone === "forest" && "border-forest-line bg-forest text-white",
         className,
       )}
     >
       <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
-        <div className="max-w-2xl border-l-2 border-accent-deep pl-5">
+        <div className="max-w-2xl border-l-2 border-accent pl-5">
           {eyebrow ? (
             <p
               className={cn(
                 "text-xs font-semibold tracking-[0.18em] uppercase",
-                tone === "navy" ? "text-accent" : "text-accent-deep",
+                tone === "forest" ? "text-accent-light" : "text-accent",
               )}
             >
               {eyebrow}
@@ -50,7 +50,7 @@ export function Section({
           <h2
             className={cn(
               "mt-3 font-display text-3xl leading-tight font-semibold tracking-tight sm:text-4xl",
-              tone === "navy" ? "text-white" : "text-ink",
+              tone === "forest" ? "text-white" : "text-ink",
             )}
           >
             {title}
@@ -59,7 +59,7 @@ export function Section({
             <p
               className={cn(
                 "mt-4 text-base leading-relaxed",
-                tone === "navy" ? "text-navy-line" : "text-ink-muted",
+                tone === "forest" ? "text-forest-line" : "text-ink-muted",
               )}
             >
               {description}

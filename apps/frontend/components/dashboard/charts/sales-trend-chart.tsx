@@ -37,11 +37,11 @@ export function SalesTrendChart({ data }: { data: SalesTrendRow[] }) {
       <AreaChart data={data} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
         <defs>
           <linearGradient id="salesTrendFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} />
+            <stop offset="0%" stopColor="var(--chart-primary)" stopOpacity={0.25} />
+            <stop offset="100%" stopColor="var(--chart-primary)" stopOpacity={0.02} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={40} />
         <YAxis
           tick={{ fontSize: 11 }}
@@ -55,7 +55,7 @@ export function SalesTrendChart({ data }: { data: SalesTrendRow[] }) {
           type="monotone"
           dataKey="sales"
           name="Omzet"
-          stroke="#2563eb"
+          stroke="var(--chart-primary)"
           fill="url(#salesTrendFill)"
           isAnimationActive={!reduced}
         />

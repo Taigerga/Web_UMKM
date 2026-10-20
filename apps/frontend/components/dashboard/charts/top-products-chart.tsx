@@ -27,7 +27,7 @@ export function TopProductsChart({ data }: { data: TopProductRow[] }) {
   return (
     <ResponsiveContainer width="100%" height={Math.max(220, 48 * data.length + 32)}>
       <BarChart data={data} layout="vertical" margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
         <XAxis type="number" tick={{ fontSize: 11 }} />
         <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11 }} />
         <Tooltip
@@ -43,7 +43,7 @@ export function TopProductsChart({ data }: { data: TopProductRow[] }) {
         <Bar
           dataKey="totalQty"
           name="Item terjual"
-          fill="#0891b2"
+          fill="var(--chart-primary)"
           radius={[0, 4, 4, 0]}
           isAnimationActive={!reduced}
         />

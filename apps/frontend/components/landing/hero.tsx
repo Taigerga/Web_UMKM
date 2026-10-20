@@ -85,7 +85,7 @@ export function Hero() {
 
           <p className="text-sm text-ink-muted">
             Pendaftaran dibuka bertahap pada Fase 1.{" "}
-            <a href="#faq" className="font-medium text-accent-deep underline underline-offset-4">
+            <a href="#faq" className="font-medium text-accent underline underline-offset-4">
               Baca detailnya
             </a>
             .
@@ -115,9 +115,9 @@ function HeroLedger() {
       </div>
 
       <div className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface shadow-lift">
-        <div className="flex items-center justify-between border-b border-line bg-navy px-4 py-3 text-white">
+        <div className="flex items-center justify-between border-b border-line bg-forest px-4 py-3 text-white">
           <span className="font-display text-sm font-semibold">Toko Berkah Jaya</span>
-          <span className="font-mono text-xs text-accent">Saldo Rp 9.045.000</span>
+          <span className="font-mono text-xs text-accent-light">Saldo Rp 9.045.000</span>
         </div>
 
         <Table
@@ -127,9 +127,9 @@ function HeroLedger() {
           minWidth="min-w-[26rem]"
         />
 
-        <div className="flex items-center justify-between gap-3 border-t border-accent/40 bg-accent-wash px-4 py-3">
-          <span className="text-sm font-medium text-accent-deep">Prediksi minggu depan</span>
-          <span className="font-mono text-sm font-semibold tabular-nums text-accent-deep">
+        <div className="flex items-center justify-between gap-3 border-t border-accent-light/40 bg-accent-wash px-4 py-3">
+          <span className="text-sm font-medium text-accent">Prediksi minggu depan</span>
+          <span className="font-mono text-sm font-semibold tabular-nums text-accent">
             Rp 10.320.000
           </span>
         </div>

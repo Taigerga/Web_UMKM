@@ -55,7 +55,7 @@ export function MlFeatures() {
           <Card key={capability.title} className="flex flex-col gap-3" padding="lg">
             <span
               aria-hidden="true"
-              className="flex size-10 items-center justify-center rounded-lg bg-accent-wash text-accent-deep"
+              className="flex size-10 items-center justify-center rounded-lg bg-accent-wash text-accent"
             >
               <capability.icon className="size-5" />
             </span>
@@ -69,9 +69,9 @@ export function MlFeatures() {
           </Card>
         ))}
 
-        <Card variant="navy" className="flex flex-col gap-3" padding="lg">
+        <Card variant="forest" className="flex flex-col gap-3" padding="lg">
           <CardTitle className="text-white">Akurasi model belum diukur</CardTitle>
-          <CardDescription className="text-navy-line">
+          <CardDescription className="text-forest-line">
             Angka keputusan baru bisa muncul setelah model dilatih pada dataset
             evaluasi yang kami publikasikan. Sampai itu, kami tidak menampilkan
             klaim akurasi apa pun.

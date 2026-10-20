@@ -7,12 +7,12 @@ import { cn } from "@/lib/cn";
 export const buttonVariants = {
   variant: {
     primary:
-      "bg-navy text-white hover:bg-navy-soft active:bg-navy-deep border border-transparent",
+      "bg-forest text-white hover:bg-forest-soft active:bg-forest-deep border border-transparent",
     accent:
-      "bg-accent-deep text-white hover:bg-[#0b6076] border border-transparent",
+      "bg-accent text-white hover:bg-accent-strong border border-transparent",
     outline:
-      "border border-line-strong bg-surface text-navy hover:border-navy hover:bg-neutral-wash",
-    ghost: "border border-transparent text-navy hover:bg-neutral-wash",
+      "border border-line-strong bg-surface text-forest hover:border-forest hover:bg-neutral-wash",
+    ghost: "border border-transparent text-forest hover:bg-neutral-wash",
     danger:
       "bg-critical text-white hover:bg-[#922017] border border-transparent",
   },

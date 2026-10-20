@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/cn";
 
-export type CardVariant = "default" | "outline" | "inset" | "navy";
+export type CardVariant = "default" | "outline" | "inset" | "forest";
 export type CardPadding = "none" | "sm" | "md" | "lg";
 
 export const cardVariants = {
@@ -10,7 +10,7 @@ export const cardVariants = {
     default: "bg-surface border border-line shadow-card",
     outline: "bg-transparent border border-line-strong",
     inset: "bg-neutral-wash border border-line",
-    navy: "bg-navy text-white border border-navy",
+    forest: "bg-forest text-white border border-forest",
   },
   padding: {
     none: "p-0",

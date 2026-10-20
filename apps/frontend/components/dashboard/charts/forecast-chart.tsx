@@ -43,7 +43,7 @@ export function ForecastChart({ data }: { data: ForecastChartPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <LineChart data={data} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
         <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={40} />
         <YAxis
           tick={{ fontSize: 11 }}
@@ -64,7 +64,7 @@ export function ForecastChart({ data }: { data: ForecastChartPoint[] }) {
             type="monotone"
             dataKey="upper"
             name="Batas atas"
-            stroke="#94a3b8"
+            stroke="var(--chart-faint)"
             strokeDasharray="4 4"
             dot={false}
             isAnimationActive={!reduced}
@@ -74,7 +74,7 @@ export function ForecastChart({ data }: { data: ForecastChartPoint[] }) {
           type="monotone"
           dataKey="predicted"
           name="Prediksi"
-          stroke="#2563eb"
+          stroke="var(--chart-primary)"
           strokeWidth={2}
           dot={false}
           isAnimationActive={!reduced}
@@ -84,7 +84,7 @@ export function ForecastChart({ data }: { data: ForecastChartPoint[] }) {
             type="monotone"
             dataKey="lower"
             name="Batas bawah"
-            stroke="#94a3b8"
+            stroke="var(--chart-faint)"
             strokeDasharray="4 4"
             dot={false}
             isAnimationActive={!reduced}

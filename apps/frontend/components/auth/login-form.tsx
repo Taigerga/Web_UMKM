@@ -269,7 +269,7 @@ export function LoginForm({ nextPath = "/dashboard" }: LoginFormProps) {
         Belum punya akun?{" "}
         <Link
           href="/register"
-          className="font-medium text-accent-deep underline underline-offset-4"
+          className="font-medium text-accent underline underline-offset-4"
         >
           Buat akun gratis
         </Link>

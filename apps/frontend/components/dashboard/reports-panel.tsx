@@ -111,10 +111,10 @@ export function ReportsPanel() {
     <div className="space-y-6">
       {message && (
         <div
-          className={`px-4 py-3 rounded border ${
+          className={`px-4 py-3 rounded-lg border ${
             message.includes("berhasil")
-              ? "bg-green-50 border-green-200 text-green-700"
-              : "bg-red-50 border-red-200 text-red-700"
+              ? "bg-positive-wash border-positive/30 text-positive"
+              : "bg-critical-wash border-critical/30 text-critical"
           }`}
         >
           {message}
@@ -132,7 +132,7 @@ export function ReportsPanel() {
             <select
               value={storeId || ""}
               onChange={(e) => setStoreId(e.target.value || null)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border-line-strong rounded-lg bg-surface px-3 py-2 text-sm"
             >
               {stores.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -174,10 +174,10 @@ export function ReportsPanel() {
                   <button
                     key={p}
                     onClick={() => setPeriod(p)}
-                    className={`px-3 py-2 rounded text-sm ${
+                    className={`rounded-lg px-3 py-2 text-sm transition-colors ${
                       period === p
-                        ? "bg-blue-600 text-white"
-                        : "border border-gray-300 bg-white hover:bg-gray-50"
+                        ? "bg-accent text-white"
+                        : "border border-line bg-surface text-ink hover:bg-neutral-wash"
                     }`}
                   >
                     {p === "7d" ? "7 hari" : p === "30d" ? "30 hari" : "90 hari"}
@@ -194,7 +194,7 @@ export function ReportsPanel() {
               <select
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border-line-strong rounded-lg bg-surface px-3 py-2 text-sm"
               >
                 <option value="">Pilih produk...</option>
                 {products.map((p) => (
@@ -212,7 +212,7 @@ export function ReportsPanel() {
             <select
               value={format}
               onChange={(e) => setFormat(e.target.value as "html" | "csv" | "xlsx" | "pdf")}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border-line-strong rounded-lg bg-surface px-3 py-2 text-sm"
             >
               {(reportType === "sales-summary"
                 ? (["html", "xlsx", "pdf"] as const)

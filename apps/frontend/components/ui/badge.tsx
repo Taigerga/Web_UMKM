@@ -8,18 +8,18 @@ export type BadgeVariant =
   | "positive"
   | "caution"
   | "critical"
-  | "navy";
+  | "forest";
 
 export type BadgeSize = "sm" | "md";
 
 export const badgeVariants = {
   variant: {
     neutral: "bg-neutral-wash text-ink-muted border-line-strong",
-    accent: "bg-accent-wash text-accent-deep border-accent/50",
+    accent: "bg-accent-wash text-accent border-accent/40",
     positive: "bg-positive-wash text-positive border-positive/30",
     caution: "bg-caution-wash text-caution border-caution/30",
     critical: "bg-critical-wash text-critical border-critical/30",
-    navy: "bg-navy text-white border-navy",
+    forest: "bg-forest text-white border-forest",
   },
   size: {
     sm: "h-5 px-2 text-[0.6875rem]",

@@ -41,7 +41,7 @@ export function Privacy() {
   return (
     <Section
       id="privasi"
-      tone="navy"
+      tone="forest"
       eyebrow="Privasi dan keamanan"
       title="Apa yang benar-benar kami lakukan"
       description="Bagian ini menjelaskan kontrol yang sudah ada di Fase 1 dan batasnya. Kalau sebuah kontrol belum dibangun, kami tulis begitu."
@@ -51,41 +51,41 @@ export function Privacy() {
           <Card
             key={item.title}
             variant="inset"
-            className="flex flex-col gap-3 border-navy-line bg-navy-soft"
+            className="flex flex-col gap-3 border-forest-line bg-forest-soft"
             padding="lg"
           >
             <div className="flex items-start gap-3">
               <span
                 aria-hidden="true"
-                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent"
+                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-light/15 text-accent-light"
               >
                 <UserCheck className="size-3.5" />
               </span>
               <CardTitle className="text-white">{item.title}</CardTitle>
             </div>
-            <CardDescription className="text-navy-line">{item.body}</CardDescription>
+            <CardDescription className="text-forest-line">{item.body}</CardDescription>
           </Card>
         ))}
       </div>
 
       <Card
         variant="outline"
-        className="mt-6 border-navy-line"
+        className="mt-6 border-forest-line"
         padding="lg"
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2.5">
-            <Database aria-hidden="true" className="size-5 shrink-0 text-accent" />
+            <Database aria-hidden="true" className="size-5 shrink-0 text-accent-light" />
             <p className="font-display text-base font-semibold text-white">
               Yang belum ada di Fase 1
             </p>
           </div>
           <ul className="grid gap-2.5">
             {NOT_YET.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-navy-line">
+              <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-forest-line">
                 <span
                   aria-hidden="true"
-                  className="mt-2 size-1.5 shrink-0 rounded-full bg-accent"
+                  className="mt-2 size-1.5 shrink-0 rounded-full bg-accent-light"
                 />
                 {item}
               </li>

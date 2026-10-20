@@ -33,7 +33,7 @@ export function BasketLiftChart({ data }: { data: BasketChartPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={Math.max(220, 44 * data.length + 32)}>
       <BarChart data={data} layout="vertical" margin={{ top: 8, right: 24, bottom: 4, left: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
         <XAxis type="number" tick={{ fontSize: 11 }} domain={[0, Number((maxLift * 1.15).toFixed(2))]} />
         <YAxis type="category" dataKey="label" width={180} tick={{ fontSize: 11 }} />
         <Tooltip
@@ -45,11 +45,11 @@ export function BasketLiftChart({ data }: { data: BasketChartPoint[] }) {
             ];
           }}
         />
-        <ReferenceLine x={1} stroke="#ef4444" strokeDasharray="4 4" label={{ value: "lift=1", fontSize: 10, position: "insideBottomRight" }} />
+        <ReferenceLine x={1} stroke="var(--chart-red)" strokeDasharray="4 4" label={{ value: "lift=1", fontSize: 10, position: "insideBottomRight" }} />
         <Bar
           dataKey="lift"
           name="Lift"
-          fill="#0891b2"
+          fill="var(--chart-primary)"
           radius={[0, 4, 4, 0]}
           isAnimationActive={!reduced}
         />

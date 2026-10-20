@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="text-sm text-ink-muted">
         Alamat yang Anda tuju tidak ada di aplikasi ini.
       </p>
-      <Link href="/" className="text-sm text-accent underline">
+      <Link href="/" className="text-sm text-accent-light underline">
         Kembali ke beranda
       </Link>
     </main>

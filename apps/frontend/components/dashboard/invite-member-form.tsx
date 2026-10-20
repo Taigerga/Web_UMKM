@@ -87,7 +87,7 @@ export function InviteMemberForm({ storeId }: { storeId: string }) {
                 setRole(event.target.value as "OWNER" | "STAFF")
               }
               disabled={pending}
-              className="h-10 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink focus-visible:border-accent-deep"
+              className="h-10 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink focus-visible:border-accent"
             >
               <option value="STAFF">Pegawai</option>
               <option value="OWNER">Pemilik</option>

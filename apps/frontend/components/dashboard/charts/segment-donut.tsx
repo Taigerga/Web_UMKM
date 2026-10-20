@@ -13,7 +13,7 @@ export type SegmentChartPoint = {
   revenuePct: number;
 };
 
-const SEGMENT_COLORS = ["#1e3a8a", "#0891b2", "#34d399", "#f59e0b", "#ef4444", "#94a3b8"];
+const SEGMENT_COLORS = ['var(--chart-primary)', 'var(--chart-teal)', 'var(--chart-secondary)', 'var(--chart-amber)', 'var(--chart-clay)', 'var(--chart-faint)'];
 
 /**
  * Donat distribusi segmen pelanggan (RFM + K-Means per toko). Angka di

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
@@ -136,7 +136,7 @@ export function AnalyticsJobPanel() {
   return (
     <div className="space-y-6">
       {message && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{message}</div>
+        <div className="bg-critical-wash border border-critical/30 text-critical px-4 py-3 rounded-lg">{message}</div>
       )}
 
       <Card>
@@ -148,7 +148,7 @@ export function AnalyticsJobPanel() {
             <select
               value={storeId || ""}
               onChange={(e) => setStoreId(e.target.value || null)}
-              className="border rounded px-3 py-2"
+              className="border-line-strong rounded-lg bg-surface px-3 py-2 text-sm"
             >
               {stores.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -157,7 +157,7 @@ export function AnalyticsJobPanel() {
             <select
               value={jobType}
               onChange={(e) => setJobType(e.target.value as JobType)}
-              className="border rounded px-3 py-2"
+              className="border-line-strong rounded-lg bg-surface px-3 py-2 text-sm"
             >
               {JOB_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -167,7 +167,7 @@ export function AnalyticsJobPanel() {
               {submitting ? "Mengirim..." : "Jalankan Analisis"}
             </Button>
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-ink-muted">
             Sistem akan memproses analisis secara asynchronous. Anda dapat menutup halaman; hasil tersimpan dan dapat dilihat kembali.
           </p>
         </CardContent>
@@ -187,22 +187,22 @@ export function AnalyticsJobPanel() {
               <span
                 className={`text-xs px-2 py-1 rounded ${
                   job.status === "completed"
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-positive-wash text-positive"
                     : job.status === "failed"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-blue-100 text-blue-700"
+                      ? "bg-critical-wash text-critical"
+                      : "bg-neutral-wash text-ink-muted"
                 }`}
               >
                 {job.status}
               </span>
             </div>
             {job.explanation && (
-              <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded text-sm">
+              <div className="bg-accent-wash border border-accent/40 text-ink px-4 py-3 rounded-lg text-sm">
                 {job.explanation}
               </div>
             )}
             {job.errorMessage && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+              <div className="bg-critical-wash border border-critical/30 text-critical px-4 py-3 rounded-lg text-sm">
                 {job.errorMessage}
               </div>
             )}
@@ -214,7 +214,7 @@ export function AnalyticsJobPanel() {
                   <summary className="cursor-pointer text-xs text-ink-muted">
                     Lihat keterapan mentah (JSON)
                   </summary>
-                  <pre className="bg-gray-50 border rounded p-3 text-xs overflow-auto max-h-96 mt-2">
+                  <pre className="bg-paper border border-line rounded p-3 text-xs overflow-auto max-h-96 mt-2">
                     {JSON.stringify(job.result, null, 2)}
                   </pre>
                 </details>

@@ -75,7 +75,7 @@ export function ProfilePanel() {
             <div className="flex flex-col gap-1">
               <dt className="text-sm text-ink-muted">Peran platform</dt>
               <dd>
-                <Badge variant={profile.role === "ADMIN" ? "navy" : "accent"} size="sm">
+                <Badge variant={profile.role === "ADMIN" ? "forest" : "accent"} size="sm">
                   {profile.role}
                 </Badge>
               </dd>

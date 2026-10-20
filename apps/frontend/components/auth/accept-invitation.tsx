@@ -102,7 +102,7 @@ export function AcceptInvitation({ token }: { token: string }) {
           Undangan tidak berlaku
         </h1>
         <p className="text-ink-muted">{errorMessage}</p>
-        <Link href={loginUrl} className="text-sm text-accent underline">
+        <Link href={loginUrl} className="text-sm text-accent-light underline">
           Masuk ke akun Anda
         </Link>
       </main>
@@ -120,7 +120,7 @@ export function AcceptInvitation({ token }: { token: string }) {
           {accepted.role === "OWNER" ? "Pemilik" : "Pegawai"} toko. Silakan
           masuk ke dashboard untuk mulai bekerja.
         </p>
-        <Link href="/dashboard/toko" className="text-sm text-accent underline">
+        <Link href="/dashboard/toko" className="text-sm text-accent-light underline">
           Buka dashboard
         </Link>
       </main>

@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { AnalyticsJobPanel } from "@/components/dashboard/analytics-job-panel";
 

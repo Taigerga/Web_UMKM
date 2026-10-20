@@ -129,7 +129,7 @@ export function AdminOverviewPanel() {
                   header: "Peran",
                   render: (row) => (
                     <Badge
-                      variant={row.role === "ADMIN" ? "navy" : "accent"}
+                      variant={row.role === "ADMIN" ? "forest" : "accent"}
                       size="sm"
                     >
                       {row.role}

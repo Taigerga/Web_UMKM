@@ -39,7 +39,7 @@ export function AnomalyScatter({ data }: { data: AnomalyChartPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <ScatterChart margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
         <XAxis
           dataKey="date"
           tick={{ fontSize: 11 }}
@@ -67,7 +67,7 @@ export function AnomalyScatter({ data }: { data: AnomalyChartPoint[] }) {
           data={data}
           dataKey="actual"
           name="Penjualan aktual"
-          fill="#ef4444"
+          fill="var(--chart-red)"
           isAnimationActive={!reduced}
         />
       </ScatterChart>

@@ -150,7 +150,7 @@ export function AdminUsersPanel() {
 function RoleBadge({ role }: { role: string }) {
   if (role === "ADMIN") {
     return (
-      <Badge variant="navy" size="sm">
+      <Badge variant="forest" size="sm">
         Admin
       </Badge>
     );
